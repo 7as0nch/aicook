@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+import "api/aicook/v1/common.proto";
+
+service RecipeService {
+  rpc ListRecipes(ListRecipesRequest) returns (ListRecipesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/recipes"
+    };
+  }
+
+  rpc GetRecipeDetail(GetRecipeDetailRequest) returns (GetRecipeDetailReply) {
+    option (google.api.http) = {
+      get: "/api/v1/recipes/{id}"
+    };
+  }
+}
+
+message ListRecipesRequest {
+  int32 limit = 1;
+  string keyword = 2;
+  string kitchen_tag = 3;
+}
+
+message ListRecipesReply {
+  repeated Recipe recipes = 1;
+}
+
+message GetRecipeDetailRequest {
+  int64 id = 1;
+}
+
+message GetRecipeDetailReply {
+  RecipeDetail detail = 1;
+}

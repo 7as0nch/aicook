@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package aicook.errors;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/errors;errors";
+
+import "errors/errors.proto";
+
+enum ErrorReason {
+  option (.errors.default_code) = 500;
+
+  INTERNAL_ERROR = 0 [(.errors.code) = 500];
+  BAD_REQUEST = 1 [(.errors.code) = 400];
+  NOT_FOUND = 2 [(.errors.code) = 404];
+  INVALID_ID = 3 [(.errors.code) = 400];
+  INVALID_ARGUMENT = 4 [(.errors.code) = 400];
+  UPLOAD_NOT_READY = 5 [(.errors.code) = 409];
+}

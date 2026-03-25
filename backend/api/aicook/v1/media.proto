@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+import "api/aicook/v1/common.proto";
+
+service MediaService {
+  rpc PrepareMediaUpload(PrepareMediaUploadRequest) returns (PrepareMediaUploadReply) {
+    option (google.api.http) = {
+      post: "/api/v1/media/uploads:prepare"
+      body: "*"
+    };
+  }
+
+  rpc CompleteMediaUpload(CompleteMediaUploadRequest) returns (CompleteMediaUploadReply) {
+    option (google.api.http) = {
+      post: "/api/v1/media/uploads/{asset_id}:complete"
+      body: "*"
+    };
+  }
+}
+
+message PrepareMediaUploadRequest {
+  string media_kind = 1;
+  string file_name = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+}
+
+message PrepareMediaUploadReply {
+  int64 asset_id = 1;
+  string object_key = 2;
+  string upload_url = 3;
+  repeated UploadHeader upload_headers = 4;
+}
+
+message CompleteMediaUploadRequest {
+  int64 asset_id = 1;
+}
+
+message CompleteMediaUploadReply {
+  MediaAsset asset = 1;
+}

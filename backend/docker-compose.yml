@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  aicook-backend:
+    image: ${BACKEND_IMAGE:-7as0nch/aicook-backend:latest}
+    container_name: aicook-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_HTTP_PORT:-8000}:8000"
+    volumes:
+      - ${BACKEND_CONFIG_DIR:-./configs}:/data/conf
+      - ${BACKEND_LOG_DIR:-./logs}:/app/logs
+    environment:
+      TZ: Asia/Shanghai
+      AICOOK_CONFIG: /data/conf/config.yaml

@@ -1,0 +1,45 @@
+server:
+  name: aicook-backend
+  http:
+    addr: 0.0.0.0:8000
+    timeout: 15s
+  grpc:
+    addr: 0.0.0.0:9000
+    timeout: 1000s
+
+data:
+  pg_database:
+    host: sshjd.aihelper.chat
+    port: 30532
+    user: pgadmin
+    password: pgcj123456
+    dbname: pgdb
+    sslmode: disable
+    schema: aicook
+    auto_migrate: true
+  redis:
+    addr: sshjd.aihelper.chat:30379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+    password: "rediscj123456"
+
+oss:
+  endpoint: sshjd.aihelper.chat:30990
+  access_key: "7ns5yiCMFgN5rdZbkJnW"
+  secret_key: "4GV4kNFqonmgFNlTkLMfK6R7ChCP4a63TFMIqHIx"
+  use_ssl: false
+  media_bucket: aicook-media
+  knowledge_bucket: aicook-kb
+
+inference:
+  endpoint: http://127.0.0.1:8088
+  timeout: 30s
+
+ai:
+  mode: adk
+  provider: openai-compatible
+  base_url: ""
+  api_key: ""
+  chat_model: ""
+  vision_model: ""
+  embedding_model: ""

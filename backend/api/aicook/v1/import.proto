@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+import "api/aicook/v1/common.proto";
+
+service ImportService {
+  rpc CreateImageRecipe(CreateImageRecipeRequest) returns (CreateImageRecipeReply) {
+    option (google.api.http) = {
+      post: "/api/v1/imports/image-recipes"
+      body: "*"
+    };
+  }
+
+  rpc GetImportJob(GetImportJobRequest) returns (GetImportJobReply) {
+    option (google.api.http) = {
+      get: "/api/v1/imports/{id}"
+    };
+  }
+}
+
+message CreateImageRecipeRequest {
+  repeated int64 media_asset_ids = 1;
+  string title_hint = 2;
+}
+
+message CreateImageRecipeReply {
+  ImportJob job = 1;
+}
+
+message GetImportJobRequest {
+  int64 id = 1;
+}
+
+message GetImportJobReply {
+  ImportJob job = 1;
+}

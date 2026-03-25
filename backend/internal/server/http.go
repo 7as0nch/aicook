@@ -1,0 +1,74 @@
+package server
+
+import (
+	nethttp "net/http"
+	"time"
+
+	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
+
+	"github.com/chengjiang/aicook/backend/internal/conf"
+	svc "github.com/chengjiang/aicook/backend/internal/service"
+)
+
+type Registrar interface {
+	Register(mux *nethttp.ServeMux)
+}
+
+func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratoshttp.Server {
+	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
+
+	server := kratoshttp.NewServer(
+		kratoshttp.Address(cfg.GetServer().GetHttp().GetAddr()),
+		kratoshttp.Timeout(timeout),
+	)
+
+	mux := nethttp.NewServeMux()
+	mux.HandleFunc("GET /health", func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		w.WriteHeader(nethttp.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	for _, registrar := range registrars {
+		registrar.Register(mux)
+	}
+
+	server.HandlePrefix("/", mux)
+	return server
+}
+
+func NewHTTPServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService) *kratoshttp.Server {
+	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
+
+	options := []kratoshttp.ServerOption{
+		kratoshttp.Address(cfg.GetServer().GetHttp().GetAddr()),
+		kratoshttp.Timeout(timeout),
+	}
+	if network := cfg.GetServer().GetHttp().GetNetwork(); network != "" {
+		options = append(options, kratoshttp.Network(network))
+	}
+
+	server := kratoshttp.NewServer(options...)
+	v1.RegisterAuthServiceHTTPServer(server, authSvc)
+	v1.RegisterHouseholdServiceHTTPServer(server, householdSvc)
+	v1.RegisterRecipeServiceHTTPServer(server, recipeSvc)
+	v1.RegisterMediaServiceHTTPServer(server, mediaSvc)
+	v1.RegisterVoiceServiceHTTPServer(server, voiceSvc)
+	v1.RegisterImportServiceHTTPServer(server, importSvc)
+	v1.RegisterKnowledgeServiceHTTPServer(server, knowledgeSvc)
+	v1.RegisterAIServiceHTTPServer(server, aiSvc)
+
+	mux := nethttp.NewServeMux()
+	mux.HandleFunc("GET /health", func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		w.WriteHeader(nethttp.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	server.HandlePrefix("/", mux)
+	return server
+}

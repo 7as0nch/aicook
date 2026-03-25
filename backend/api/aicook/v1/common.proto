@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+message Attachment {
+  string type = 1;
+  string url = 2;
+  string content_type = 3;
+  string name = 4;
+}
+
+message QuoteContext {
+  string selected_text = 1;
+  string selection_source = 2;
+  string surrounding_text = 3;
+  string scene = 4;
+}
+
+message Source {
+  string title = 1;
+  string document_id = 2;
+  string snippet = 3;
+}
+
+message MediaAsset {
+  int64 id = 1;
+  int64 household_id = 2;
+  int64 user_id = 3;
+  string media_type = 4;
+  string file_name = 5;
+  string content_type = 6;
+  int64 size_bytes = 7;
+  string bucket = 8;
+  string object_key = 9;
+  string storage_url = 10;
+  string source = 11;
+  google.protobuf.Struct metadata = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message HouseholdSummary {
+  int64 id = 1;
+  string name = 2;
+  string share_code = 3;
+  string timezone = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message UserProfile {
+  int64 id = 1;
+  int64 household_id = 2;
+  string username = 3;
+  string phone = 4;
+  string display_name = 5;
+  string email = 6;
+  string status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message HouseholdMember {
+  int64 id = 1;
+  int64 household_id = 2;
+  int64 user_id = 3;
+  string role = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message KitchenTag {
+  int64 id = 1;
+  int64 household_id = 2;
+  string name = 3;
+  string icon = 4;
+  string color = 5;
+  uint32 type = 8;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message Recipe {
+  int64 id = 1;
+  int64 household_id = 2;
+  int64 owner_user_id = 3;
+  optional int64 source_household_id = 19;
+  optional int64 forked_from_recipe_id = 20;
+  string title = 4;
+  string summary = 5;
+  string cover_image_url = 6;
+  string status = 7;
+  string source_type = 8;
+  string language = 9;
+  string category = 10;
+  int32 total_minutes = 11;
+  int32 difficulty = 12;
+  repeated string scenario_tags = 13;
+  repeated string flavor_tags = 14;
+  repeated string tools = 15;
+  google.protobuf.Struct metadata = 16;
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+}
+
+message RecipeIngredient {
+  int64 id = 1;
+  int64 recipe_id = 2;
+  int32 sort_order = 3;
+  string group_name = 4;
+  string name = 5;
+  string amount_text = 6;
+  string preparation = 7;
+  string remark = 8;
+}
+
+message RecipeStep {
+  int64 id = 1;
+  int64 recipe_id = 2;
+  int32 step_no = 3;
+  string title = 4;
+  string description = 5;
+  string step_type = 6;
+  bool need_timer = 7;
+  int32 timer_seconds = 8;
+  string timer_animation = 9;
+  string heat_level = 10;
+  string end_condition = 11;
+  string safety_tips = 12;
+  string ai_hint = 13;
+  string media_url = 14;
+}
+
+message RecipeDetail {
+  Recipe recipe = 1;
+  repeated RecipeIngredient ingredients = 2;
+  repeated RecipeStep steps = 3;
+}
+
+message ImportJob {
+  int64 id = 1;
+  int64 household_id = 2;
+  int64 user_id = 3;
+  string input_type = 4;
+  string status = 5;
+  string stage = 6;
+  optional int64 recipe_id = 7;
+  google.protobuf.Struct input_payload = 8;
+  google.protobuf.Struct normalized_payload = 9;
+  string error_message = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message KnowledgeBase {
+  int64 id = 1;
+  int64 household_id = 2;
+  string name = 3;
+  string description = 4;
+  string status = 5;
+  int32 default_top_k = 6;
+  int32 default_chunk_size = 7;
+  google.protobuf.Struct metadata = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message KnowledgeDocument {
+  int64 id = 1;
+  int64 knowledge_base_id = 2;
+  optional int64 media_asset_id = 3;
+  string title = 4;
+  string file_name = 5;
+  string content_type = 6;
+  string bucket = 7;
+  string object_key = 8;
+  string status = 9;
+  string text_content = 10;
+  string summary = 11;
+  google.protobuf.Struct metadata = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message AIMessage {
+  int64 id = 1;
+  int64 ai_session_id = 2;
+  string role = 3;
+  string content = 4;
+  string mode = 5;
+  QuoteContext quote_context = 6;
+  repeated Attachment attachments = 7;
+  repeated Source response_sources = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message AISession {
+  int64 id = 1;
+  int64 household_id = 2;
+  int64 user_id = 3;
+  optional int64 recipe_id = 4;
+  string scene = 5;
+  string title = 6;
+  google.protobuf.Struct context = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message UploadHeader {
+  string key = 1;
+  string value = 2;
+}

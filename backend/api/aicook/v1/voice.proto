@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+
+service VoiceService {
+  rpc Transcribe(TranscribeRequest) returns (TranscribeReply) {
+    option (google.api.http) = {
+      post: "/api/v1/media/transcriptions"
+      body: "*"
+    };
+  }
+}
+
+message TranscribeRequest {
+  int64 asset_id = 1;
+}
+
+message SpeechSegment {
+  int64 start_ms = 1;
+  int64 end_ms = 2;
+  string text = 3;
+  double score = 4;
+}
+
+message TranscribeReply {
+  string text = 1;
+  double confidence = 2;
+  repeated SpeechSegment segments = 3;
+}

@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+import "api/aicook/v1/common.proto";
+
+service KnowledgeService {
+  rpc CreateKnowledgeBase(CreateKnowledgeBaseRequest) returns (CreateKnowledgeBaseReply) {
+    option (google.api.http) = {
+      post: "/api/v1/knowledge-bases"
+      body: "*"
+    };
+  }
+
+  rpc ListKnowledgeBases(ListKnowledgeBasesRequest) returns (ListKnowledgeBasesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/knowledge-bases"
+    };
+  }
+
+  rpc CreateKnowledgeDocument(CreateKnowledgeDocumentRequest) returns (CreateKnowledgeDocumentReply) {
+    option (google.api.http) = {
+      post: "/api/v1/knowledge-bases/{knowledge_base_id}/documents"
+      body: "*"
+    };
+  }
+
+  rpc ListKnowledgeDocuments(ListKnowledgeDocumentsRequest) returns (ListKnowledgeDocumentsReply) {
+    option (google.api.http) = {
+      get: "/api/v1/knowledge-bases/{knowledge_base_id}/documents"
+    };
+  }
+
+  rpc ReindexKnowledgeBase(ReindexKnowledgeBaseRequest) returns (ReindexKnowledgeBaseReply) {
+    option (google.api.http) = {
+      post: "/api/v1/knowledge-bases/{knowledge_base_id}/reindex"
+      body: "*"
+    };
+  }
+
+  rpc QueryKnowledgeBase(QueryKnowledgeBaseRequest) returns (QueryKnowledgeBaseReply) {
+    option (google.api.http) = {
+      post: "/api/v1/knowledge-bases/{knowledge_base_id}/query"
+      body: "*"
+    };
+  }
+}
+
+message CreateKnowledgeBaseRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message CreateKnowledgeBaseReply {
+  KnowledgeBase base = 1;
+}
+
+message ListKnowledgeBasesRequest {}
+
+message ListKnowledgeBasesReply {
+  repeated KnowledgeBase bases = 1;
+}
+
+message CreateKnowledgeDocumentRequest {
+  int64 knowledge_base_id = 1;
+  int64 media_asset_id = 2;
+  string title = 3;
+}
+
+message CreateKnowledgeDocumentReply {
+  KnowledgeDocument document = 1;
+}
+
+message ListKnowledgeDocumentsRequest {
+  int64 knowledge_base_id = 1;
+}
+
+message ListKnowledgeDocumentsReply {
+  repeated KnowledgeDocument documents = 1;
+}
+
+message ReindexKnowledgeBaseRequest {
+  int64 knowledge_base_id = 1;
+}
+
+message ReindexKnowledgeBaseReply {
+  string status = 1;
+}
+
+message QueryKnowledgeBaseRequest {
+  int64 knowledge_base_id = 1;
+  string question = 2;
+}
+
+message QueryKnowledgeBaseReply {
+  string answer = 1;
+  repeated Source sources = 2;
+  string mode = 3;
+}

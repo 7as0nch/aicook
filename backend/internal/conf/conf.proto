@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package aicook.conf;
+
+option go_package = "github.com/chengjiang/aicook/backend/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+  OSS oss = 3;
+  Inference inference = 4;
+  AI ai = 5;
+}
+
+message Server {
+  string name = 1;
+  HTTP http = 2;
+  GRPC grpc = 3;
+}
+
+message HTTP {
+  string network = 1;
+  string addr = 2;
+  google.protobuf.Duration timeout = 3;
+}
+
+message GRPC {
+  string network = 1;
+  string addr = 2;
+  google.protobuf.Duration timeout = 3;
+}
+
+message Data {
+  PGDatabase pg_database = 1;
+  Redis redis = 2;
+}
+
+message PGDatabase {
+  string host = 1;
+  int32 port = 2;
+  string user = 3;
+  string password = 4;
+  string dbname = 5;
+  string sslmode = 6;
+  string schema = 7;
+  bool auto_migrate = 8;
+}
+
+message Redis {
+  string addr = 1;
+  google.protobuf.Duration read_timeout = 2;
+  google.protobuf.Duration write_timeout = 3;
+  string password = 4;
+}
+
+message OSS {
+  string endpoint = 1;
+  string public_endpoint = 2;
+  string access_key = 3;
+  string secret_key = 4;
+  bool use_ssl = 5;
+  string media_bucket = 6;
+  string knowledge_bucket = 7;
+}
+
+message Inference {
+  string endpoint = 1;
+  google.protobuf.Duration timeout = 2;
+}
+
+message AI {
+  string mode = 1;
+  string provider = 2;
+  string base_url = 3;
+  string api_key = 4;
+  string chat_model = 5;
+  string vision_model = 6;
+  string embedding_model = 7;
+}

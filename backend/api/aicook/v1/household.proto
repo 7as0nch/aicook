@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+import "api/aicook/v1/common.proto";
+
+service HouseholdService {
+  rpc CreateHousehold(CreateHouseholdRequest) returns (CreateHouseholdReply) {
+    option (google.api.http) = {
+      post: "/api/v1/households"
+      body: "*"
+    };
+  }
+
+  rpc CreateShareCode(CreateShareCodeRequest) returns (CreateShareCodeReply) {
+    option (google.api.http) = {
+      post: "/api/v1/households/share-code"
+      body: "*"
+    };
+  }
+
+  rpc GetKitchenByShareCode(GetKitchenByShareCodeRequest) returns (GetKitchenByShareCodeReply) {
+    option (google.api.http) = {
+      get: "/api/v1/households/share/{share_code}"
+    };
+  }
+
+  rpc ImportSharedRecipes(ImportSharedRecipesRequest) returns (ImportSharedRecipesReply) {
+    option (google.api.http) = {
+      post: "/api/v1/households/share/{share_code}:import"
+      body: "*"
+    };
+  }
+
+  rpc ListKitchenTags(ListKitchenTagsRequest) returns (ListKitchenTagsReply) {
+    option (google.api.http) = {
+      get: "/api/v1/kitchen-tags"
+    };
+  }
+
+  rpc CreateKitchenTag(CreateKitchenTagRequest) returns (CreateKitchenTagReply) {
+    option (google.api.http) = {
+      post: "/api/v1/kitchen-tags"
+      body: "*"
+    };
+  }
+}
+
+message CreateHouseholdRequest {
+  string name = 1;
+}
+
+message CreateHouseholdReply {
+  HouseholdSummary household = 1;
+}
+
+message CreateShareCodeRequest {}
+
+message CreateShareCodeReply {
+  HouseholdSummary household = 1;
+}
+
+message GetKitchenByShareCodeRequest {
+  string share_code = 1;
+}
+
+message SharedRecipePreview {
+  Recipe recipe = 1;
+}
+
+message GetKitchenByShareCodeReply {
+  HouseholdSummary household = 1;
+  repeated SharedRecipePreview recipes = 2;
+}
+
+message ImportSharedRecipesRequest {
+  string share_code = 1;
+  repeated int64 recipe_ids = 2;
+  optional int64 kitchen_tag_id = 3;
+  string kitchen_tag_name = 4;
+}
+
+message ImportSharedRecipesReply {
+  repeated Recipe recipes = 1;
+  optional KitchenTag kitchen_tag = 2;
+}
+
+message ListKitchenTagsRequest {}
+
+message ListKitchenTagsReply {
+  repeated KitchenTag tags = 1;
+}
+
+message CreateKitchenTagRequest {
+  string name = 1;
+  string icon = 2;
+  string color = 3;
+}
+
+message CreateKitchenTagReply {
+  KitchenTag tag = 1;
+}

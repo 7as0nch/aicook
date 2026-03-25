@@ -1,0 +1,206 @@
+package biz
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+
+	"github.com/chengjiang/aicook/backend/internal/auth"
+	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/utils"
+)
+
+type AuthUsecase struct {
+	repo      *data.AuthRepo
+	tokenRepo auth.AuthRepo
+}
+
+type RegisterRequest struct {
+	Username      string
+	Password      string
+	DisplayName   string
+	Phone         string
+	Email         string
+	HouseholdName string
+}
+
+type AuthResult struct {
+	Token            string
+	User             *data.User
+	CurrentHousehold *data.Household
+	Households       []*data.Household
+}
+
+func NewAuthUsecase(repo *data.AuthRepo, tokenRepo auth.AuthRepo) *AuthUsecase {
+	return &AuthUsecase{repo: repo, tokenRepo: tokenRepo}
+}
+
+func (u *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*AuthResult, error) {
+	username := strings.TrimSpace(req.Username)
+	if username == "" || strings.TrimSpace(req.Password) == "" {
+		return nil, fmt.Errorf("username and password are required")
+	}
+	if _, err := u.repo.FindUserByUsername(ctx, username); err == nil {
+		return nil, fmt.Errorf("username already exists")
+	} else if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	displayName := strings.TrimSpace(req.DisplayName)
+	if displayName == "" {
+		displayName = username
+	}
+	householdName := strings.TrimSpace(req.HouseholdName)
+	if householdName == "" {
+		householdName = displayName + "的厨房"
+	}
+	household := &data.Household{
+		BaseModel:  data.BaseModel{ID: utils.GetSFID()},
+		Name:       householdName,
+		ShareCode:  utils.GetSFIDBase62(),
+		Timezone:   "Asia/Shanghai",
+		Preferences: nil,
+	}
+	user := &data.User{
+		BaseModel:    data.BaseModel{ID: utils.GetSFID()},
+		Username:     username,
+		PasswordHash: string(passwordHash),
+		Phone:        strings.TrimSpace(req.Phone),
+		DisplayName:  displayName,
+		Email:        strings.TrimSpace(req.Email),
+		Status:       "active",
+	}
+	if err := u.repo.CreateUserWithHousehold(ctx, household, user, "owner"); err != nil {
+		return nil, err
+	}
+	households, err := u.repo.ListHouseholdsByUser(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := u.tokenRepo.NewToken(ctx, user.ID, household.ID, user.Username, user.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{
+		Token:            token,
+		User:             user,
+		CurrentHousehold: household,
+		Households:       households,
+	}, nil
+}
+
+func (u *AuthUsecase) Login(ctx context.Context, username, password string) (*AuthResult, error) {
+	user, err := u.repo.FindUserByUsername(ctx, strings.TrimSpace(username))
+	if err != nil {
+		return nil, err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return nil, fmt.Errorf("invalid username or password")
+	}
+	households, err := u.repo.ListHouseholdsByUser(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	current, err := u.repo.GetHousehold(ctx, user.HouseholdID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := u.tokenRepo.NewToken(ctx, user.ID, current.ID, user.Username, user.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{
+		Token:            token,
+		User:             user,
+		CurrentHousehold: current,
+		Households:       households,
+	}, nil
+}
+
+func (u *AuthUsecase) GetMe(ctx context.Context, actor Actor) (*AuthResult, error) {
+	user, err := u.repo.GetUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	current, err := u.repo.GetHousehold(ctx, actor.HouseholdID)
+	if err != nil {
+		return nil, err
+	}
+	households, err := u.repo.ListHouseholdsByUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{
+		User:             user,
+		CurrentHousehold: current,
+		Households:       households,
+	}, nil
+}
+
+func (u *AuthUsecase) ListMyHouseholds(ctx context.Context, userID int64) ([]*data.Household, error) {
+	return u.repo.ListHouseholdsByUser(ctx, userID)
+}
+
+func (u *AuthUsecase) SwitchHousehold(ctx context.Context, actor Actor, householdID int64) (*AuthResult, error) {
+	ok, err := u.repo.HasMembership(ctx, actor.UserID, householdID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("user does not belong to target household")
+	}
+	user, err := u.repo.GetUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	current, err := u.repo.GetHousehold(ctx, householdID)
+	if err != nil {
+		return nil, err
+	}
+	households, err := u.repo.ListHouseholdsByUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := u.tokenRepo.NewToken(ctx, user.ID, householdID, user.Username, user.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{
+		Token:            token,
+		User:             user,
+		CurrentHousehold: current,
+		Households:       households,
+	}, nil
+}
+
+func (u *AuthUsecase) CreateHousehold(ctx context.Context, actor Actor, name string) (*AuthResult, error) {
+	household, err := u.repo.CreateHouseholdForUser(ctx, actor.UserID, strings.TrimSpace(name), utils.GetSFIDBase62())
+	if err != nil {
+		return nil, err
+	}
+	user, err := u.repo.GetUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	households, err := u.repo.ListHouseholdsByUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := u.tokenRepo.NewToken(ctx, actor.UserID, household.ID, user.Username, user.Phone)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{
+		Token:            token,
+		User:             user,
+		CurrentHousehold: household,
+		Households:       households,
+	}, nil
+}
