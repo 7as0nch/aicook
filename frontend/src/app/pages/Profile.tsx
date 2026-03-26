@@ -20,6 +20,8 @@ export default function Profile() {
   const [sharePreview, setSharePreview] = useState<{ household: { name: string }; recipes: UiRecipe[] } | null>(null);
   const [selectedImportIds, setSelectedImportIds] = useState<string[]>([]);
 
+  const [showKitchensModal, setShowKitchensModal] = useState(false);
+
   useEffect(() => {
     void getMe()
       .then(setSession)
@@ -137,51 +139,19 @@ export default function Profile() {
         {message ? <p className="mt-4 rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600">{message}</p> : null}
       </div>
 
-      <div className="space-y-3 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-orange-500">My Kitchens</h2>
-          <button type="button" onClick={() => void handleShareCode()} disabled={busy} className="text-xs font-semibold text-gray-500">
-            生成分享码
-          </button>
-        </div>
-        <div className="space-y-2">
-          {(session?.households ?? []).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => void handleSwitch(item.id)}
-              disabled={busy}
-              className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left ${
-                current?.id === item.id ? "border-orange-200 bg-orange-50" : "border-gray-100 bg-gray-50"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
-                  <Home className="h-4 w-4 text-gray-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{item.name}</p>
-                  <p className="text-xs text-gray-400">{item.share_code || "未生成分享码"}</p>
-                </div>
-              </div>
-              <span className="text-xs font-medium text-gray-500">{current?.id === item.id ? "当前" : "切换"}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            value={newKitchenName}
-            onChange={(e) => setNewKitchenName(e.target.value)}
-            placeholder="新厨房名称"
-            className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none"
-          />
-          <button type="button" onClick={() => void handleCreateKitchen()} disabled={busy || !newKitchenName.trim()} className="rounded-2xl bg-gray-900 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
       <div className="space-y-2">
+        <button 
+          onClick={() => setShowKitchensModal(true)} 
+          className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:bg-gray-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50">
+              <Home className="h-4 w-4 text-orange-500" />
+            </div>
+            <span className="font-medium text-gray-800">我的厨房</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-gray-300" />
+        </button>
         {[
           { icon: Settings, label: "家庭偏好设置", path: "/profile/preferences" },
           { icon: Database, label: "AI 知识库", path: "/profile/knowledge-base" },
@@ -227,6 +197,80 @@ export default function Profile() {
           退出登录
         </button>
       </div>
+
+      <AnimatePresence>
+        {showKitchensModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowKitchensModal(false)}
+              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-4 right-4 top-1/2 z-[101] max-h-[80vh] -translate-y-1/2 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">我的厨房</h3>
+                <button onClick={() => setShowKitchensModal(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-500">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-extrabold uppercase tracking-[0.22em] text-orange-500">My Kitchens</h2>
+                  <button type="button" onClick={() => void handleShareCode()} disabled={busy} className="text-xs font-semibold text-gray-500">
+                    生成分享码
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {(session?.households ?? []).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        void handleSwitch(item.id)
+                        setShowKitchensModal(false)
+                      }}
+                      disabled={busy}
+                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left ${
+                        current?.id === item.id ? "border-orange-200 bg-orange-50" : "border-gray-100 bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+                          <Home className="h-4 w-4 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{item.name}</p>
+                          <p className="text-xs text-gray-400">{item.share_code || "未生成分享码"}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">{current?.id === item.id ? "当前" : "切换"}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newKitchenName}
+                    onChange={(e) => setNewKitchenName(e.target.value)}
+                    placeholder="新厨房名称"
+                    className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none"
+                  />
+                  <button type="button" onClick={() => void handleCreateKitchen()} disabled={busy || !newKitchenName.trim()} className="rounded-2xl bg-gray-900 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Share Modal */}
       <AnimatePresence>
