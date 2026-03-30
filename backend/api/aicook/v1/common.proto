@@ -12,6 +12,7 @@ message Attachment {
   string url = 2;
   string content_type = 3;
   string name = 4;
+  string asset_id = 5;
 }
 
 message QuoteContext {
@@ -106,6 +107,7 @@ message Recipe {
   google.protobuf.Struct metadata = 16;
   google.protobuf.Timestamp created_at = 17;
   google.protobuf.Timestamp updated_at = 18;
+  repeated string gallery_image_urls = 21;
 }
 
 message RecipeIngredient {
@@ -134,6 +136,7 @@ message RecipeStep {
   string safety_tips = 12;
   string ai_hint = 13;
   string media_url = 14;
+  repeated string media_urls = 15;
 }
 
 message RecipeDetail {
@@ -198,6 +201,7 @@ message AIMessage {
   repeated Source response_sources = 8;
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Struct response_meta = 11;
 }
 
 message AISession {

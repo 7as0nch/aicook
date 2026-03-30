@@ -6,8 +6,8 @@ import (
 	"github.com/google/wire"
 	"gorm.io/gorm"
 
-	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/auth"
+	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	"github.com/chengjiang/aicook/backend/internal/platform/demo"
 	"github.com/chengjiang/aicook/backend/internal/platform/inference"
@@ -41,6 +41,7 @@ func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
 		// 当前仓库以 deploy/sql/base.sql 作为业务 schema 主来源。
 		// 只有在空库/本地引导场景下，才允许 AutoMigrate 创建基础表结构；
 		// 已存在业务表时跳过，避免 GORM 试图重命名或删除手写 SQL 建立的约束与索引。
+		// db.AutoMigrate(&model.RecipeKitchenTag{})
 		if !db.Migrator().HasTable(&Household{}) {
 			if err := persistence.AutoMigrate(ctx, db); err != nil {
 				return nil, nil, err

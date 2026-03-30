@@ -1,0 +1,9 @@
+version: "3.8"
+
+services:
+  aicook-frontend:
+    image: ${FRONTEND_IMAGE:-7as0nch/aicook-frontend:latest}
+    container_name: aicook-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_HTTP_PORT:-8080}:80"

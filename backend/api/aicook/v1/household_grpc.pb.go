@@ -25,6 +25,8 @@ const (
 	HouseholdService_ImportSharedRecipes_FullMethodName   = "/aicook.v1.HouseholdService/ImportSharedRecipes"
 	HouseholdService_ListKitchenTags_FullMethodName       = "/aicook.v1.HouseholdService/ListKitchenTags"
 	HouseholdService_CreateKitchenTag_FullMethodName      = "/aicook.v1.HouseholdService/CreateKitchenTag"
+	HouseholdService_UpdateKitchenTag_FullMethodName      = "/aicook.v1.HouseholdService/UpdateKitchenTag"
+	HouseholdService_DeleteKitchenTag_FullMethodName      = "/aicook.v1.HouseholdService/DeleteKitchenTag"
 )
 
 // HouseholdServiceClient is the client API for HouseholdService service.
@@ -37,6 +39,8 @@ type HouseholdServiceClient interface {
 	ImportSharedRecipes(ctx context.Context, in *ImportSharedRecipesRequest, opts ...grpc.CallOption) (*ImportSharedRecipesReply, error)
 	ListKitchenTags(ctx context.Context, in *ListKitchenTagsRequest, opts ...grpc.CallOption) (*ListKitchenTagsReply, error)
 	CreateKitchenTag(ctx context.Context, in *CreateKitchenTagRequest, opts ...grpc.CallOption) (*CreateKitchenTagReply, error)
+	UpdateKitchenTag(ctx context.Context, in *UpdateKitchenTagRequest, opts ...grpc.CallOption) (*UpdateKitchenTagReply, error)
+	DeleteKitchenTag(ctx context.Context, in *DeleteKitchenTagRequest, opts ...grpc.CallOption) (*DeleteKitchenTagReply, error)
 }
 
 type householdServiceClient struct {
@@ -107,6 +111,26 @@ func (c *householdServiceClient) CreateKitchenTag(ctx context.Context, in *Creat
 	return out, nil
 }
 
+func (c *householdServiceClient) UpdateKitchenTag(ctx context.Context, in *UpdateKitchenTagRequest, opts ...grpc.CallOption) (*UpdateKitchenTagReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateKitchenTagReply)
+	err := c.cc.Invoke(ctx, HouseholdService_UpdateKitchenTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *householdServiceClient) DeleteKitchenTag(ctx context.Context, in *DeleteKitchenTagRequest, opts ...grpc.CallOption) (*DeleteKitchenTagReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteKitchenTagReply)
+	err := c.cc.Invoke(ctx, HouseholdService_DeleteKitchenTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HouseholdServiceServer is the server API for HouseholdService service.
 // All implementations should embed UnimplementedHouseholdServiceServer
 // for forward compatibility.
@@ -117,6 +141,8 @@ type HouseholdServiceServer interface {
 	ImportSharedRecipes(context.Context, *ImportSharedRecipesRequest) (*ImportSharedRecipesReply, error)
 	ListKitchenTags(context.Context, *ListKitchenTagsRequest) (*ListKitchenTagsReply, error)
 	CreateKitchenTag(context.Context, *CreateKitchenTagRequest) (*CreateKitchenTagReply, error)
+	UpdateKitchenTag(context.Context, *UpdateKitchenTagRequest) (*UpdateKitchenTagReply, error)
+	DeleteKitchenTag(context.Context, *DeleteKitchenTagRequest) (*DeleteKitchenTagReply, error)
 }
 
 // UnimplementedHouseholdServiceServer should be embedded to have
@@ -143,6 +169,12 @@ func (UnimplementedHouseholdServiceServer) ListKitchenTags(context.Context, *Lis
 }
 func (UnimplementedHouseholdServiceServer) CreateKitchenTag(context.Context, *CreateKitchenTagRequest) (*CreateKitchenTagReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateKitchenTag not implemented")
+}
+func (UnimplementedHouseholdServiceServer) UpdateKitchenTag(context.Context, *UpdateKitchenTagRequest) (*UpdateKitchenTagReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateKitchenTag not implemented")
+}
+func (UnimplementedHouseholdServiceServer) DeleteKitchenTag(context.Context, *DeleteKitchenTagRequest) (*DeleteKitchenTagReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteKitchenTag not implemented")
 }
 func (UnimplementedHouseholdServiceServer) testEmbeddedByValue() {}
 
@@ -272,6 +304,42 @@ func _HouseholdService_CreateKitchenTag_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HouseholdService_UpdateKitchenTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateKitchenTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HouseholdServiceServer).UpdateKitchenTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HouseholdService_UpdateKitchenTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HouseholdServiceServer).UpdateKitchenTag(ctx, req.(*UpdateKitchenTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HouseholdService_DeleteKitchenTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteKitchenTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HouseholdServiceServer).DeleteKitchenTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HouseholdService_DeleteKitchenTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HouseholdServiceServer).DeleteKitchenTag(ctx, req.(*DeleteKitchenTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HouseholdService_ServiceDesc is the grpc.ServiceDesc for HouseholdService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -302,6 +370,14 @@ var HouseholdService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateKitchenTag",
 			Handler:    _HouseholdService_CreateKitchenTag_Handler,
+		},
+		{
+			MethodName: "UpdateKitchenTag",
+			Handler:    _HouseholdService_UpdateKitchenTag_Handler,
+		},
+		{
+			MethodName: "DeleteKitchenTag",
+			Handler:    _HouseholdService_DeleteKitchenTag_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+@theme {
+  /* Design mock palette — utilities: bg-primary, text-on-surface, etc. */
+  --color-primary-fixed-dim: #b0cfad;
+  --color-surface-container-high: #e9e8e4;
+  --color-background: #faf9f5;
+  --color-surface-tint: #4a654a;
+  --color-tertiary-fixed-dim: #ffb783;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-secondary-container: #55656d;
+  --color-primary: #4a654a;
+  --color-on-secondary-fixed: #0d1e25;
+  --color-surface-container: #efeeea;
+  --color-on-primary-fixed: #07200b;
+  --color-on-tertiary-container: #572900;
+  --color-secondary: #506169;
+  --color-on-primary-fixed-variant: #324d34;
+  --color-primary-fixed: #cbebc8;
+  --color-secondary-container: #d1e2ec;
+  --color-on-secondary: #ffffff;
+  --color-error: #ba1a1a;
+  --color-on-primary: #ffffff;
+  --color-secondary-fixed-dim: #b8c9d3;
+  --color-tertiary-fixed: #ffdcc5;
+  --color-on-primary-container: #223c24;
+  --color-tertiary-container: #ed8328;
+  --color-on-surface-variant: #424842;
+  --color-surface-variant: #e3e2df;
+  --color-outline: #737971;
+  --color-on-background: #1b1c1a;
+  --color-primary-container: #89a787;
+  --color-error-container: #ffdad6;
+  --color-on-tertiary-fixed-variant: #713700;
+  --color-inverse-surface: #2f312e;
+  --color-on-secondary-fixed-variant: #394951;
+  --color-outline-variant: #c2c8bf;
+  --color-tertiary: #944a00;
+  --color-on-error-container: #93000a;
+  --color-on-tertiary-fixed: #301400;
+  --color-surface: #faf9f5;
+  --color-on-tertiary: #ffffff;
+  --color-surface-bright: #faf9f5;
+  --color-inverse-primary: #b0cfad;
+  --color-surface-dim: #dbdad6;
+  --color-inverse-on-surface: #f2f1ed;
+  --color-surface-container-low: #f4f4f0;
+  --color-on-surface: #1b1c1a;
+  --color-surface-container-highest: #e3e2df;
+  --color-secondary-fixed: #d4e5ef;
+  --color-on-error: #ffffff;
+
+  --font-headline: "Manrope", "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-label: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --text-display-sm: 2.25rem;
+  --text-display-sm--line-height: 1.05;
+  --text-display-lg: 3.5rem;
+  --text-display-lg--line-height: 1.02;
+
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+
+  --max-width-shell: 80rem;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #faf9f5;
+  --surface: #ffffff;
+  --surface-soft: #f4f4f0;
+  --surface-muted: #efeeea;
+  --surface-strong: #e3e2df;
+  --text: #1b1c1a;
+  --text-soft: #424842;
+  --text-muted: #737971;
+  --line: #d8d7d3;
+  --primary: #4a654a;
+  --primary-strong: #324d34;
+  --primary-soft: #cbebc8;
+  --secondary: #506169;
+  --secondary-soft: #d1e2ec;
+  --accent: #ed8328;
+  --accent-strong: #944a00;
+  --shadow-lg: 0 28px 80px rgba(33, 44, 28, 0.14);
+  --shadow-md: 0 18px 48px rgba(33, 44, 28, 0.1);
+  --shell-width: 80rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: max(884px, 100dvh);
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background-color: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  display: block;
+}
+
+.font-headline {
+  font-family: var(--font-headline);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-label {
+  font-family: var(--font-label);
+}
+
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.font-symbols,
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.selection-ignore {
+  user-select: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.hide-scrollbar,
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.pb-nav {
+  padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .pb-nav {
+    padding-bottom: 2.5rem;
+  }
+}

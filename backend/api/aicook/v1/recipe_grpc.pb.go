@@ -19,8 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RecipeService_ListRecipes_FullMethodName     = "/aicook.v1.RecipeService/ListRecipes"
-	RecipeService_GetRecipeDetail_FullMethodName = "/aicook.v1.RecipeService/GetRecipeDetail"
+	RecipeService_ListRecipes_FullMethodName       = "/aicook.v1.RecipeService/ListRecipes"
+	RecipeService_GetRecipeDetail_FullMethodName   = "/aicook.v1.RecipeService/GetRecipeDetail"
+	RecipeService_CreateRecipeDraft_FullMethodName = "/aicook.v1.RecipeService/CreateRecipeDraft"
+	RecipeService_UpdateRecipe_FullMethodName      = "/aicook.v1.RecipeService/UpdateRecipe"
+	RecipeService_DeleteRecipe_FullMethodName      = "/aicook.v1.RecipeService/DeleteRecipe"
 )
 
 // RecipeServiceClient is the client API for RecipeService service.
@@ -29,6 +32,9 @@ const (
 type RecipeServiceClient interface {
 	ListRecipes(ctx context.Context, in *ListRecipesRequest, opts ...grpc.CallOption) (*ListRecipesReply, error)
 	GetRecipeDetail(ctx context.Context, in *GetRecipeDetailRequest, opts ...grpc.CallOption) (*GetRecipeDetailReply, error)
+	CreateRecipeDraft(ctx context.Context, in *CreateRecipeDraftRequest, opts ...grpc.CallOption) (*CreateRecipeDraftReply, error)
+	UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeReply, error)
+	DeleteRecipe(ctx context.Context, in *DeleteRecipeRequest, opts ...grpc.CallOption) (*DeleteRecipeReply, error)
 }
 
 type recipeServiceClient struct {
@@ -59,12 +65,45 @@ func (c *recipeServiceClient) GetRecipeDetail(ctx context.Context, in *GetRecipe
 	return out, nil
 }
 
+func (c *recipeServiceClient) CreateRecipeDraft(ctx context.Context, in *CreateRecipeDraftRequest, opts ...grpc.CallOption) (*CreateRecipeDraftReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateRecipeDraftReply)
+	err := c.cc.Invoke(ctx, RecipeService_CreateRecipeDraft_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recipeServiceClient) UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateRecipeReply)
+	err := c.cc.Invoke(ctx, RecipeService_UpdateRecipe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recipeServiceClient) DeleteRecipe(ctx context.Context, in *DeleteRecipeRequest, opts ...grpc.CallOption) (*DeleteRecipeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteRecipeReply)
+	err := c.cc.Invoke(ctx, RecipeService_DeleteRecipe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RecipeServiceServer is the server API for RecipeService service.
 // All implementations should embed UnimplementedRecipeServiceServer
 // for forward compatibility.
 type RecipeServiceServer interface {
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesReply, error)
 	GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error)
+	CreateRecipeDraft(context.Context, *CreateRecipeDraftRequest) (*CreateRecipeDraftReply, error)
+	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error)
+	DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error)
 }
 
 // UnimplementedRecipeServiceServer should be embedded to have
@@ -79,6 +118,15 @@ func (UnimplementedRecipeServiceServer) ListRecipes(context.Context, *ListRecipe
 }
 func (UnimplementedRecipeServiceServer) GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRecipeDetail not implemented")
+}
+func (UnimplementedRecipeServiceServer) CreateRecipeDraft(context.Context, *CreateRecipeDraftRequest) (*CreateRecipeDraftReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRecipeDraft not implemented")
+}
+func (UnimplementedRecipeServiceServer) UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRecipe not implemented")
+}
+func (UnimplementedRecipeServiceServer) DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRecipe not implemented")
 }
 func (UnimplementedRecipeServiceServer) testEmbeddedByValue() {}
 
@@ -136,6 +184,60 @@ func _RecipeService_GetRecipeDetail_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecipeService_CreateRecipeDraft_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRecipeDraftRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).CreateRecipeDraft(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_CreateRecipeDraft_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).CreateRecipeDraft(ctx, req.(*CreateRecipeDraftRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecipeService_UpdateRecipe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRecipeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).UpdateRecipe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_UpdateRecipe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).UpdateRecipe(ctx, req.(*UpdateRecipeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecipeService_DeleteRecipe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRecipeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).DeleteRecipe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_DeleteRecipe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).DeleteRecipe(ctx, req.(*DeleteRecipeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RecipeService_ServiceDesc is the grpc.ServiceDesc for RecipeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -150,6 +252,18 @@ var RecipeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRecipeDetail",
 			Handler:    _RecipeService_GetRecipeDetail_Handler,
+		},
+		{
+			MethodName: "CreateRecipeDraft",
+			Handler:    _RecipeService_CreateRecipeDraft_Handler,
+		},
+		{
+			MethodName: "UpdateRecipe",
+			Handler:    _RecipeService_UpdateRecipe_Handler,
+		},
+		{
+			MethodName: "DeleteRecipe",
+			Handler:    _RecipeService_DeleteRecipe_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

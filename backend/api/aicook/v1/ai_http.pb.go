@@ -20,10 +20,16 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationAIServiceCreateSession = "/aicook.v1.AIService/CreateSession"
+const OperationAIServiceDeleteSession = "/aicook.v1.AIService/DeleteSession"
+const OperationAIServiceListMessages = "/aicook.v1.AIService/ListMessages"
+const OperationAIServiceListSessions = "/aicook.v1.AIService/ListSessions"
 const OperationAIServiceSendMessage = "/aicook.v1.AIService/SendMessage"
 
 type AIServiceHTTPServer interface {
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionReply, error)
+	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionReply, error)
+	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesReply, error)
+	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsReply, error)
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageReply, error)
 }
 
@@ -31,6 +37,9 @@ func RegisterAIServiceHTTPServer(s *http.Server, srv AIServiceHTTPServer) {
 	r := s.Route("/")
 	r.POST("/api/v1/ai/sessions", _AIService_CreateSession0_HTTP_Handler(srv))
 	r.POST("/api/v1/ai/sessions/{session_id}/messages", _AIService_SendMessage0_HTTP_Handler(srv))
+	r.GET("/api/v1/ai/sessions", _AIService_ListSessions0_HTTP_Handler(srv))
+	r.GET("/api/v1/ai/sessions/{session_id}/messages", _AIService_ListMessages0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/ai/sessions/{session_id}", _AIService_DeleteSession0_HTTP_Handler(srv))
 }
 
 func _AIService_CreateSession0_HTTP_Handler(srv AIServiceHTTPServer) func(ctx http.Context) error {
@@ -80,8 +89,74 @@ func _AIService_SendMessage0_HTTP_Handler(srv AIServiceHTTPServer) func(ctx http
 	}
 }
 
+func _AIService_ListSessions0_HTTP_Handler(srv AIServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListSessionsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAIServiceListSessions)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListSessions(ctx, req.(*ListSessionsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListSessionsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AIService_ListMessages0_HTTP_Handler(srv AIServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMessagesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAIServiceListMessages)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMessages(ctx, req.(*ListMessagesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMessagesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AIService_DeleteSession0_HTTP_Handler(srv AIServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteSessionRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAIServiceDeleteSession)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteSession(ctx, req.(*DeleteSessionRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteSessionReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type AIServiceHTTPClient interface {
 	CreateSession(ctx context.Context, req *CreateSessionRequest, opts ...http.CallOption) (rsp *CreateSessionReply, err error)
+	DeleteSession(ctx context.Context, req *DeleteSessionRequest, opts ...http.CallOption) (rsp *DeleteSessionReply, err error)
+	ListMessages(ctx context.Context, req *ListMessagesRequest, opts ...http.CallOption) (rsp *ListMessagesReply, err error)
+	ListSessions(ctx context.Context, req *ListSessionsRequest, opts ...http.CallOption) (rsp *ListSessionsReply, err error)
 	SendMessage(ctx context.Context, req *SendMessageRequest, opts ...http.CallOption) (rsp *SendMessageReply, err error)
 }
 
@@ -100,6 +175,45 @@ func (c *AIServiceHTTPClientImpl) CreateSession(ctx context.Context, in *CreateS
 	opts = append(opts, http.Operation(OperationAIServiceCreateSession))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AIServiceHTTPClientImpl) DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...http.CallOption) (*DeleteSessionReply, error) {
+	var out DeleteSessionReply
+	pattern := "/api/v1/ai/sessions/{session_id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAIServiceDeleteSession))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AIServiceHTTPClientImpl) ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...http.CallOption) (*ListMessagesReply, error) {
+	var out ListMessagesReply
+	pattern := "/api/v1/ai/sessions/{session_id}/messages"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAIServiceListMessages))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AIServiceHTTPClientImpl) ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...http.CallOption) (*ListSessionsReply, error) {
+	var out ListSessionsReply
+	pattern := "/api/v1/ai/sessions"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAIServiceListSessions))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

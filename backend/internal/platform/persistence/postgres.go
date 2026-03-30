@@ -25,6 +25,7 @@ func AutoMigrate(ctx context.Context, db *gorm.DB) error {
 		&model.User{},
 		&model.HouseholdMember{},
 		&model.KitchenTag{},
+		&model.RecipeKitchenTag{},
 		&model.MediaAsset{},
 		&model.Recipe{},
 		&model.RecipeIngredient{},

@@ -1,0 +1,23 @@
+﻿{
+  "task": "实现 AICook Backend Kratos + Protobuf 全量重构，并同步前端两段式上传与 Docker 发布入口。",
+  "deliverables": [
+    "backend 按 Kratos 标准布局补齐 api/cmd/internal 分层",
+    "新增 protobuf + HTTP + gRPC 双协议主链路",
+    "前端改为两段式上传并兼容新的 protobuf 返回结构",
+    "backend Dockerfile 改为 cmd/server 入口",
+    "更新验证文档与 .codex 追踪记录"
+  ],
+  "constraints": [
+    "保持 backend 作为独立 Go module，不移动到仓库根",
+    "非上传接口继续使用 /api/v1/... 路径",
+    "上传接口正式切到 prepare + complete 两段式协议",
+    "后端结构清晰、可维护，不过度封装",
+    "新增说明和记录文件使用 UTF-8 中文"
+  ],
+  "assumptions": [
+    "当前仍使用默认 demo household/user 作为无鉴权上下文",
+    "MinIO 直传链路先使用预签名 PUT 模式",
+    "前端可接受从旧 data 包装响应切换为 protobuf 直出响应",
+    "本轮优先打通主链路与构建验证，不扩展新的业务规则"
+  ]
+}

@@ -1,0 +1,13 @@
+node_modules
+.git
+.vscode
+.cache
+*.tar
+*.tar.gz
+src
+public
+docker-compose.yml
+docker-compose-prod.yml
+dockerfile
+dockerfile_dev
+dockerfile_prod

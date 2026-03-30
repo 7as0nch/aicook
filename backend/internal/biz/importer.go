@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	"github.com/chengjiang/aicook/backend/internal/platform/inference"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
+	"gorm.io/datatypes"
 )
 
 type ImportRepo interface {
@@ -34,7 +37,7 @@ type ImportUsecase struct {
 }
 
 func NewImportUsecase(repo *data.ImportRepo, mediaRepo *data.MediaRepo, recipeRepo *data.RecipeRepo, objectStorage storage.ObjectStorage, inferenceClient *inference.Client, aiRuntime *airuntime.Runtime) *ImportUsecase {
-	return &ImportUsecase{
+	usecase := &ImportUsecase{
 		repo:          repo,
 		mediaRepo:     mediaRepo,
 		recipeRepo:    recipeRepo,
@@ -42,6 +45,10 @@ func NewImportUsecase(repo *data.ImportRepo, mediaRepo *data.MediaRepo, recipeRe
 		inference:     inferenceClient,
 		aiRuntime:     aiRuntime,
 	}
+	if aiRuntime != nil {
+		aiRuntime.RegisterImageRecipeCreator(usecase)
+	}
+	return usecase
 }
 
 func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRecipeRequest) (*data.ImportJob, error) {
@@ -51,8 +58,9 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 		UserID:       req.UserID,
 		InputType:    "image_tutorial",
 		Status:       "processing",
-		Stage:        "ocr",
+		Stage:        "multimodal",
 		InputPayload: payload,
+		NormalizedPayload: datatypes.JSON([]byte("{}")),
 	}
 	if err := u.repo.Create(ctx, job); err != nil {
 		return nil, err
@@ -85,19 +93,35 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 		})
 	}
 
-	ocrResult, err := u.inference.OCR(ctx, files)
-	if err != nil {
-		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "ocr", nil, nil, err.Error())
-		return nil, err
-	}
-
-	draft, err := u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
+	draft, draftSource, err := u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
 		TitleHint: req.TitleHint,
-		OCRText:   ocrResult.Text,
 		Images:    attachments,
 	})
+	var ocrText string
+	var multimodalError string
 	if err != nil {
-		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "normalize", nil, nil, err.Error())
+		multimodalError = err.Error()
+		ocrResult, ocrErr := u.inference.OCR(ctx, files)
+		if ocrErr != nil {
+			_ = u.repo.UpdateResult(ctx, job.ID, "failed", "ocr", nil, map[string]any{
+				"multimodal_error": multimodalError,
+			}, ocrErr.Error())
+			return nil, ocrErr
+		}
+		ocrText = ocrResult.Text
+		draft, draftSource, err = u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
+			TitleHint: req.TitleHint,
+			OCRText:   ocrText,
+			Images:    attachments,
+		})
+	}
+	if err != nil {
+		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "normalize", nil, map[string]any{
+			"draft_source":      draftSource,
+			"multimodal_error":  multimodalError,
+			"ocr_text":          ocrText,
+			"fallback_attempted": ocrText != "",
+		}, err.Error())
 		return nil, err
 	}
 
@@ -112,6 +136,10 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 		Category:      draft.Category,
 		TotalMinutes:  draft.TotalMinutes,
 		Difficulty:    draft.Difficulty,
+		ScenarioTags:  datatypes.JSON([]byte("[]")),
+		FlavorTags:    datatypes.JSON([]byte("[]")),
+		Tools:         mustJSON(draft.Tools),
+		MetadataJSON:  datatypes.JSONMap{},
 	}
 
 	ingredients := make([]*data.RecipeIngredient, 0, len(draft.Ingredients))
@@ -145,8 +173,11 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 	}
 
 	resultPayload := map[string]any{
-		"ocr_text": ocrResult.Text,
-		"draft":    draft,
+		"ocr_text":           ocrText,
+		"draft":              draft,
+		"draft_source":       draftSource,
+		"multimodal_error":   multimodalError,
+		"fallback_attempted": ocrText != "",
 	}
 	if err := u.repo.UpdateResult(ctx, job.ID, "review_required", "done", &recipe.ID, resultPayload, ""); err != nil {
 		return nil, err
@@ -168,4 +199,94 @@ func firstAttachmentURL(attachments []airuntime.Attachment) string {
 		return ""
 	}
 	return attachments[0].URL
+}
+
+func mustJSON(v any) datatypes.JSON {
+	raw, err := json.Marshal(v)
+	if err != nil || len(raw) == 0 {
+		return datatypes.JSON([]byte("[]"))
+	}
+	return datatypes.JSON(raw)
+}
+
+func (u *ImportUsecase) CreateImageRecipeCardForAI(ctx context.Context, householdID, userID int64, attachments []airuntime.Attachment, titleHint string) (*airuntime.RecipeCard, error) {
+	mediaAssetIDs := make([]int64, 0, len(attachments))
+	for _, attachment := range attachments {
+		if id := strings.TrimSpace(attachment.AssetID); id != "" {
+			var parsed int64
+			if _, err := fmt.Sscanf(id, "%d", &parsed); err == nil && parsed > 0 {
+				mediaAssetIDs = append(mediaAssetIDs, parsed)
+			}
+		}
+	}
+	if len(mediaAssetIDs) == 0 {
+		return &airuntime.RecipeCard{
+			Title:        "未找到可识别图片",
+			Summary:      "图文识别需要先上传图片资源后再发送。",
+			Status:       "rejected",
+			Source:       "image_recipe",
+			IsRecipe:     false,
+			RejectReason: "图文识别需要先上传图片资源后再发送。",
+		}, nil
+	}
+	job, err := u.CreateImageRecipe(ctx, CreateImageRecipeRequest{
+		HouseholdID:   householdID,
+		UserID:        userID,
+		MediaAssetIDs: mediaAssetIDs,
+		TitleHint:     titleHint,
+	})
+	if err != nil {
+		return nil, err
+	}
+	card := &airuntime.RecipeCard{
+		Title:    "已生成菜谱草稿",
+		Summary:  "已根据图片识别生成菜谱草稿，请确认后保存。",
+		Time:     "时长待确认",
+		Difficulty: "待确认",
+		Status:   job.Status,
+		Source:   "image_recipe",
+		IsRecipe: true,
+	}
+	if job.RecipeID != nil {
+		card.RecipeID = strconv.FormatInt(*job.RecipeID, 10)
+	}
+	var payload struct {
+		Draft struct {
+			Title        string `json:"title"`
+			Summary      string `json:"summary"`
+			TotalMinutes int    `json:"total_minutes"`
+			Difficulty   int    `json:"difficulty"`
+			Ingredients  []struct {
+				Name string `json:"name"`
+			} `json:"ingredients"`
+		} `json:"draft"`
+	}
+	if len(job.NormalizedPayload) > 0 && json.Unmarshal(job.NormalizedPayload, &payload) == nil {
+		if strings.TrimSpace(payload.Draft.Title) != "" {
+			card.Title = strings.TrimSpace(payload.Draft.Title)
+		}
+		if strings.TrimSpace(payload.Draft.Summary) != "" {
+			card.Summary = strings.TrimSpace(payload.Draft.Summary)
+		}
+		if payload.Draft.TotalMinutes > 0 {
+			card.Time = fmt.Sprintf("%d 分钟", payload.Draft.TotalMinutes)
+		}
+		if payload.Draft.Difficulty > 0 {
+			level := payload.Draft.Difficulty
+			if level > 5 {
+				level = 5
+			}
+			card.Difficulty = fmt.Sprintf("%s %d", strings.Repeat("★", level), payload.Draft.Difficulty)
+		}
+		for _, ingredient := range payload.Draft.Ingredients {
+			name := strings.TrimSpace(ingredient.Name)
+			if name != "" {
+				card.Ingredients = append(card.Ingredients, name)
+			}
+			if len(card.Ingredients) >= 6 {
+				break
+			}
+		}
+	}
+	return card, nil
 }

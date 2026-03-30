@@ -21,6 +21,9 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AIService_CreateSession_FullMethodName = "/aicook.v1.AIService/CreateSession"
 	AIService_SendMessage_FullMethodName   = "/aicook.v1.AIService/SendMessage"
+	AIService_ListSessions_FullMethodName  = "/aicook.v1.AIService/ListSessions"
+	AIService_ListMessages_FullMethodName  = "/aicook.v1.AIService/ListMessages"
+	AIService_DeleteSession_FullMethodName = "/aicook.v1.AIService/DeleteSession"
 )
 
 // AIServiceClient is the client API for AIService service.
@@ -29,6 +32,9 @@ const (
 type AIServiceClient interface {
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionReply, error)
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageReply, error)
+	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsReply, error)
+	ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesReply, error)
+	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionReply, error)
 }
 
 type aIServiceClient struct {
@@ -59,12 +65,45 @@ func (c *aIServiceClient) SendMessage(ctx context.Context, in *SendMessageReques
 	return out, nil
 }
 
+func (c *aIServiceClient) ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSessionsReply)
+	err := c.cc.Invoke(ctx, AIService_ListSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aIServiceClient) ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMessagesReply)
+	err := c.cc.Invoke(ctx, AIService_ListMessages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aIServiceClient) DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSessionReply)
+	err := c.cc.Invoke(ctx, AIService_DeleteSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AIServiceServer is the server API for AIService service.
 // All implementations should embed UnimplementedAIServiceServer
 // for forward compatibility.
 type AIServiceServer interface {
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionReply, error)
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageReply, error)
+	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsReply, error)
+	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesReply, error)
+	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionReply, error)
 }
 
 // UnimplementedAIServiceServer should be embedded to have
@@ -79,6 +118,15 @@ func (UnimplementedAIServiceServer) CreateSession(context.Context, *CreateSessio
 }
 func (UnimplementedAIServiceServer) SendMessage(context.Context, *SendMessageRequest) (*SendMessageReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (UnimplementedAIServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
+}
+func (UnimplementedAIServiceServer) ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMessages not implemented")
+}
+func (UnimplementedAIServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
 }
 func (UnimplementedAIServiceServer) testEmbeddedByValue() {}
 
@@ -136,6 +184,60 @@ func _AIService_SendMessage_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AIService_ListSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIServiceServer).ListSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIService_ListSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).ListSessions(ctx, req.(*ListSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AIService_ListMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIServiceServer).ListMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIService_ListMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).ListMessages(ctx, req.(*ListMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AIService_DeleteSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIServiceServer).DeleteSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIService_DeleteSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).DeleteSession(ctx, req.(*DeleteSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AIService_ServiceDesc is the grpc.ServiceDesc for AIService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -150,6 +252,18 @@ var AIService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendMessage",
 			Handler:    _AIService_SendMessage_Handler,
+		},
+		{
+			MethodName: "ListSessions",
+			Handler:    _AIService_ListSessions_Handler,
+		},
+		{
+			MethodName: "ListMessages",
+			Handler:    _AIService_ListMessages_Handler,
+		},
+		{
+			MethodName: "DeleteSession",
+			Handler:    _AIService_DeleteSession_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

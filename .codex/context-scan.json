@@ -1,0 +1,42 @@
+﻿{
+  "affected_areas": [
+    "backend/api",
+    "backend/cmd/server",
+    "backend/internal/biz",
+    "backend/internal/data",
+    "backend/internal/service",
+    "backend/internal/server",
+    "frontend/src/api",
+    "frontend/src/components",
+    "backend/Dockerfile"
+  ],
+  "current_behavior": {
+    "backend": "原先以手写 HTTP handler 为主，目录不符合标准 Kratos layout。",
+    "frontend": "媒体和知识库文档仍通过 multipart 直传后端。",
+    "deployment": "backend Dockerfile 仍指向旧的 cmd/backend 入口。"
+  },
+  "similar_cases": [
+    "现有 recipe/media/importer/knowledge/ai 六组业务逻辑可复用为新的 biz 层实现",
+    "frontend 现有 client.ts 已集中管理 API，可作为协议切换入口"
+  ],
+  "stack": {
+    "backend": "Go 1.25.3, Kratos, protobuf, Wire, Gorm, PostgreSQL, MinIO",
+    "frontend": "Vue 3, TypeScript, Vite, pnpm"
+  },
+  "tests": {
+    "available": [
+      "go test ./...",
+      "pnpm.cmd --dir frontend build"
+    ],
+    "environment_gaps": [
+      "默认 Go 模块缓存目录写入受限，需要使用仓库内 GOMODCACHE",
+      "前端 Vite/esbuild 在沙箱中无法直接 spawn，需要放行后执行",
+      "当前环境没有 docker CLI，无法实际构建镜像"
+    ]
+  },
+  "observations": [
+    "backend 已提前补入 proto 文件与生成代码，可直接在其上继续装配 Kratos 新主链路",
+    "旧 internal/app 与 cmd/backend 仍需保留编译兼容，避免中途把现有链路打断",
+    "仓库中部分旧中文文案存在乱码，本轮优先保证接口和构建链路可用"
+  ]
+}

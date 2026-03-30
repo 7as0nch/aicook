@@ -7,6 +7,7 @@ type User = legacy.User
 type BaseModel = legacy.BaseModel
 type HouseholdMember = legacy.HouseholdMember
 type KitchenTag = legacy.KitchenTag
+type RecipeKitchenTag = legacy.RecipeKitchenTag
 type MediaAsset = legacy.MediaAsset
 type Recipe = legacy.Recipe
 type RecipeIngredient = legacy.RecipeIngredient

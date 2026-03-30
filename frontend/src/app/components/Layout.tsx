@@ -1,8 +1,10 @@
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useLocation } from "react-router";
 import { Home, BookOpen, CalendarDays, User, CookingPot } from "lucide-react";
 import clsx from "clsx";
 
 export default function Layout() {
+  const location = useLocation();
+  const recipesFullBleed = location.pathname === "/recipes";
   const navItemsLeft = [
     { name: "首页", path: "/", icon: Home },
     { name: "菜谱", path: "/recipes", icon: BookOpen },
@@ -14,7 +16,12 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gray-50 overflow-hidden text-gray-800 font-sans">
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main
+        className={clsx(
+          "min-h-0 flex-1 pb-20",
+          recipesFullBleed ? "flex flex-col overflow-hidden" : "overflow-y-auto",
+        )}
+      >
         <Outlet />
       </main>
 

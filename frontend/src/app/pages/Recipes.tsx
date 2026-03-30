@@ -1,27 +1,47 @@
-import { Search, Filter, Plus, FileText, Image as ImageIcon, Link as LinkIcon, PenTool, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { MoreVertical, Plus, Search, Image as ImageIcon, Link as LinkIcon, PenTool, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'motion/react'
-import { listRecipes } from '../../lib/api/client'
-import { mapCardToUiRecipe, type UiRecipe } from '../../lib/mappers/recipe'
+import { deleteRecipe, getRecipeDetail, listKitchenTags, listRecipes, updateRecipe, type KitchenTag } from '../../lib/api/client'
+import { mapCardToUiRecipe, recipeDetailToUpdatePayload, type UiRecipe } from '../../lib/mappers/recipe'
 import { RecipeCoverImg } from '../components/RecipeCoverImg'
+
+type RailKey = '__all__' | '__draft__' | string
 
 export default function Recipes() {
   const navigate = useNavigate()
   const [recipes, setRecipes] = useState<UiRecipe[]>([])
+  const [kitchenTags, setKitchenTags] = useState<KitchenTag[]>([])
+  const [railKey, setRailKey] = useState<RailKey>('__all__')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [showAddMenu, setShowAddMenu] = useState(false)
 
+  const loadRecipes = useCallback(async () => {
+    setLoading(true)
+    try {
+      const cards =
+        railKey === '__all__'
+          ? await listRecipes(200)
+          : railKey === '__draft__'
+            ? await listRecipes(200, { recipeStatus: 'draft' })
+            : await listRecipes(200, { kitchenTag: railKey })
+      setRecipes(cards.map(mapCardToUiRecipe))
+    } finally {
+      setLoading(false)
+    }
+  }, [railKey])
+
+  useEffect(() => {
+    void loadRecipes()
+  }, [loadRecipes])
+
   useEffect(() => {
     let cancelled = false
-    void listRecipes(48)
-      .then((cards) => {
-        if (!cancelled) setRecipes(cards.map(mapCardToUiRecipe))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    void listKitchenTags().then((tags) => {
+      if (!cancelled) setKitchenTags(tags)
+    })
     return () => {
       cancelled = true
     }
@@ -36,11 +56,62 @@ export default function Recipes() {
     })
   }, [query, recipes])
 
+  const railItems = useMemo(() => {
+    const tagNames = kitchenTags.map((t) => t.name.trim()).filter(Boolean)
+    return [
+      { key: '__all__' as const, label: '全部' },
+      { key: '__draft__' as const, label: '草稿' },
+      ...tagNames.map((name) => ({ key: name, label: name })),
+    ]
+  }, [kitchenTags])
+
+  const listScrollRef = useRef<HTMLDivElement>(null)
+  const wasAtBottomRef = useRef(false)
+  const endToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [endToast, setEndToast] = useState(false)
+
+  const dismissEndToastSoon = useCallback(() => {
+    if (endToastTimerRef.current) clearTimeout(endToastTimerRef.current)
+    endToastTimerRef.current = setTimeout(() => setEndToast(false), 2200)
+  }, [])
+
+  const onListScroll = useCallback(() => {
+    const el = listScrollRef.current
+    if (!el || loading || filtered.length === 0) return
+    const gap = 12
+    const scrollable = el.scrollHeight > el.clientHeight + gap
+    if (!scrollable) return
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - gap
+    if (atBottom && !wasAtBottomRef.current) {
+      wasAtBottomRef.current = true
+      setEndToast(true)
+      dismissEndToastSoon()
+    } else if (!atBottom) {
+      wasAtBottomRef.current = false
+    }
+  }, [loading, filtered.length, dismissEndToastSoon])
+
+  useEffect(() => {
+    wasAtBottomRef.current = false
+    setEndToast(false)
+    listScrollRef.current?.scrollTo({ top: 0 })
+  }, [railKey, query])
+
+  useEffect(() => {
+    wasAtBottomRef.current = false
+  }, [recipes])
+
+  useEffect(() => {
+    return () => {
+      if (endToastTimerRef.current) clearTimeout(endToastTimerRef.current)
+    }
+  }, [])
+
   return (
-    <div className="space-y-4 p-4">
-      <div className="sticky top-0 z-10 flex items-center justify-between bg-gray-50 pb-4 pt-2">
-        <h1 className="text-2xl font-bold text-gray-900">菜谱库</h1>
-        <div className="flex gap-2">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50">
+      <div className="shrink-0 space-y-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-900">菜谱库</h1>
           <button
             type="button"
             onClick={() => setShowAddMenu(true)}
@@ -48,49 +119,67 @@ export default function Recipes() {
           >
             <Plus className="h-5 w-5" />
           </button>
-          <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white shadow-sm">
-            <Filter className="h-5 w-5 text-gray-600" />
-          </button>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索当前列表…"
+            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索所有菜谱..."
-          className="w-full rounded-2xl border-none bg-white py-3 pl-10 pr-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-        />
-      </div>
-
-      {loading ? (
-        <p className="text-center text-gray-400">加载中…</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {filtered.map((recipe) => (
-            <Link
-              key={recipe.id}
-              to={`/recipes/${recipe.id}`}
-              className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+      <div className="flex min-h-0 flex-1">
+        <nav className="hide-scrollbar w-[7.25rem] shrink-0 overflow-y-auto overscroll-contain border-r border-gray-200 bg-white">
+          {railItems.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setRailKey(item.key)}
+              className={`block w-full border-b border-gray-100 px-2.5 py-3 text-center text-xs font-semibold leading-snug break-words transition-colors last:border-b-0 ${
+                railKey === item.key ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              <div className="h-32 bg-gray-200">
-                <RecipeCoverImg src={recipe.cover} alt={recipe.title} className="h-full w-full object-cover" />
-              </div>
-              <div className="p-3">
-                <h3 className="mb-1 line-clamp-2 text-sm font-bold leading-snug text-gray-900">{recipe.title}</h3>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>{recipe.time}分钟</span>
-                  <span>⭐ {recipe.difficulty}</span>
-                </div>
-              </div>
-            </Link>
+              {item.label}
+            </button>
           ))}
-        </div>
-      )}
+        </nav>
 
-      {/* Add Recipe Bottom Sheet */}
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <div
+            ref={listScrollRef}
+            onScroll={onListScroll}
+            className="hide-scrollbar h-full overflow-y-auto overscroll-contain bg-white"
+          >
+            {loading ? (
+              <p className="p-4 text-center text-sm text-gray-400">加载中…</p>
+            ) : filtered.length === 0 ? (
+              <p className="p-6 text-center text-sm text-gray-400">暂无菜谱</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {filtered.map((recipe) => (
+                  <RecipeRowCard key={recipe.id} recipe={recipe} onRefresh={() => void loadRecipes()} />
+                ))}
+              </ul>
+            )}
+          </div>
+          {endToast ? (
+            <div
+              className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="rounded-full bg-gray-900/85 px-3 py-1.5 text-xs text-white shadow-md">
+                已经到底啦
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       <AnimatePresence>
         {showAddMenu && (
           <>
@@ -99,14 +188,14 @@ export default function Recipes() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAddMenu(false)}
-              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-100 bg-black/40 backdrop-blur-sm"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-[101] rounded-t-3xl bg-white p-6 shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 z-101 rounded-t-3xl bg-white p-6 shadow-2xl"
             >
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-900">添加新菜谱</h3>
@@ -169,5 +258,150 @@ export default function Recipes() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+function RecipeRowCard({ recipe, onRefresh }: { recipe: UiRecipe; onRefresh: () => void }) {
+  const navigate = useNavigate()
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
+
+  useLayoutEffect(() => {
+    if (!menuOpen || !menuBtnRef.current) return
+    const r = menuBtnRef.current.getBoundingClientRect()
+    setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right })
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onResize = () => {
+      if (!menuBtnRef.current) return
+      const r = menuBtnRef.current.getBoundingClientRect()
+      setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right })
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [menuOpen])
+
+  const menuPortal =
+    menuOpen &&
+    createPortal(
+      <>
+        <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setMenuOpen(false)} />
+        <div
+          className="fixed z-[201] w-36 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          style={{ top: menuPos.top, right: menuPos.right }}
+          role="menu"
+        >
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50"
+            onClick={() => {
+              setMenuOpen(false)
+              navigate(`/recipes/${recipe.id}`)
+            }}
+          >
+            打开
+          </button>
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50"
+            onClick={() => {
+              setMenuOpen(false)
+              navigate(`/recipes/${recipe.id}/edit`)
+            }}
+          >
+            编辑
+          </button>
+          {recipe.status === 'draft' ? (
+            <button
+              type="button"
+              className="block w-full px-3 py-2 text-left text-[13px] text-orange-600 hover:bg-orange-50"
+              onClick={() => {
+                setMenuOpen(false)
+                void (async () => {
+                  try {
+                    const d = await getRecipeDetail(recipe.id)
+                    await updateRecipe(recipe.id, recipeDetailToUpdatePayload(d, 'published'))
+                    onRefresh()
+                  } catch (err) {
+                    window.alert(err instanceof Error ? err.message : '发布失败')
+                  }
+                })()
+              }}
+            >
+              发布
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50"
+            onClick={() => {
+              setMenuOpen(false)
+              if (!window.confirm(`删除「${recipe.title}」？`)) return
+              void deleteRecipe(recipe.id)
+                .then(() => onRefresh())
+                .catch((err) => window.alert(err instanceof Error ? err.message : '删除失败'))
+            }}
+          >
+            删除
+          </button>
+        </div>
+      </>,
+      document.body,
+    )
+
+  return (
+    <li className="relative bg-white">
+      {recipe.status === 'draft' ? (
+        <span className="absolute right-10 top-2 z-10 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+          草稿
+        </span>
+      ) : null}
+      <button
+        type="button"
+        className="flex w-full gap-3 p-2.5 pr-12 text-left"
+        onClick={() => navigate(`/recipes/${recipe.id}`)}
+      >
+        <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+          <RecipeCoverImg
+            src={recipe.cover}
+            alt={recipe.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            fetchPriority="low"
+          />
+        </div>
+        <div className="min-w-0 flex-1 py-0.5">
+          <h3 className="line-clamp-2 text-[14px] font-bold leading-snug text-gray-900">{recipe.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+            <span>{recipe.time} 分钟</span>
+            <span>⭐ {recipe.difficulty}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {[recipe.category, ...recipe.secondaryKitchenTags].filter(Boolean).slice(0, 3).map((tag) => (
+              <span key={tag} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </button>
+      <div className="absolute right-1 top-1 z-20">
+        <button
+          ref={menuBtnRef}
+          type="button"
+          className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+          onClick={(e) => {
+            e.stopPropagation()
+            setMenuOpen((v) => !v)
+          }}
+        >
+          <MoreVertical className="h-5 w-5" />
+        </button>
+      </div>
+      {menuPortal}
+    </li>
   )
 }

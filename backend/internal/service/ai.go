@@ -53,3 +53,47 @@ func (s *AIService) SendMessage(ctx context.Context, req *v1.SendMessageRequest)
 		ReplySources:     toProtoSources(reply.Reply.Sources),
 	}, nil
 }
+
+func (s *AIService) ListSessions(ctx context.Context, req *v1.ListSessionsRequest) (*v1.ListSessionsReply, error) {
+	sessions, err := s.usecase.ListSessions(ctx, biz.ListSessionsRequest{
+		Scene: req.GetScene(),
+		Limit: int(req.GetLimit()),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	reply := &v1.ListSessionsReply{
+		Sessions: make([]*v1.AISession, 0, len(sessions)),
+	}
+	for _, session := range sessions {
+		reply.Sessions = append(reply.Sessions, toProtoAISession(session))
+	}
+	return reply, nil
+}
+
+func (s *AIService) ListMessages(ctx context.Context, req *v1.ListMessagesRequest) (*v1.ListMessagesReply, error) {
+	session, messages, err := s.usecase.ListMessages(ctx, biz.ListMessagesRequest{
+		SessionID: req.GetSessionId(),
+		Limit:     int(req.GetLimit()),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	reply := &v1.ListMessagesReply{
+		Session:  toProtoAISession(session),
+		Messages: make([]*v1.AIMessage, 0, len(messages)),
+	}
+	for _, message := range messages {
+		reply.Messages = append(reply.Messages, toProtoAIMessage(message))
+	}
+	return reply, nil
+}
+
+func (s *AIService) DeleteSession(ctx context.Context, req *v1.DeleteSessionRequest) (*v1.DeleteSessionReply, error) {
+	if err := s.usecase.DeleteSession(ctx, req.GetSessionId()); err != nil {
+		return nil, err
+	}
+	return &v1.DeleteSessionReply{SessionId: req.GetSessionId()}, nil
+}

@@ -49,13 +49,17 @@ type KnowledgeUsecase struct {
 }
 
 func NewKnowledgeUsecase(repo *data.KnowledgeRepo, mediaRepo *data.MediaRepo, objectStorage storage.ObjectStorage, cfg *conf.Bootstrap, aiRuntime *airuntime.Runtime) *KnowledgeUsecase {
-	return &KnowledgeUsecase{
+	usecase := &KnowledgeUsecase{
 		repo:            repo,
 		mediaRepo:       mediaRepo,
 		objectStorage:   objectStorage,
 		knowledgeBucket: cfg.GetOss().GetKnowledgeBucket(),
 		aiRuntime:       aiRuntime,
 	}
+	if aiRuntime != nil {
+		aiRuntime.RegisterKnowledgeLookup(usecase)
+	}
+	return usecase
 }
 
 func (u *KnowledgeUsecase) CreateBase(ctx context.Context, req CreateKnowledgeBaseRequest) (*data.KnowledgeBase, error) {
@@ -241,4 +245,32 @@ func filepathExt(name string) string {
 		return ""
 	}
 	return name[idx:]
+}
+
+func (u *KnowledgeUsecase) LookupKnowledgeSources(ctx context.Context, householdID int64, question string, limit int) ([]airuntime.Source, error) {
+	if limit <= 0 {
+		limit = 4
+	}
+	bases, err := u.repo.ListBases(ctx, householdID)
+	if err != nil {
+		return nil, err
+	}
+	sources := make([]airuntime.Source, 0, limit)
+	for _, base := range bases {
+		chunks, searchErr := u.repo.SearchChunks(ctx, base.ID, question, limit)
+		if searchErr != nil {
+			return nil, searchErr
+		}
+		for _, chunk := range chunks {
+			sources = append(sources, airuntime.Source{
+				Title:      fmt.Sprintf("%s · 片段 #%d", base.Name, chunk.ChunkNo),
+				DocumentID: strconv.FormatInt(chunk.DocumentID, 10),
+				Snippet:    chunk.SourceSnippet,
+			})
+			if len(sources) >= limit {
+				return sources, nil
+			}
+		}
+	}
+	return sources, nil
 }

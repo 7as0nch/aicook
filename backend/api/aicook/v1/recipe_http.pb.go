@@ -19,18 +19,27 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationRecipeServiceCreateRecipeDraft = "/aicook.v1.RecipeService/CreateRecipeDraft"
+const OperationRecipeServiceDeleteRecipe = "/aicook.v1.RecipeService/DeleteRecipe"
 const OperationRecipeServiceGetRecipeDetail = "/aicook.v1.RecipeService/GetRecipeDetail"
 const OperationRecipeServiceListRecipes = "/aicook.v1.RecipeService/ListRecipes"
+const OperationRecipeServiceUpdateRecipe = "/aicook.v1.RecipeService/UpdateRecipe"
 
 type RecipeServiceHTTPServer interface {
+	CreateRecipeDraft(context.Context, *CreateRecipeDraftRequest) (*CreateRecipeDraftReply, error)
+	DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error)
 	GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error)
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesReply, error)
+	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error)
 }
 
 func RegisterRecipeServiceHTTPServer(s *http.Server, srv RecipeServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/api/v1/recipes", _RecipeService_ListRecipes0_HTTP_Handler(srv))
 	r.GET("/api/v1/recipes/{id}", _RecipeService_GetRecipeDetail0_HTTP_Handler(srv))
+	r.POST("/api/v1/recipes:draft", _RecipeService_CreateRecipeDraft0_HTTP_Handler(srv))
+	r.PUT("/api/v1/recipes/{id}", _RecipeService_UpdateRecipe0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/recipes/{id}", _RecipeService_DeleteRecipe0_HTTP_Handler(srv))
 }
 
 func _RecipeService_ListRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
@@ -74,9 +83,81 @@ func _RecipeService_GetRecipeDetail0_HTTP_Handler(srv RecipeServiceHTTPServer) f
 	}
 }
 
+func _RecipeService_CreateRecipeDraft0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateRecipeDraftRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceCreateRecipeDraft)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateRecipeDraft(ctx, req.(*CreateRecipeDraftRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateRecipeDraftReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_UpdateRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateRecipeRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceUpdateRecipe)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateRecipe(ctx, req.(*UpdateRecipeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateRecipeReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_DeleteRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteRecipeRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceDeleteRecipe)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteRecipe(ctx, req.(*DeleteRecipeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteRecipeReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type RecipeServiceHTTPClient interface {
+	CreateRecipeDraft(ctx context.Context, req *CreateRecipeDraftRequest, opts ...http.CallOption) (rsp *CreateRecipeDraftReply, err error)
+	DeleteRecipe(ctx context.Context, req *DeleteRecipeRequest, opts ...http.CallOption) (rsp *DeleteRecipeReply, err error)
 	GetRecipeDetail(ctx context.Context, req *GetRecipeDetailRequest, opts ...http.CallOption) (rsp *GetRecipeDetailReply, err error)
 	ListRecipes(ctx context.Context, req *ListRecipesRequest, opts ...http.CallOption) (rsp *ListRecipesReply, err error)
+	UpdateRecipe(ctx context.Context, req *UpdateRecipeRequest, opts ...http.CallOption) (rsp *UpdateRecipeReply, err error)
 }
 
 type RecipeServiceHTTPClientImpl struct {
@@ -85,6 +166,32 @@ type RecipeServiceHTTPClientImpl struct {
 
 func NewRecipeServiceHTTPClient(client *http.Client) RecipeServiceHTTPClient {
 	return &RecipeServiceHTTPClientImpl{client}
+}
+
+func (c *RecipeServiceHTTPClientImpl) CreateRecipeDraft(ctx context.Context, in *CreateRecipeDraftRequest, opts ...http.CallOption) (*CreateRecipeDraftReply, error) {
+	var out CreateRecipeDraftReply
+	pattern := "/api/v1/recipes:draft"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationRecipeServiceCreateRecipeDraft))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *RecipeServiceHTTPClientImpl) DeleteRecipe(ctx context.Context, in *DeleteRecipeRequest, opts ...http.CallOption) (*DeleteRecipeReply, error) {
+	var out DeleteRecipeReply
+	pattern := "/api/v1/recipes/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationRecipeServiceDeleteRecipe))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (c *RecipeServiceHTTPClientImpl) GetRecipeDetail(ctx context.Context, in *GetRecipeDetailRequest, opts ...http.CallOption) (*GetRecipeDetailReply, error) {
@@ -107,6 +214,19 @@ func (c *RecipeServiceHTTPClientImpl) ListRecipes(ctx context.Context, in *ListR
 	opts = append(opts, http.Operation(OperationRecipeServiceListRecipes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *RecipeServiceHTTPClientImpl) UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...http.CallOption) (*UpdateRecipeReply, error) {
+	var out UpdateRecipeReply
+	pattern := "/api/v1/recipes/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationRecipeServiceUpdateRecipe))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

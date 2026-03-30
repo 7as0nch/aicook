@@ -47,6 +47,19 @@ service HouseholdService {
       body: "*"
     };
   }
+
+  rpc UpdateKitchenTag(UpdateKitchenTagRequest) returns (UpdateKitchenTagReply) {
+    option (google.api.http) = {
+      patch: "/api/v1/kitchen-tags/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteKitchenTag(DeleteKitchenTagRequest) returns (DeleteKitchenTagReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/kitchen-tags/{id}"
+    };
+  }
 }
 
 message CreateHouseholdRequest {
@@ -103,3 +116,20 @@ message CreateKitchenTagRequest {
 message CreateKitchenTagReply {
   KitchenTag tag = 1;
 }
+
+message UpdateKitchenTagRequest {
+  int64 id = 1;
+  string name = 2;
+  string icon = 3;
+  string color = 4;
+}
+
+message UpdateKitchenTagReply {
+  KitchenTag tag = 1;
+}
+
+message DeleteKitchenTagRequest {
+  int64 id = 1;
+}
+
+message DeleteKitchenTagReply {}

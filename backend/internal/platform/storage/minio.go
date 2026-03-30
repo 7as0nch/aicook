@@ -20,6 +20,7 @@ type ObjectStorage interface {
 	PutObject(ctx context.Context, bucket, objectKey, contentType string, data []byte) (string, error)
 	GetObject(ctx context.Context, bucket, objectKey string) ([]byte, error)
 	PresignPutObject(ctx context.Context, bucket, objectKey string, expiry time.Duration) (string, error)
+	PresignGetObject(ctx context.Context, bucket, objectKey string, expiry time.Duration) (string, error)
 	StatObject(ctx context.Context, bucket, objectKey string) (*ObjectInfo, error)
 }
 
@@ -30,6 +31,24 @@ type MinioStorage struct {
 type ObjectInfo struct {
 	Size        int64
 	ContentType string
+}
+
+func ResolvePublicEndpoint(cfg *conf.OSS) string {
+	if cfg == nil {
+		return ""
+	}
+	if publicEndpoint := strings.TrimSpace(cfg.GetPublicEndpoint()); publicEndpoint != "" {
+		return publicEndpoint
+	}
+	endpoint := strings.TrimSpace(cfg.GetEndpoint())
+	if endpoint == "" {
+		return ""
+	}
+	scheme := "http"
+	if cfg.GetUseSsl() {
+		scheme = "https"
+	}
+	return scheme + "://" + endpoint
 }
 
 func NewMinio(cfg *conf.OSS) (*MinioStorage, error) {
@@ -84,6 +103,17 @@ func (s *MinioStorage) PresignPutObject(ctx context.Context, bucket, objectKey s
 	return presigned.String(), nil
 }
 
+func (s *MinioStorage) PresignGetObject(ctx context.Context, bucket, objectKey string, expiry time.Duration) (string, error) {
+	if expiry <= 0 {
+		expiry = time.Hour
+	}
+	presigned, err := s.client.PresignedGetObject(ctx, bucket, objectKey, expiry, nil)
+	if err != nil {
+		return "", err
+	}
+	return presigned.String(), nil
+}
+
 func (s *MinioStorage) StatObject(ctx context.Context, bucket, objectKey string) (*ObjectInfo, error) {
 	info, err := s.client.StatObject(ctx, bucket, objectKey, minio.StatObjectOptions{})
 	if err != nil {
@@ -96,7 +126,7 @@ func (s *MinioStorage) StatObject(ctx context.Context, bucket, objectKey string)
 }
 
 func RewritePresignedHost(rawURL, publicEndpoint string) (string, error) {
-	if strings.TrimSpace(publicEndpoint) == "" {
+	if publicEndpoint = strings.TrimSpace(publicEndpoint); publicEndpoint == "" {
 		return rawURL, nil
 	}
 

@@ -1,31 +1,86 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"time"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
+	"github.com/chengjiang/aicook/backend/internal/biz"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func signRecipeMediaURLs(ctx context.Context, m *biz.MediaUsecase, r *v1.Recipe) {
+	if m == nil || r == nil {
+		return
+	}
+	if r.GetCoverImageUrl() != "" {
+		if signed, err := m.SignMediaURL(ctx, r.GetCoverImageUrl()); err == nil && signed != "" {
+			r.CoverImageUrl = signed
+		}
+	}
+	g := r.GetGalleryImageUrls()
+	for i, u := range g {
+		if u == "" {
+			continue
+		}
+		if signed, err := m.SignMediaURL(ctx, u); err == nil && signed != "" {
+			g[i] = signed
+		}
+	}
+	r.GalleryImageUrls = g
+}
+
+func signRecipeStepMediaURLs(ctx context.Context, m *biz.MediaUsecase, s *v1.RecipeStep) {
+	if m == nil || s == nil {
+		return
+	}
+	if s.GetMediaUrl() != "" {
+		if signed, err := m.SignMediaURL(ctx, s.GetMediaUrl()); err == nil && signed != "" {
+			s.MediaUrl = signed
+		}
+	}
+	mediaURLs := s.GetMediaUrls()
+	for i, u := range mediaURLs {
+		if u == "" {
+			continue
+		}
+		if signed, err := m.SignMediaURL(ctx, u); err == nil && signed != "" {
+			mediaURLs[i] = signed
+		}
+	}
+	s.MediaUrls = mediaURLs
+}
+
+func signRecipeDetailMediaURLs(ctx context.Context, m *biz.MediaUsecase, d *v1.RecipeDetail) {
+	if m == nil || d == nil {
+		return
+	}
+	signRecipeMediaURLs(ctx, m, d.Recipe)
+	for _, step := range d.Steps {
+		signRecipeStepMediaURLs(ctx, m, step)
+	}
+}
+
 func toProtoRecipe(model *data.Recipe) *v1.Recipe {
 	if model == nil {
 		return nil
 	}
 	return &v1.Recipe{
-		Id:            model.ID,
-		HouseholdId:   model.HouseholdID,
-		OwnerUserId:   model.OwnerUserID,
-		SourceHouseholdId: model.SourceHouseholdID,
+		Id:                 model.ID,
+		HouseholdId:        model.HouseholdID,
+		OwnerUserId:        model.OwnerUserID,
+		SourceHouseholdId:  model.SourceHouseholdID,
 		ForkedFromRecipeId: model.ForkedFromRecipeID,
-		Title:         model.Title,
-		Summary:       model.Summary,
-		CoverImageUrl: model.CoverImageURL,
-		Status:        model.Status,
+		Title:              model.Title,
+		Summary:            model.Summary,
+		CoverImageUrl:      model.CoverImageURL,
+		GalleryImageUrls:   data.RecipeGalleryURLs(model),
+		Status:             model.Status,
 		SourceType:    model.SourceType,
 		Language:      model.Language,
 		Category:      model.Category,
@@ -115,6 +170,7 @@ func toProtoRecipeStep(model *data.RecipeStep) *v1.RecipeStep {
 	if model == nil {
 		return nil
 	}
+	urls := data.RecipeStepMediaURLs(model)
 	return &v1.RecipeStep{
 		Id:             model.ID,
 		RecipeId:       model.RecipeID,
@@ -130,6 +186,7 @@ func toProtoRecipeStep(model *data.RecipeStep) *v1.RecipeStep {
 		SafetyTips:     model.SafetyTips,
 		AiHint:         model.AIHint,
 		MediaUrl:       model.MediaURL,
+		MediaUrls:      urls,
 	}
 }
 
@@ -150,6 +207,44 @@ func toProtoRecipeDetail(detail *data.RecipeDetail) *v1.RecipeDetail {
 		Ingredients: ingredients,
 		Steps:       steps,
 	}
+}
+
+func toDraftIngredients(items []*v1.CreateRecipeDraftIngredient) []airuntime.DraftIngredient {
+	result := make([]airuntime.DraftIngredient, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		result = append(result, airuntime.DraftIngredient{
+			GroupName:   item.GetGroupName(),
+			Name:        item.GetName(),
+			AmountText:  item.GetAmountText(),
+			Preparation: item.GetPreparation(),
+		})
+	}
+	return result
+}
+
+func toDraftSteps(items []*v1.CreateRecipeDraftStep) []airuntime.DraftStep {
+	result := make([]airuntime.DraftStep, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		urls := append([]string(nil), item.GetMediaUrls()...)
+		result = append(result, airuntime.DraftStep{
+			Title:          item.GetTitle(),
+			Description:    item.GetDescription(),
+			StepType:       item.GetStepType(),
+			NeedTimer:      item.GetNeedTimer(),
+			TimerSeconds:   int(item.GetTimerSeconds()),
+			TimerAnimation: item.GetTimerAnimation(),
+			EndCondition:   item.GetEndCondition(),
+			MediaURL:       item.GetMediaUrl(),
+			MediaURLs:      urls,
+		})
+	}
+	return result
 }
 
 func toProtoMediaAsset(model *data.MediaAsset) *v1.MediaAsset {
@@ -260,8 +355,15 @@ func toProtoAIMessage(model *data.AIMessage) *v1.AIMessage {
 	_ = json.Unmarshal(model.QuoteContextJSON, &quote)
 	var attachments []airuntime.Attachment
 	_ = json.Unmarshal(model.AttachmentsJSON, &attachments)
-	var sources []airuntime.Source
-	_ = json.Unmarshal(model.ResponseMetaJSON, &sources)
+	var envelope struct {
+		Sources  []airuntime.Source `json:"sources"`
+		Metadata map[string]any     `json:"metadata"`
+	}
+	_ = json.Unmarshal(model.ResponseMetaJSON, &envelope)
+	sources := envelope.Sources
+	if len(sources) == 0 {
+		_ = json.Unmarshal(model.ResponseMetaJSON, &sources)
+	}
 
 	return &v1.AIMessage{
 		Id:              model.ID,
@@ -274,6 +376,7 @@ func toProtoAIMessage(model *data.AIMessage) *v1.AIMessage {
 		ResponseSources: toProtoSources(sources),
 		CreatedAt:       toTimestamp(model.CreatedAt),
 		UpdatedAt:       toTimestamp(model.UpdatedAt),
+		ResponseMeta:    jsonMapToStruct(envelope.Metadata),
 	}
 }
 
@@ -309,6 +412,7 @@ func toProtoAttachments(items []airuntime.Attachment) []*v1.Attachment {
 			Url:         item.URL,
 			ContentType: item.ContentType,
 			Name:        item.Name,
+			AssetId:     item.AssetID,
 		})
 	}
 	return result

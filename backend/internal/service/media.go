@@ -48,5 +48,11 @@ func (s *MediaService) CompleteMediaUpload(ctx context.Context, req *v1.Complete
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CompleteMediaUploadReply{Asset: toProtoMediaAsset(asset)}, nil
+	protoAsset := toProtoMediaAsset(asset)
+	if protoAsset.GetStorageUrl() != "" {
+		if signed, err := s.usecase.SignMediaURL(ctx, protoAsset.GetStorageUrl()); err == nil && signed != "" {
+			protoAsset.StorageUrl = signed
+		}
+	}
+	return &v1.CompleteMediaUploadReply{Asset: protoAsset}, nil
 }

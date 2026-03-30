@@ -2,7 +2,7 @@ server:
   name: aicook-backend
   http:
     addr: 0.0.0.0:8000
-    timeout: 15s
+    timeout: 300s
   grpc:
     addr: 0.0.0.0:9000
     timeout: 1000s
@@ -24,7 +24,9 @@ data:
     password: "rediscj123456"
 
 oss:
+  # endpoint 供后端直连 MinIO；public_endpoint 供前端访问预签名 URL 和对象资源。
   endpoint: sshjd.aihelper.chat:30990
+  public_endpoint: http://sshjd.aihelper.chat:30990
   access_key: "7ns5yiCMFgN5rdZbkJnW"
   secret_key: "4GV4kNFqonmgFNlTkLMfK6R7ChCP4a63TFMIqHIx"
   use_ssl: false
@@ -37,9 +39,12 @@ inference:
 
 ai:
   mode: adk
-  provider: openai-compatible
-  base_url: ""
-  api_key: ""
-  chat_model: ""
-  vision_model: ""
+  # Xiaomi MiMo 兼容 OpenAI Chat Completions。
+  provider: xiaomi
+  base_url: "https://api.xiaomimimo.com/v1"
+  api_key: "sk-c5pp6zngjk8gc2jxo0knffvw04g4zofvrrkjas8p5p7j51ml"
+  # 纯文本默认走轻量文本模型。
+  chat_model: "mimo-v2-flash"
+  # 上传图片/音频/文件时自动切到多模态模型。
+  vision_model: "mimo-v2-omni"
   embedding_model: ""

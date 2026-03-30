@@ -65,6 +65,14 @@ type KitchenTag struct {
 	Type        uint8  `gorm:"default:2" json:"type"` // 1: 系统内置, 2: 用户自定义
 }
 
+// RecipeKitchenTag 维护菜谱与厨房标签的多对多关系，并区分主/次标签。
+type RecipeKitchenTag struct {
+	BaseModel
+	RecipeID     int64  `gorm:"type:bigint;not null;uniqueIndex:idx_recipe_kitchen_tag,priority:1;index" json:"recipe_id,string"`
+	KitchenTagID int64  `gorm:"type:bigint;not null;uniqueIndex:idx_recipe_kitchen_tag,priority:2;index" json:"kitchen_tag_id,string"`
+	RelationType string `gorm:"size:20;not null;uniqueIndex:idx_recipe_kitchen_tag,priority:3;index" json:"relation_type"`
+}
+
 type MediaAsset struct {
 	BaseModel
 	HouseholdID  int64             `gorm:"type:bigint;not null;index" json:"household_id,string"`
@@ -88,8 +96,9 @@ type Recipe struct {
 	ForkedFromRecipeID *int64        `gorm:"type:bigint;index" json:"forked_from_recipe_id,string,omitempty"`
 	Title          string            `gorm:"size:120;not null;index" json:"title"`
 	Summary        string            `gorm:"type:text" json:"summary"`
-	CoverImageURL  string            `gorm:"type:text" json:"cover_image_url"`
-	Status         string            `gorm:"size:20;default:'draft';index" json:"status"`
+	CoverImageURL    string         `gorm:"type:text" json:"cover_image_url"`
+	GalleryImageURLs datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"gallery_image_urls"`
+	Status             string       `gorm:"size:20;default:'draft';index" json:"status"`
 	SourceType     string            `gorm:"size:30;default:'manual';index" json:"source_type"`
 	Language       string            `gorm:"size:12;default:'zh-CN'" json:"language"`
 	Category       string            `gorm:"size:50;index" json:"category"`
@@ -125,8 +134,9 @@ type RecipeStep struct {
 	HeatLevel       string    `gorm:"size:30" json:"heat_level"`
 	EndCondition    string    `gorm:"type:text" json:"end_condition"`
 	SafetyTips      string    `gorm:"type:text" json:"safety_tips"`
-	AIHint          string    `gorm:"type:text" json:"ai_hint"`
-	MediaURL        string    `gorm:"type:text" json:"media_url"`
+	AIHint          string         `gorm:"type:text" json:"ai_hint"`
+	MediaURL        string         `gorm:"type:text" json:"media_url"`
+	MediaURLs       datatypes.JSON `gorm:"type:jsonb;column:media_urls;default:'[]'" json:"media_urls"`
 }
 
 type ImportJob struct {

@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"gorm.io/gorm"
@@ -88,6 +89,54 @@ func (r *HouseholdRepo) CreateKitchenTag(ctx context.Context, tag *KitchenTag) e
 		tag.ID = utils.GetSFID()
 	}
 	return r.db.WithContext(ctx).Create(tag).Error
+}
+
+var ErrKitchenTagNotMutable = errors.New("kitchen tag not found or not editable")
+
+func (r *HouseholdRepo) UpdateKitchenTag(ctx context.Context, householdID, tagID int64, name, icon, color string) (*KitchenTag, error) {
+	var updated *KitchenTag
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		tag, err := r.findMutableKitchenTagTx(tx, householdID, tagID)
+		if err != nil {
+			return err
+		}
+		tag.Name = name
+		tag.Icon = icon
+		tag.Color = color
+		if err := tx.Save(tag).Error; err != nil {
+			return err
+		}
+		updated = tag
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+func (r *HouseholdRepo) findMutableKitchenTagTx(tx *gorm.DB, householdID, tagID int64) (*KitchenTag, error) {
+	var tag KitchenTag
+	err := tx.Where("id = ? AND household_id = ? AND type = ?", tagID, householdID, 2).First(&tag).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrKitchenTagNotMutable
+		}
+		return nil, err
+	}
+	return &tag, nil
+}
+
+func (r *HouseholdRepo) DeleteKitchenTag(ctx context.Context, householdID, tagID int64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := r.findMutableKitchenTagTx(tx, householdID, tagID); err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("kitchen_tag_id = ?", tagID).Delete(&RecipeKitchenTag{}).Error; err != nil {
+			return err
+		}
+		return tx.Unscoped().Delete(&KitchenTag{}, tagID).Error
+	})
 }
 
 func (r *HouseholdRepo) FindKitchenTagByName(ctx context.Context, householdID int64, name string) (*KitchenTag, error) {

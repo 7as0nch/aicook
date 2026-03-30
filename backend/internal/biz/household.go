@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -127,7 +128,61 @@ func (u *HouseholdUsecase) CreateKitchenTag(ctx context.Context, actor Actor, na
 		tag.Color = "orange"
 	}
 	if err := u.repo.CreateKitchenTag(ctx, tag); err != nil {
+		if isPostgresUniqueViolation(err) {
+			return nil, fmt.Errorf("已存在同名厨房标签")
+		}
 		return nil, err
 	}
 	return tag, nil
+}
+
+func (u *HouseholdUsecase) UpdateKitchenTag(ctx context.Context, actor Actor, tagID int64, name, icon, color string) (*data.KitchenTag, error) {
+	if tagID <= 0 {
+		return nil, fmt.Errorf("invalid kitchen tag id")
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, fmt.Errorf("kitchen tag name is required")
+	}
+	icon = strings.TrimSpace(icon)
+	color = strings.TrimSpace(color)
+	if icon == "" {
+		icon = "folder"
+	}
+	if color == "" {
+		color = "orange"
+	}
+	tag, err := u.repo.UpdateKitchenTag(ctx, actor.HouseholdID, tagID, name, icon, color)
+	if err != nil {
+		if errors.Is(err, data.ErrKitchenTagNotMutable) {
+			return nil, fmt.Errorf("无权修改或标签不存在")
+		}
+		if isPostgresUniqueViolation(err) {
+			return nil, fmt.Errorf("已存在同名厨房标签")
+		}
+		return nil, err
+	}
+	return tag, nil
+}
+
+func (u *HouseholdUsecase) DeleteKitchenTag(ctx context.Context, actor Actor, tagID int64) error {
+	if tagID <= 0 {
+		return fmt.Errorf("invalid kitchen tag id")
+	}
+	if err := u.repo.DeleteKitchenTag(ctx, actor.HouseholdID, tagID); err != nil {
+		if errors.Is(err, data.ErrKitchenTagNotMutable) {
+			return fmt.Errorf("无权删除或标签不存在")
+		}
+		return err
+	}
+	return nil
+}
+
+func isPostgresUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "23505") || strings.Contains(strings.ToLower(msg), "duplicate key") ||
+		strings.Contains(strings.ToLower(msg), "unique constraint")
 }

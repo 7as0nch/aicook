@@ -5,6 +5,7 @@ package aicook.v1;
 option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
 
 import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
 import "api/aicook/v1/common.proto";
 
 service RecipeService {
@@ -19,12 +20,35 @@ service RecipeService {
       get: "/api/v1/recipes/{id}"
     };
   }
+
+  rpc CreateRecipeDraft(CreateRecipeDraftRequest) returns (CreateRecipeDraftReply) {
+    option (google.api.http) = {
+      post: "/api/v1/recipes:draft"
+      body: "*"
+    };
+  }
+
+  rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeReply) {
+    option (google.api.http) = {
+      put: "/api/v1/recipes/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteRecipe(DeleteRecipeRequest) returns (DeleteRecipeReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/recipes/{id}"
+    };
+  }
 }
 
 message ListRecipesRequest {
   int32 limit = 1;
   string keyword = 2;
   string kitchen_tag = 3;
+  bool exclude_draft = 4;
+  // Optional: "draft" | "published". When set, filters by status; takes precedence over exclude_draft.
+  string recipe_status = 5;
 }
 
 message ListRecipesReply {
@@ -37,4 +61,76 @@ message GetRecipeDetailRequest {
 
 message GetRecipeDetailReply {
   RecipeDetail detail = 1;
+}
+
+message CreateRecipeDraftIngredient {
+  string group_name = 1;
+  string name = 2;
+  string amount_text = 3;
+  string preparation = 4;
+  string remark = 5;
+}
+
+message CreateRecipeDraftStep {
+  string title = 1;
+  string description = 2;
+  string step_type = 3;
+  bool need_timer = 4;
+  int32 timer_seconds = 5;
+  string timer_animation = 6;
+  string end_condition = 7;
+  string heat_level = 8;
+  string safety_tips = 9;
+  string ai_hint = 10;
+  string media_url = 11;
+  repeated string media_urls = 12;
+}
+
+message CreateRecipeDraftRequest {
+  string title = 1;
+  string summary = 2;
+  string cover_image_url = 3;
+  string category = 4;
+  int32 total_minutes = 5;
+  int32 difficulty = 6;
+  repeated string tools = 7;
+  repeated string scenario_tags = 8;
+  repeated string flavor_tags = 9;
+  repeated CreateRecipeDraftIngredient ingredients = 10;
+  repeated CreateRecipeDraftStep steps = 11;
+  repeated string gallery_image_urls = 12;
+}
+
+message CreateRecipeDraftReply {
+  RecipeDetail detail = 1;
+}
+
+message UpdateRecipeRequest {
+  int64 id = 1;
+  string title = 2;
+  string summary = 3;
+  string cover_image_url = 4;
+  repeated string gallery_image_urls = 5;
+  string category = 6;
+  string status = 7;
+  int32 total_minutes = 8;
+  int32 difficulty = 9;
+  repeated string tools = 10;
+  repeated string scenario_tags = 11;
+  repeated string flavor_tags = 12;
+  google.protobuf.Struct metadata = 13;
+  repeated CreateRecipeDraftIngredient ingredients = 14;
+  repeated CreateRecipeDraftStep steps = 15;
+}
+
+message UpdateRecipeReply {
+  RecipeDetail detail = 1;
+}
+
+message DeleteRecipeRequest {
+  int64 id = 1;
+}
+
+message DeleteRecipeReply {
+  bool ok = 1;
 }

@@ -20,20 +20,16 @@ import (
 // Injectors from wire.go:
 
 func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error) {
+	authRepo := auth.NewAuthRepo()
 	db, cleanup, err := data.NewDB(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	authRepo := data.NewAuthRepo(db)
-	authAuthRepo := auth.NewAuthRepo()
-	authUsecase := biz.NewAuthUsecase(authRepo, authAuthRepo)
+	dataAuthRepo := data.NewAuthRepo(db)
+	authUsecase := biz.NewAuthUsecase(dataAuthRepo, authRepo)
 	authService := service.NewAuthService(authUsecase)
 	householdRepo := data.NewHouseholdRepo(db)
 	householdUsecase := biz.NewHouseholdUsecase(householdRepo)
-	householdService := service.NewHouseholdService(householdUsecase)
-	recipeRepo := data.NewRecipeRepo(db)
-	recipeUsecase := biz.NewRecipeUsecase(recipeRepo)
-	recipeService := service.NewRecipeService(recipeUsecase)
 	mediaRepo := data.NewMediaRepo(db)
 	objectStorage, cleanup2, err := data.NewObjectStorage(cfg)
 	if err != nil {
@@ -41,12 +37,16 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 		return nil, nil, err
 	}
 	mediaUsecase := biz.NewMediaUsecase(mediaRepo, objectStorage, cfg)
+	householdService := service.NewHouseholdService(householdUsecase, mediaUsecase)
+	recipeRepo := data.NewRecipeRepo(db)
+	runtime := data.NewAIRuntime(cfg)
+	recipeUsecase := biz.NewRecipeUsecase(recipeRepo, runtime)
+	recipeService := service.NewRecipeService(recipeUsecase, mediaUsecase)
 	mediaService := service.NewMediaService(mediaUsecase)
 	client := data.NewInferenceClient(cfg)
 	voiceUsecase := biz.NewVoiceUsecase(mediaRepo, objectStorage, client)
 	voiceService := service.NewVoiceService(voiceUsecase)
 	importRepo := data.NewImportRepo(db)
-	runtime := data.NewAIRuntime(cfg)
 	importUsecase := biz.NewImportUsecase(importRepo, mediaRepo, recipeRepo, objectStorage, client, runtime)
 	importService := service.NewImportService(importUsecase)
 	knowledgeRepo := data.NewKnowledgeRepo(db)
@@ -55,7 +55,8 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	aiRepo := data.NewAIRepo(db)
 	aiUsecase := biz.NewAIUsecase(aiRepo, runtime)
 	aiService := service.NewAIService(aiUsecase)
-	httpServer := server.NewHTTPServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService)
+	aiChatHandler := server.NewAIChatHandler(aiUsecase, authRepo)
+	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, aiChatHandler)
 	grpcServer := server.NewGRPCServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService)
 	app := server.NewApp(cfg, logger, httpServer, grpcServer)
 	return app, func() {

@@ -11,10 +11,11 @@ type HouseholdService struct {
 	v1.UnimplementedHouseholdServiceServer
 
 	usecase *biz.HouseholdUsecase
+	media   *biz.MediaUsecase
 }
 
-func NewHouseholdService(usecase *biz.HouseholdUsecase) *HouseholdService {
-	return &HouseholdService{usecase: usecase}
+func NewHouseholdService(usecase *biz.HouseholdUsecase, media *biz.MediaUsecase) *HouseholdService {
+	return &HouseholdService{usecase: usecase, media: media}
 }
 
 func (s *HouseholdService) CreateHousehold(ctx context.Context, req *v1.CreateHouseholdRequest) (*v1.CreateHouseholdReply, error) {
@@ -41,7 +42,9 @@ func (s *HouseholdService) GetKitchenByShareCode(ctx context.Context, req *v1.Ge
 	}
 	items := make([]*v1.SharedRecipePreview, 0, len(recipes))
 	for _, recipe := range recipes {
-		items = append(items, &v1.SharedRecipePreview{Recipe: toProtoRecipe(recipe)})
+		r := toProtoRecipe(recipe)
+		signRecipeMediaURLs(ctx, s.media, r)
+		items = append(items, &v1.SharedRecipePreview{Recipe: r})
 	}
 	return &v1.GetKitchenByShareCodeReply{
 		Household: toProtoHousehold(household),
@@ -56,7 +59,9 @@ func (s *HouseholdService) ImportSharedRecipes(ctx context.Context, req *v1.Impo
 	}
 	items := make([]*v1.Recipe, 0, len(recipes))
 	for _, recipe := range recipes {
-		items = append(items, toProtoRecipe(recipe))
+		r := toProtoRecipe(recipe)
+		signRecipeMediaURLs(ctx, s.media, r)
+		items = append(items, r)
 	}
 	return &v1.ImportSharedRecipesReply{
 		Recipes:   items,
@@ -83,4 +88,19 @@ func (s *HouseholdService) CreateKitchenTag(ctx context.Context, req *v1.CreateK
 		return nil, err
 	}
 	return &v1.CreateKitchenTagReply{Tag: toProtoKitchenTag(tag)}, nil
+}
+
+func (s *HouseholdService) UpdateKitchenTag(ctx context.Context, req *v1.UpdateKitchenTagRequest) (*v1.UpdateKitchenTagReply, error) {
+	tag, err := s.usecase.UpdateKitchenTag(ctx, biz.ActorFromContext(ctx), req.GetId(), req.GetName(), req.GetIcon(), req.GetColor())
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UpdateKitchenTagReply{Tag: toProtoKitchenTag(tag)}, nil
+}
+
+func (s *HouseholdService) DeleteKitchenTag(ctx context.Context, req *v1.DeleteKitchenTagRequest) (*v1.DeleteKitchenTagReply, error) {
+	if err := s.usecase.DeleteKitchenTag(ctx, biz.ActorFromContext(ctx), req.GetId()); err != nil {
+		return nil, err
+	}
+	return &v1.DeleteKitchenTagReply{}, nil
 }

@@ -1,11 +1,18 @@
 package server
 
 import (
+	"context"
 	nethttp "net/http"
 	"time"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
+	"github.com/chengjiang/aicook/backend/internal/auth"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/middleware/logging"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/selector"
+	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	svc "github.com/chengjiang/aicook/backend/internal/service"
@@ -40,15 +47,29 @@ func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratosht
 	return server
 }
 
-func NewHTTPServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService) *kratoshttp.Server {
+func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, chatHandler *AIChatHandler) *kratoshttp.Server {
 	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second
 	}
 
+	publicOperations := map[string]bool{
+		"/aicook.v1.AuthService/Register": true,
+		"/aicook.v1.AuthService/Login":    true,
+	}
+
 	options := []kratoshttp.ServerOption{
 		kratoshttp.Address(cfg.GetServer().GetHttp().GetAddr()),
 		kratoshttp.Timeout(timeout),
+		kratoshttp.Middleware(
+			recovery.Recovery(),
+			logging.Server(logger),
+			selector.Server(
+				auth.Server(authRepo.KeyFunc(), auth.WithClaims(func() jwt.Claims { return &auth.JwtClaims{} })),
+			).Match(func(ctx context.Context, operation string) bool {
+				return auth.NewWhiteListMatcher(publicOperations)(ctx, operation)
+			}).Build(),
+		),
 	}
 	if network := cfg.GetServer().GetHttp().GetNetwork(); network != "" {
 		options = append(options, kratoshttp.Network(network))
@@ -69,6 +90,7 @@ func NewHTTPServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *
 		w.WriteHeader(nethttp.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	chatHandler.Register(mux)
 	server.HandlePrefix("/", mux)
 	return server
 }
