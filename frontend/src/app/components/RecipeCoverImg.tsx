@@ -7,7 +7,8 @@ type Props = {
   className?: string
   /** 首屏/轮播当前张用 eager，列表与离屏用 lazy 省流量 */
   loading?: ImgHTMLAttributes<HTMLImageElement>['loading']
-  fetchPriority?: ImgHTMLAttributes<HTMLImageElement>['fetchPriority']
+  /** 对应 DOM `fetchpriority`，供浏览器 LCP 提示；勿用驼峰写在 img 上，React 会报警告。 */
+  fetchPriority?: 'high' | 'low' | 'auto'
   onClick?: ImgHTMLAttributes<HTMLImageElement>['onClick']
 }
 
@@ -26,7 +27,7 @@ export function RecipeCoverImg({ src, alt, className, loading = 'lazy', fetchPri
       className={className}
       loading={loading}
       decoding="async"
-      fetchPriority={fetchPriority}
+      {...(fetchPriority != null ? { fetchpriority: fetchPriority } : {})}
       onError={() => setBroken(true)}
       onClick={onClick}
     />

@@ -1,13 +1,18 @@
 import { Search, Sparkles, Mic, Camera, Plus, Clock, ChefHat, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   createKitchenTag,
   deleteKitchenTag,
+  getAuthSession,
+  getMe,
+  listActiveCooking,
   listKitchenTags,
   listRecipes,
   updateKitchenTag,
+  type ActiveCooking,
+  type AuthSession,
   type KitchenTag,
 } from '../../lib/api/client'
 import { mapCardToUiRecipe, type UiRecipe } from '../../lib/mappers/recipe'
@@ -95,6 +100,8 @@ function KitchenTagGridButton({ tag, selected, onToggleSelect, onLongPress }: Ki
 
 export default function Home() {
   const { openAI } = useAI()
+  const navigate = useNavigate()
+  const [me, setMe] = useState<AuthSession | null>(() => getAuthSession())
   const [recipes, setRecipes] = useState<UiRecipe[]>([])
   const [tags, setTags] = useState<KitchenTag[]>([])
   const [selectedTag, setSelectedTag] = useState('')
@@ -109,6 +116,13 @@ export default function Home() {
   const [formIcon, setFormIcon] = useState('folder')
   const [formColor, setFormColor] = useState('orange')
   const [formBusy, setFormBusy] = useState(false)
+  const [activeCooking, setActiveCooking] = useState<ActiveCooking[]>([])
+
+  useEffect(() => {
+    void getMe()
+      .then(setMe)
+      .catch(() => setMe(getAuthSession()))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -120,11 +134,13 @@ export default function Home() {
         excludeDraft: true,
       }),
       listKitchenTags(),
+      listActiveCooking().catch(() => [] as ActiveCooking[]),
     ])
-      .then(([cards, kitchenTags]) => {
+      .then(([cards, kitchenTags, cooking]) => {
         if (!cancelled) {
           setRecipes(cards.map(mapCardToUiRecipe))
           setTags(kitchenTags)
+          setActiveCooking(Array.isArray(cooking) ? cooking : [])
         }
       })
       .catch((e) => {
@@ -178,7 +194,7 @@ export default function Home() {
         await refreshKitchenTags()
       } else if (formTagId != null) {
         const oldName = tags.find((t) => String(t.id) === String(formTagId))?.name
-        await updateKitchenTag(formTagId, {
+        await updateKitchenTag(String(formTagId), {
           name,
           icon: formIcon.trim() || 'folder',
           color: formColor,
@@ -209,60 +225,73 @@ export default function Home() {
     }
   }
 
+  const profileUser = me?.user
+  const nameInitial = (profileUser?.display_name || profileUser?.username || '?').slice(0, 1)
+
   return (
     <div className="space-y-6 p-4">
-      <div className="space-y-4">
+      {/* sticky 须为整页滚动容器的子级：若放在仅含标题+搜索的小父级里，滚过该块后粘性会失效 */}
+      <div className="sticky top-0 z-20 -mx-4 shrink-0 bg-gray-50/95 px-4 pb-2 pt-0 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">发现美味</h1>
-          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gray-200">
-            <span className="text-sm">😎</span>
-          </div>
+          <button
+            type="button"
+            aria-label="账户与资料"
+            onClick={() => navigate('/profile?sheet=account')}
+            className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 transition-opacity active:opacity-80"
+          >
+            {profileUser?.avatar_url ? (
+              <img src={profileUser.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-sm font-semibold text-gray-600">{nameInitial}</span>
+            )}
+          </button>
         </div>
+      </div>
 
-        <div
-          className="relative flex cursor-text items-center rounded-full bg-gray-50 p-1.5 transition-all active:scale-[0.99]"
-          onClick={() => openAI()}
-          onKeyDown={(e) => e.key === 'Enter' && openAI()}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="flex flex-1 items-center gap-2 pl-3">
-            <Search className="h-5 w-5 text-gray-400" />
-            <span className="text-[15px] text-gray-400">找菜谱、看做法...</span>
-          </div>
-          <div className="flex items-center gap-1 pr-1 text-gray-400">
-            <button
-              type="button"
-              className="rounded-full p-2 transition-colors hover:bg-gray-200"
-              onClick={(e) => {
-                e.stopPropagation()
-                openAI()
-              }}
-            >
-              <Mic className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="rounded-full p-2 transition-colors hover:bg-gray-200"
-              onClick={(e) => {
-                e.stopPropagation()
-                openAI()
-              }}
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-            <div className="mx-1 h-4 w-px bg-gray-300" />
-            <button
-              type="button"
-              className="rounded-full bg-orange-500 px-4 py-1.5 text-xs font-bold text-white transition-colors"
-              onClick={(e) => {
-                e.stopPropagation()
-                openAI()
-              }}
-            >
-              AI 搜索
-            </button>
-          </div>
+      <div
+        className="relative flex cursor-text items-center rounded-full bg-gray-50 p-1.5 transition-all active:scale-[0.99]"
+        onClick={() => openAI()}
+        onKeyDown={(e) => e.key === 'Enter' && openAI()}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="flex flex-1 items-center gap-2 pl-3">
+          <Search className="h-5 w-5 text-gray-400" />
+          <span className="text-[15px] text-gray-400">找菜谱、看做法...</span>
+        </div>
+        <div className="flex items-center gap-1 pr-1 text-gray-400">
+          <button
+            type="button"
+            className="rounded-full p-2 transition-colors hover:bg-gray-200"
+            onClick={(e) => {
+              e.stopPropagation()
+              openAI()
+            }}
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="rounded-full p-2 transition-colors hover:bg-gray-200"
+            onClick={(e) => {
+              e.stopPropagation()
+              openAI()
+            }}
+          >
+            <Camera className="h-4 w-4" />
+          </button>
+          <div className="mx-1 h-4 w-px bg-gray-300" />
+          <button
+            type="button"
+            className="rounded-full bg-orange-500 px-4 py-1.5 text-xs font-bold text-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              openAI()
+            }}
+          >
+            AI 搜索
+          </button>
         </div>
       </div>
 
@@ -461,6 +490,46 @@ export default function Home() {
           </>
         ) : null}
       </AnimatePresence>
+
+      {activeCooking.length > 0 ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+              <ChefHat className="h-4 w-4 text-orange-500" />
+              进行中的菜
+            </h2>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {activeCooking.map((c) => {
+              const stepLabel = c.total_steps > 0 ? `第 ${c.step_index + 1}/${c.total_steps} 步` : ''
+              const timerHint =
+                c.remaining_seconds > 0 && c.timer_running
+                  ? ` · 剩余 ${Math.ceil(c.remaining_seconds / 60)} 分钟`
+                  : c.remaining_seconds > 0
+                    ? ` · ${c.remaining_seconds}s`
+                    : ''
+              return (
+                <Link
+                  key={String(c.recipe_id)}
+                  to={`/cook/${c.recipe_id}`}
+                  className="flex min-w-[200px] shrink-0 items-center gap-3 rounded-2xl border border-orange-100 bg-orange-50/80 p-3 transition active:scale-[0.99]"
+                >
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                    <RecipeCoverImg src={c.cover_image_url} alt={c.title} className="h-full w-full object-cover" loading="lazy" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-gray-900">{c.title}</p>
+                    <p className="truncate text-[11px] text-gray-500">
+                      {stepLabel}
+                      {timerHint}
+                    </p>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">

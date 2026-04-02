@@ -1,37 +1,60 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import { Link } from 'react-router'
 import html2canvas from 'html2canvas'
 import { useAI } from '../contexts/AIContext'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Mic, Image as ImageIcon, Paperclip, Camera, Send, Bot, ChefHat, Clock, Check, FileText, ChevronDown, ChevronUp, History, Plus, Trash2, Maximize2, Minimize2 } from 'lucide-react'
+import {
+  X,
+  Image as ImageIcon,
+  Paperclip,
+  Camera,
+  Send,
+  Bot,
+  ChefHat,
+  Clock,
+  Check,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  History,
+  Plus,
+  Trash2,
+  Maximize2,
+  Minimize2,
+  Mic,
+} from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from './ui/drawer'
-import type {
-  QuoteContext,
-  AISessionSummary,
-  AIHistoryMessage,
-  AIAttachment,
-  AIAgentTrace,
-  AIApprovalOption,
-  AIApprovalResponse,
-  AIPendingApproval,
-  AIRecipeCardMeta,
-  AITextRecipeDraft,
-  AIWorkflowStep,
-  AIToolCall,
-} from '../../lib/api/client'
 import {
+  type QuoteContext,
+  type AISessionSummary,
+  type AIHistoryMessage,
+  type AIAttachment,
+  type AIAgentTrace,
+  type AIApprovalOption,
+  type AIApprovalResponse,
+  type AIPendingApproval,
+  type AIRecipeCardMeta,
+  type AITextRecipeDraft,
+  type AIWorkflowStep,
+  type AIToolCall,
+  type ActiveCooking,
   createTextRecipeDraft,
   deleteAiSession,
+  fetchChatKnowledgeIngestStatus,
   getAuthSession,
   isAuthenticated,
+  listActiveCooking,
   listAiMessages,
   listAiSessions,
-  subscribeAuthSession,
   streamAiMessage,
+  subscribeAuthSession,
   uploadMedia,
 } from '../../lib/api/client'
+import { formatMessageTime } from '../../lib/utils/time'
 import { useVoiceRecorder, type VoiceRecorderResult } from '../../components/media/useVoiceRecorder'
+import { VoiceMessageBar } from '../../components/media/VoiceMessageBar'
 
 type Message = {
   id?: string
@@ -40,7 +63,14 @@ type Message = {
   contentCollapsed?: boolean
   contentExpandable?: boolean
   contentStreamingView?: boolean
-  attachments?: Array<{ kind: 'image' | 'file' | 'audio'; name: string; previewUrl?: string; url?: string; contentType?: string }>
+  attachments?: Array<{
+    kind: 'image' | 'file' | 'audio'
+    name: string
+    previewUrl?: string
+    url?: string
+    contentType?: string
+    assetId?: string
+  }>
   reasoning?: {
     content: string
     collapsed: boolean
@@ -67,6 +97,10 @@ type Message = {
   /** Set when user picked an option; buttons stay hidden for this message. */
   approvalResolved?: { optionId: string; title: string; prompt?: string }
   toolsExpanded?: boolean
+  /** ISO / RFC3339 from server, or local ISO when sending */
+  createdAt?: string
+  /** response_meta.kind，如 knowledge_ingest_notice */
+  kind?: string
 }
 
 type PendingAttachment = {
@@ -75,6 +109,19 @@ type PendingAttachment = {
   file: File
   name: string
   previewUrl?: string
+}
+
+function knowledgeHitBadge(kind: string | undefined): { label: string; className: string } {
+  switch (kind) {
+    case 'memory':
+      return { label: '长期记忆', className: 'bg-violet-100 text-violet-800' }
+    case 'knowledge_base':
+      return { label: '知识库', className: 'bg-amber-100 text-amber-950' }
+    case 'knowledge_graph':
+      return { label: '知识图谱', className: 'bg-sky-100 text-sky-900' }
+    default:
+      return { label: '资料', className: 'bg-gray-100 text-gray-600' }
+  }
 }
 
 function toRecipeData(card: AIRecipeCardMeta): NonNullable<Message['recipeData']> {
@@ -114,6 +161,11 @@ const AI_ASSISTANT_STORAGE_PREFIX = 'aicook-ai-assistant'
 const STREAMING_CONTENT_THRESHOLD = 320
 const COLLAPSIBLE_CONTENT_THRESHOLD = 220
 const MESSAGE_PAGE_SIZE = 5
+/** Composer textarea auto-grow (px); no scrollbar — clamp at max. */
+const COMPOSER_TEXTAREA_MIN_PX = 44
+const COMPOSER_TEXTAREA_MAX_PX = 280
+/** Long-press on empty textarea: slower than mic so 系统「粘贴」菜单更容易先出现。 */
+const VOICE_PRESS_MS_TEXTAREA = 500
 
 function MarkdownBlock({ content }: { content: string }) {
   return (
@@ -169,9 +221,21 @@ export default function AIAssistant() {
   const imageInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messageListRef = useRef<HTMLDivElement>(null)
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null)
   const messageEndRef = useRef<HTMLDivElement>(null)
   const streamingContentRef = useRef<HTMLDivElement>(null)
   const streamingReasoningRef = useRef<HTMLDivElement>(null)
+  const composerTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const micButtonRef = useRef<HTMLButtonElement>(null)
+  /** 忽略 iOS 等触屏后紧跟的合成鼠标 pointer，避免话筒被连点两次 */
+  const micLastRealTouchTs = useRef(0)
+  /** touchstart + pointerdown 同一次按压去重（部分 WebView 双发） */
+  const micGestureHandledRef = useRef(false)
+  const sendBusyRef = useRef(false)
+  const voiceBusyRef = useRef(false)
+  const isRecordingRef = useRef(false)
+  const startRecordingRef = useRef<() => void>(() => {})
+  const finishRecordingRef = useRef<() => void>(() => {})
   const shouldAutoScrollRef = useRef(true)
 
   const [messages, setMessages] = useState<Message[]>([WELCOME])
@@ -187,17 +251,63 @@ export default function AIAssistant() {
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [oldestMessageId, setOldestMessageId] = useState<string | null>(null)
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
+  /** 直传对象存储进度（发送中） */
+  const [uploadStageLabel, setUploadStageLabel] = useState('')
+  /** 厨艺 AI 资料库入库：asset_id → 阶段文案 */
+  const [knowledgeIngestProgress, setKnowledgeIngestProgress] = useState<Record<string, string>>({})
   const [reasoningEnabled, setReasoningEnabled] = useState(false)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const [imageRecipeEnabled, setImageRecipeEnabled] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [activeCooking, setActiveCooking] = useState<ActiveCooking[]>([])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [detailMessage, setDetailMessage] = useState<{ title: string; content: string } | null>(null)
   const { busy: voiceBusy, recording: isRecording, hint: voiceHint, startRecording, finishRecording } = useVoiceRecorder((result) => {
     const normalized = (result.transcription.text || '').trim()
     if (!normalized) return
     void handleVoiceMessage(result)
-  }, { resetHint: '长按输入框说话' })
+  }, { resetHint: '点击话筒录音，空白输入框可长按' })
+
+  sendBusyRef.current = sendBusy
+  voiceBusyRef.current = voiceBusy
+  isRecordingRef.current = isRecording
+  startRecordingRef.current = startRecording
+  finishRecordingRef.current = finishRecording
+
+  const runMicToggleFromGesture = useCallback(() => {
+    if (micGestureHandledRef.current) return
+    micGestureHandledRef.current = true
+    queueMicrotask(() => {
+      micGestureHandledRef.current = false
+    })
+    if (sendBusyRef.current || voiceBusyRef.current) return
+    if (isRecordingRef.current) void finishRecordingRef.current()
+    else void startRecordingRef.current()
+  }, [])
+
+  const composerInputEmpty = !inputValue.trim()
+  useEffect(() => {
+    if (!isOpen || !composerInputEmpty || !authed) return
+    const btn = micButtonRef.current
+    if (!btn) return
+    const onTouchStart = () => {
+      runMicToggleFromGesture()
+    }
+    btn.addEventListener('touchstart', onTouchStart, { capture: true, passive: true })
+    return () => btn.removeEventListener('touchstart', onTouchStart, { capture: true })
+  }, [isOpen, composerInputEmpty, authed, runMicToggleFromGesture])
+
+  const syncComposerTextareaSize = useCallback(() => {
+    const el = composerTextareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const h = Math.min(Math.max(el.scrollHeight, COMPOSER_TEXTAREA_MIN_PX), COMPOSER_TEXTAREA_MAX_PX)
+    el.style.height = `${h}px`
+  }, [])
+
+  useLayoutEffect(() => {
+    syncComposerTextareaSize()
+  }, [inputValue, isRecording, voiceBusy, syncComposerTextareaSize])
 
   useEffect(() => {
     const unsubscribe = subscribeAuthSession(() => {
@@ -211,6 +321,21 @@ export default function AIAssistant() {
       unsubscribe()
     }
   }, [closeAI])
+
+  useEffect(() => {
+    if (!isOpen || !authed) return
+    let cancelled = false
+    void listActiveCooking()
+      .then((items) => {
+        if (!cancelled) setActiveCooking(items)
+      })
+      .catch(() => {
+        if (!cancelled) setActiveCooking([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, authed])
 
   useEffect(() => {
     return () => {
@@ -465,6 +590,7 @@ export default function AIAssistant() {
         name: attachment.name || (attachment.type === 'image' ? '图片' : attachment.type === 'audio' ? '语音' : '文件'),
         url: attachment.url || undefined,
         contentType: attachment.content_type || undefined,
+        assetId: attachment.asset_id || undefined,
       })),
       reasoning: item.response_meta?.reasoning_content
         ? {
@@ -479,6 +605,8 @@ export default function AIAssistant() {
       approvalResolved,
       type: item.response_meta?.recipe_card ? 'recipe_card' : 'text',
       recipeData: item.response_meta?.recipe_card ? toRecipeData(item.response_meta.recipe_card) : undefined,
+      createdAt: item.created_at,
+      kind: item.response_meta?.kind,
     }
   }
 
@@ -529,7 +657,7 @@ export default function AIAssistant() {
     }
   }
 
-  async function loadOlderMessages() {
+  const loadOlderMessages = useCallback(async () => {
     if (!activeSessionId || !oldestMessageId || loadingMoreMessages || !hasMoreMessages) return
     const list = messageListRef.current
     const previousHeight = list?.scrollHeight ?? 0
@@ -561,7 +689,23 @@ export default function AIAssistant() {
     } finally {
       setLoadingMoreMessages(false)
     }
-  }
+  }, [activeSessionId, oldestMessageId, loadingMoreMessages, hasMoreMessages])
+
+  useEffect(() => {
+    if (!isOpen || !activeSessionId || !hasMoreMessages) return
+    const root = messageListRef.current
+    const target = loadMoreSentinelRef.current
+    if (!root || !target) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return
+        void loadOlderMessages()
+      },
+      { root, rootMargin: '100px 0px 0px 0px', threshold: 0 },
+    )
+    obs.observe(target)
+    return () => obs.disconnect()
+  }, [isOpen, activeSessionId, hasMoreMessages, loadOlderMessages, oldestMessageId, loadingMoreMessages])
 
   async function handleDeleteSession(sessionId: string) {
     if (!window.confirm('删除这个会话后将无法在历史中查看，确认删除吗？')) return
@@ -587,6 +731,7 @@ export default function AIAssistant() {
     attachments?: AIAttachment[],
     approvalResponse?: AIApprovalResponse,
   ) {
+    const assistantStartedAt = new Date().toISOString()
     setMessages((prev) => [
       ...prev,
       {
@@ -596,6 +741,7 @@ export default function AIAssistant() {
         contentExpandable: false,
         contentStreamingView: false,
         reasoning: reasoningEnabled ? { content: '', collapsed: false } : undefined,
+        createdAt: assistantStartedAt,
       },
     ])
     const reply = await streamAiMessage({
@@ -692,6 +838,43 @@ export default function AIAssistant() {
       setActiveSessionId(reply.session_id)
     }
     await refreshSessions()
+
+    const watch = reply.knowledge_ingest_watch
+    const sid = reply.session_id
+    if (watch && watch.length > 0 && sid) {
+      const assetIds = watch.map((w) => w.asset_id).filter(Boolean)
+      const nameByAsset = Object.fromEntries(watch.map((w) => [w.asset_id, w.name || '']))
+      void (async () => {
+        const maxTicks = 90
+        const intervalMs = 2000
+        for (let tick = 0; tick < maxTicks; tick++) {
+          const statuses = await Promise.all(assetIds.map((id) => fetchChatKnowledgeIngestStatus(id)))
+          const next: Record<string, string> = {}
+          for (let i = 0; i < assetIds.length; i++) {
+            const id = assetIds[i]
+            const st = statuses[i]
+            const label = nameByAsset[id] ? `${nameByAsset[id]}: ${st.stage_label}` : st.stage_label
+            next[id] = label
+          }
+          setKnowledgeIngestProgress(next)
+          if (statuses.every((s) => s.settled)) break
+          await new Promise((r) => setTimeout(r, intervalMs))
+        }
+        setKnowledgeIngestProgress({})
+        try {
+          const { messages: fresh } = await listAiMessages(sid, { limit: 30 })
+          setMessages((prev) => {
+            const prevIds = new Set(prev.map((m) => m.id).filter((id): id is string => Boolean(id)))
+            const additions = fresh.filter((m) => m.id && !prevIds.has(m.id)).map(mapHistoryMessage)
+            if (additions.length === 0) return prev
+            shouldAutoScrollRef.current = true
+            return [...prev, ...additions]
+          })
+        } catch {
+          // ignore
+        }
+      })()
+    }
   }
 
   function appendPendingAttachments(files: Array<{ file: File; type: 'image' | 'document'; previewUrl?: string }>) {
@@ -744,13 +927,14 @@ export default function AIAssistant() {
 
   function upsertAssistantMessage(content: string) {
     shouldAutoScrollRef.current = true
+    const ts = new Date().toISOString()
     setMessages((prev) => {
       const next = [...prev]
       const last = next[next.length - 1]
       if (last?.role === 'assistant') {
         next[next.length - 1] = normalizeMessageDisplayState({ ...last, content, contentStreamingView: false })
       } else {
-        next.push(normalizeMessageDisplayState({ role: 'assistant', content }))
+        next.push(normalizeMessageDisplayState({ role: 'assistant', content, createdAt: ts }))
       }
       return next
     })
@@ -810,6 +994,7 @@ export default function AIAssistant() {
         name: result.asset.file_name || result.file.name,
         asset_id: result.asset.id,
       }
+      const sentAt = new Date().toISOString()
       setMessages((prev) => [
         ...prev,
         {
@@ -821,8 +1006,10 @@ export default function AIAssistant() {
               name: audioAttachment.name,
               url: audioAttachment.url,
               contentType: audioAttachment.content_type,
+              assetId: audioAttachment.asset_id,
             },
           ],
+          createdAt: sentAt,
         },
       ])
       await runStreamRequest(transcript, [audioAttachment])
@@ -837,13 +1024,26 @@ export default function AIAssistant() {
     const t = text.trim()
     if ((!t && pendingAttachments.length === 0) || sendBusy) return
     setContinueSessionPrompt(null)
+    const queued = [...pendingAttachments]
+    clearPendingAttachments()
     setInputValue('')
+    setUploadStageLabel('')
     setSendBusy(true)
     try {
-      const queued = [...pendingAttachments]
       const uploadedAttachments: AIAttachment[] = []
-      for (const item of queued) {
-        const asset = await uploadMedia(item.file, item.type === 'image' ? 'images' : 'knowledge')
+      const total = queued.length
+      for (let i = 0; i < queued.length; i++) {
+        const item = queued[i]
+        setUploadStageLabel(total > 1 ? `上传 ${i + 1}/${total} · 0%` : '上传中 · 0%')
+        const asset = await uploadMedia(
+          item.file,
+          item.type === 'image' ? 'images' : 'knowledge',
+          (loaded, loadTotal) => {
+            if (loadTotal <= 0) return
+            const pct = Math.min(100, Math.round((loaded / loadTotal) * 100))
+            setUploadStageLabel(total > 1 ? `上传 ${i + 1}/${total} · ${pct}%` : `上传中 · ${pct}%`)
+          },
+        )
         uploadedAttachments.push({
           type: item.type === 'image' ? 'image' : 'document',
           url: asset.storage_url,
@@ -854,6 +1054,7 @@ export default function AIAssistant() {
       }
 
       shouldAutoScrollRef.current = true
+      const sentAt = new Date().toISOString()
       setMessages((prev) => [
         ...prev,
         {
@@ -865,20 +1066,24 @@ export default function AIAssistant() {
             previewUrl: item.previewUrl,
             url: uploadedAttachments[index]?.url,
           })),
+          createdAt: sentAt,
         },
       ])
 
+      setUploadStageLabel('等待模型回复…')
       await runStreamRequest(t || '请结合我上传的附件继续回答。', uploadedAttachments)
-      setPendingAttachments([])
     } catch (e) {
       upsertAssistantMessage(e instanceof Error ? `请求失败：${e.message}` : '请求失败')
     } finally {
+      clearPendingAttachments()
+      setUploadStageLabel('')
       setSendBusy(false)
     }
   }
 
   const handleActionClick = (action: string) => {
-    setMessages((prev) => [...prev, { role: 'user', content: `[操作: 上传${action}]` }])
+    const sentAt = new Date().toISOString()
+    setMessages((prev) => [...prev, { role: 'user', content: `[操作: 上传${action}]`, createdAt: sentAt }])
     void (async () => {
       try {
         await runStreamRequest(`用户点击了：${action}`)
@@ -901,11 +1106,13 @@ export default function AIAssistant() {
       return
     }
     if (!recipe.draft) {
+      const ts = new Date().toISOString()
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
           content: recipe.title ? `《${recipe.title}》草稿已经生成，但还没有拿到可保存的结构化内容。` : '菜谱草稿已经生成。',
+          createdAt: ts,
         },
       ])
       return
@@ -946,6 +1153,7 @@ export default function AIAssistant() {
     shouldAutoScrollRef.current = true
     setSendBusy(true)
     try {
+      const sentAt = new Date().toISOString()
       setMessages((prev) => {
         const marked = prev.map((m) =>
           m.role === 'assistant' && m.approval?.id === approval.id && !m.approvalResolved
@@ -964,6 +1172,7 @@ export default function AIAssistant() {
           {
             role: 'user',
             content: `我选《${option.title}》`,
+            createdAt: sentAt,
           },
         ]
       })
@@ -1041,12 +1250,20 @@ export default function AIAssistant() {
       : useCollapsedWindow && msg.contentCollapsed
         ? 'max-h-44 overflow-hidden'
         : ''
+    const isIngestNotice = msg.kind === 'knowledge_ingest_notice'
 
     return (
       <div className="w-full">
+        {isIngestNotice ? (
+          <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-800/80">资料库</div>
+        ) : null}
         <div
           ref={useStreamingWindow ? streamingContentRef : null}
-          className={`rounded-2xl px-4 py-3 text-[15px] leading-relaxed rounded-tl-sm border border-gray-100 bg-white text-gray-800 shadow-sm ${contentContainerClass}`}
+          className={`rounded-2xl px-4 py-3 text-[15px] leading-relaxed rounded-tl-sm border text-gray-800 shadow-sm ${
+            isIngestNotice
+              ? 'border-amber-100 bg-amber-50/90'
+              : 'border-gray-100 bg-white'
+          } ${contentContainerClass}`}
         >
           <MarkdownBlock content={msg.content} />
         </div>
@@ -1292,15 +1509,14 @@ export default function AIAssistant() {
                   </div>
                 ) : null}
                 {activeSessionId ? (
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => void loadOlderMessages()}
-                      disabled={loadingMoreMessages || !hasMoreMessages}
-                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-500 disabled:opacity-50"
-                    >
-                      {loadingMoreMessages ? '加载中…' : hasMoreMessages ? '加载更早消息' : '没有更早消息了'}
-                    </button>
+                  <div className="flex flex-col items-center gap-1 py-1">
+                    <div ref={loadMoreSentinelRef} className="h-1 w-full shrink-0" aria-hidden />
+                    {loadingMoreMessages ? (
+                      <span className="text-[11px] text-gray-400">加载更早消息…</span>
+                    ) : null}
+                    {!loadingMoreMessages && !hasMoreMessages ? (
+                      <span className="text-[11px] text-gray-300">已到最早</span>
+                    ) : null}
                   </div>
                 ) : null}
                 {messages.map((msg, idx) => {
@@ -1333,13 +1549,36 @@ export default function AIAssistant() {
                         </div>
                       ) : null}
 
-                      {msg.role === 'assistant'
-                        ? renderAssistantContent(msg, idx, idx === activeStreamingAssistantIndex)
-                        : (
+                      {msg.role === 'assistant' ? (
+                        renderAssistantContent(msg, idx, idx === activeStreamingAssistantIndex)
+                      ) : (() => {
+                        const audioItems = msg.attachments?.filter((a) => a.kind === 'audio') ?? []
+                        const hasUserAudio = audioItems.length > 0
+                        const transcript = msg.content.trim()
+                        if (hasUserAudio) {
+                          return (
+                            <div className="flex max-w-[min(100%,320px)] flex-col items-end gap-2">
+                              {audioItems.map((item, aidx) => (
+                                <VoiceMessageBar
+                                  key={`${item.url ?? item.name}-${aidx}`}
+                                  src={item.url}
+                                  label={item.name}
+                                  assetId={item.assetId}
+                                  fallbackText={transcript}
+                                />
+                              ))}
+                              {transcript ? (
+                                <p className="max-w-full px-1 text-left text-xs leading-relaxed text-gray-500">{transcript}</p>
+                              ) : null}
+                            </div>
+                          )
+                        }
+                        return (
                           <div className="rounded-2xl rounded-tr-sm bg-gray-900 px-4 py-3 text-[15px] leading-relaxed text-white">
                             <MarkdownBlock content={msg.content} />
                           </div>
-                        )}
+                        )
+                      })()}
 
                       {visibleAgentTrace.length ? (
                         <div className="w-full space-y-1 px-1">
@@ -1448,6 +1687,50 @@ export default function AIAssistant() {
                                                 </div>
                                               )
                                             }
+                                            if (toolCall.name === 'knowledge_lookup' && Array.isArray(parsed.results)) {
+                                              return (
+                                                <div className="space-y-3">
+                                                  {parsed.query ? (
+                                                    <div className="text-[11px] text-gray-500">
+                                                      查询词：
+                                                      <span className="font-medium text-gray-700">{String(parsed.query)}</span>
+                                                    </div>
+                                                  ) : null}
+                                                  {parsed.results.length === 0 ? (
+                                                    <div className="text-gray-400">未命中家庭知识资料</div>
+                                                  ) : (
+                                                    parsed.results.map((res: any, i: number) => {
+                                                      const hitBadge = knowledgeHitBadge(res.source_kind)
+                                                      return (
+                                                      <div key={i} className="space-y-1 border-b border-gray-200/40 pb-2 last:border-0 last:pb-0">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                          <span
+                                                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${hitBadge.className}`}
+                                                          >
+                                                            {hitBadge.label}
+                                                          </span>
+                                                          <div className="min-w-0 font-medium text-gray-800">{res.title || '（无标题）'}</div>
+                                                        </div>
+                                                        {res.snippet ? <div className="line-clamp-4 text-gray-500">{res.snippet}</div> : null}
+                                                        {res.document_id && !String(res.document_id).startsWith('http') ? (
+                                                          <div className="text-[10px] text-gray-400">文档：{res.document_id}</div>
+                                                        ) : res.document_id ? (
+                                                          <a
+                                                            href={res.document_id}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] font-medium text-orange-600 hover:underline"
+                                                          >
+                                                            打开链接
+                                                          </a>
+                                                        ) : null}
+                                                      </div>
+                                                      )
+                                                    })
+                                                  )}
+                                                </div>
+                                              )
+                                            }
                                             if (toolCall.name === 'recipe_query' && parsed.matches) {
                                               return (
                                                 <div className="space-y-2">
@@ -1483,7 +1766,9 @@ export default function AIAssistant() {
                             <div key={step.id} className="flex items-start justify-between gap-3 text-xs">
                               <div className="min-w-0">
                                 <div className="font-medium text-gray-700">{step.title}</div>
-                                {step.detail ? <div className="mt-1 text-gray-400">{step.detail}</div> : null}
+                                {step.detail ? (
+                                  <div className="mt-1 whitespace-pre-line text-gray-400">{step.detail}</div>
+                                ) : null}
                               </div>
                               <span
                                 className={`shrink-0 rounded-full px-2 py-1 ${
@@ -1542,9 +1827,11 @@ export default function AIAssistant() {
                         </div>
                       ) : null}
 
-                      {msg.attachments?.length ? (
+                      {msg.attachments?.filter((item) => !(msg.role === 'user' && item.kind === 'audio')).length ? (
                         <div className="flex flex-wrap gap-2">
-                          {msg.attachments.map((item, attachmentIdx) =>
+                          {msg.attachments
+                            .filter((item) => !(msg.role === 'user' && item.kind === 'audio'))
+                            .map((item, attachmentIdx) =>
                             item.kind === 'image' ? (
                               <div key={`${item.name}-${attachmentIdx}`} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                                 {item.previewUrl || item.url ? (
@@ -1558,17 +1845,14 @@ export default function AIAssistant() {
                             ) : item.kind === 'audio' ? (
                               <div
                                 key={`${item.name}-${attachmentIdx}`}
-                                className="w-full max-w-xs rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm"
+                                className="w-full max-w-xs"
                               >
-                                <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
-                                  <Mic className="h-4 w-4 text-orange-500" />
-                                  <span className="truncate">{item.name}</span>
-                                </div>
-                                {item.url ? (
-                                  <audio controls preload="none" src={item.url} className="h-10 w-full" />
-                                ) : (
-                                  <div className="text-xs text-gray-400">音频地址暂不可用</div>
-                                )}
+                                <VoiceMessageBar
+                                  src={item.url}
+                                  label={item.name}
+                                  assetId={item.assetId}
+                                  fallbackText={msg.content}
+                                />
                               </div>
                             ) : (
                               <div
@@ -1645,6 +1929,11 @@ export default function AIAssistant() {
                           </div>
                         </div>
                       )}
+                      {msg.createdAt ? (
+                        <span className="mt-0.5 px-1 text-[10px] leading-none text-gray-400 tabular-nums">
+                          {formatMessageTime(msg.createdAt)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 )})}
@@ -1686,6 +1975,30 @@ export default function AIAssistant() {
                   )}
                 </AnimatePresence>
 
+                {activeCooking.length > 0 ? (
+                  <div className="mb-3 px-1">
+                    <p className="mb-1.5 text-[11px] font-medium text-gray-400">继续做菜</p>
+                    <div className="flex flex-wrap gap-2">
+                      {activeCooking.map((c) => (
+                        <Link
+                          key={String(c.recipe_id)}
+                          to={`/cook/${c.recipe_id}`}
+                          onClick={closeAI}
+                          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-800 transition hover:bg-orange-100"
+                        >
+                          <ChefHat className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{c.title}</span>
+                          {c.total_steps > 0 ? (
+                            <span className="shrink-0 text-[10px] text-orange-600/90">
+                              {c.step_index + 1}/{c.total_steps}
+                            </span>
+                          ) : null}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mb-2 flex items-center justify-between gap-2 px-1">
                   <div className="flex flex-wrap gap-1.5">
                     <button
@@ -1724,6 +2037,25 @@ export default function AIAssistant() {
                   </div>
                 </div>
 
+                {uploadStageLabel ? (
+                  <div className="mb-2 px-1 text-xs font-medium text-orange-600">{uploadStageLabel}</div>
+                ) : null}
+
+                {Object.keys(knowledgeIngestProgress).length > 0 ? (
+                  <div className="mb-2 space-y-1.5 px-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-900/90">资料库入库</div>
+                    {Object.entries(knowledgeIngestProgress).map(([assetId, label]) => (
+                      <div
+                        key={assetId}
+                        className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50/95 px-2.5 py-2 text-xs leading-snug text-amber-950"
+                      >
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
                 {pendingAttachments.length ? (
                   <div className="mb-3 flex gap-2 overflow-x-auto px-1 hide-scrollbar">
                     {pendingAttachments.map((item) => (
@@ -1757,51 +2089,95 @@ export default function AIAssistant() {
                   </div>
                 ) : null}
 
-                <div
-                  className="flex items-end gap-2 rounded-3xl border border-gray-200 bg-gray-50 p-1.5 transition-all focus-within:border-gray-900 focus-within:ring-1 focus-within:ring-gray-900"
-                  onPointerDown={() => {
-                    if (inputValue.trim() || sendBusy || voiceBusy) return
-                    pressTimer.current = window.setTimeout(() => {
-                      void startRecording()
-                    }, 260)
-                  }}
-                  onPointerUp={(event) => {
-                    if (pressTimer.current) {
-                      clearTimeout(pressTimer.current)
-                      pressTimer.current = null
-                    }
-                    if (isRecording) {
-                      event.preventDefault()
-                      void finishRecording()
-                    }
-                  }}
-                  onPointerLeave={() => {
-                    if (pressTimer.current) {
-                      clearTimeout(pressTimer.current)
-                      pressTimer.current = null
-                    }
-                    if (isRecording) {
-                      void finishRecording()
-                    }
-                  }}
-                  onPointerCancel={() => {
-                    if (pressTimer.current) {
-                      clearTimeout(pressTimer.current)
-                      pressTimer.current = null
-                    }
-                    if (isRecording) {
-                      void finishRecording()
-                    }
-                  }}
+                <motion.div
+                  layout
+                  transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-end gap-2 rounded-3xl border border-gray-200 bg-gray-50 p-1.5 transition-[border-color,box-shadow] duration-300 ease-out focus-within:border-gray-900 focus-within:ring-1 focus-within:ring-gray-900"
                 >
+                  {!inputValue.trim() ? (
+                    <button
+                      ref={micButtonRef}
+                      type="button"
+                      title={isRecording ? '点击结束录音' : '点击开始录音'}
+                      aria-label={isRecording ? '点击结束录音' : '点击开始录音'}
+                      aria-disabled={sendBusy || voiceBusy}
+                      className={`relative z-20 flex h-11 w-11 shrink-0 touch-manipulation select-none items-center justify-center rounded-full transition-all [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent] ${
+                        sendBusy || voiceBusy ? 'opacity-50' : ''
+                      } ${isRecording ? 'scale-110 bg-orange-500 text-white shadow-lg' : 'bg-gray-200 text-gray-600'}`}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onKeyDown={(e) => {
+                        if (e.key !== ' ' && e.key !== 'Enter') return
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (pressTimer.current) {
+                          clearTimeout(pressTimer.current)
+                          pressTimer.current = null
+                        }
+                        runMicToggleFromGesture()
+                      }}
+                      onPointerDown={(e) => {
+                        if (e.pointerType === 'mouse' && e.button !== 0) return
+                        if (e.pointerType === 'mouse' && Date.now() - micLastRealTouchTs.current < 750) return
+                        if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+                          micLastRealTouchTs.current = Date.now()
+                        }
+                        e.stopPropagation()
+                        if (pressTimer.current) {
+                          clearTimeout(pressTimer.current)
+                          pressTimer.current = null
+                        }
+                        runMicToggleFromGesture()
+                      }}
+                    >
+                      <Mic className="pointer-events-none h-5 w-5" aria-hidden />
+                    </button>
+                  ) : null}
                   <textarea
+                    ref={composerTextareaRef}
                     value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    onChange={(e) => {
+                      setInputValue(e.target.value)
+                      window.requestAnimationFrame(() => syncComposerTextareaSize())
+                    }}
                     onPaste={handleInputPaste}
-                    placeholder={isRecording ? '正在录音，松开后自动发送...' : '问点什么，或长按输入框说话...'}
-                    className="max-h-32 min-h-[44px] flex-1 resize-none border-none bg-transparent px-3 py-3 text-[15px] leading-normal text-gray-900 outline-none"
+                    placeholder={isRecording ? '录音中…' : '说点什么…'}
+                    className={`min-h-[44px] min-w-0 flex-1 resize-none overflow-hidden border-none bg-transparent px-3 py-3 text-[15px] leading-normal text-gray-900 outline-none ${
+                      sendBusy || voiceBusy ? 'opacity-50' : ''
+                    }`}
                     rows={1}
-                    disabled={sendBusy || voiceBusy}
+                    readOnly={sendBusy || voiceBusy}
+                    onPointerDown={() => {
+                      if (inputValue.trim() || sendBusy || voiceBusy) return
+                      if (pressTimer.current) {
+                        clearTimeout(pressTimer.current)
+                        pressTimer.current = null
+                      }
+                      pressTimer.current = window.setTimeout(() => {
+                        pressTimer.current = null
+                        void startRecording()
+                      }, VOICE_PRESS_MS_TEXTAREA)
+                    }}
+                    onPointerUp={() => {
+                      if (pressTimer.current) {
+                        clearTimeout(pressTimer.current)
+                        pressTimer.current = null
+                      }
+                      if (isRecording) void finishRecording()
+                    }}
+                    onPointerLeave={() => {
+                      if (pressTimer.current) {
+                        clearTimeout(pressTimer.current)
+                        pressTimer.current = null
+                      }
+                      if (isRecording) void finishRecording()
+                    }}
+                    onPointerCancel={() => {
+                      if (pressTimer.current) {
+                        clearTimeout(pressTimer.current)
+                        pressTimer.current = null
+                      }
+                      if (isRecording) void finishRecording()
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
@@ -1887,13 +2263,15 @@ export default function AIAssistant() {
                       </DrawerContent>
                     </Drawer>
                   )}
-                </div>
+                </motion.div>
                 <div className="mt-2 text-center text-[10px] text-gray-400">
                   {inputValue.trim() || pendingAttachments.length
                     ? '按回车发送，可携带上方附件一起发出'
                     : isRecording || voiceBusy
                       ? voiceHint
-                      : '长按输入框开始录音，松开后直接转写并发送'}
+                      : messages.some((m) => m.role === 'user')
+                        ? 'AI 生成的内容可能不准确，请谨慎参考'
+                        : '左侧话筒点击开始/结束；空白输入框长按说话（稍长按时粘贴菜单易先出）'}
                 </div>
               </div>
             </motion.div>

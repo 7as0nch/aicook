@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, Play, Pause, RotateCcw, Check } from 'lucide-react'
-import { getRecipeDetail } from '../../lib/api/client'
+import { deleteActiveCooking, getRecipeDetail, listActiveCooking, putActiveCooking } from '../../lib/api/client'
 import { mapDetailToUiRecipe, type UiRecipe } from '../../lib/mappers/recipe'
 import { useAI } from '../contexts/AIContext'
 import { RecipeCoverImg } from '../components/RecipeCoverImg'
@@ -24,6 +24,8 @@ function formatStepTotalSeconds(seconds: number): string {
   return `${seconds} 秒`
 }
 
+const SYNC_MS = 350
+
 export default function CookingMode() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
@@ -41,19 +43,41 @@ export default function CookingMode() {
     let cancelled = false
     setLoading(true)
     setError('')
-    void getRecipeDetail(id)
-      .then((detail) => {
-        if (!cancelled) {
-          setRecipe(mapDetailToUiRecipe(detail))
-          setCurrentStepIndex(0)
+    void (async () => {
+      try {
+        const detail = await getRecipeDetail(id)
+        if (cancelled) return
+        const mapped = mapDetailToUiRecipe(detail)
+        let ac: Awaited<ReturnType<typeof listActiveCooking>>[0] | undefined
+        try {
+          const activeList = await listActiveCooking()
+          ac = activeList.find((a) => String(a.recipe_id) === String(id))
+        } catch {
+          /* ignore */
         }
-      })
-      .catch((e) => {
+        if (cancelled) return
+        setRecipe(mapped)
+        const maxIdx = Math.max(0, mapped.steps.length - 1)
+        const stepIdx = ac ? Math.min(Math.max(0, ac.step_index), maxIdx) : 0
+        setCurrentStepIndex(stepIdx)
+        const st = mapped.steps[stepIdx]
+        const dur = st?.time && st.time > 0 ? st.time : 0
+        if (dur > 0 && ac && ac.remaining_seconds >= 0) {
+          setTimeLeft(ac.remaining_seconds)
+          setTimerRunning(Boolean(ac.timer_running && ac.remaining_seconds > 0))
+        } else if (dur > 0) {
+          setTimeLeft(dur)
+          setTimerRunning(false)
+        } else {
+          setTimeLeft(null)
+          setTimerRunning(false)
+        }
+      } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : '加载失败')
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false)
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -76,15 +100,6 @@ export default function CookingMode() {
   const stepDuration = step?.time && step.time > 0 ? step.time : 0
 
   useEffect(() => {
-    setTimerRunning(false)
-    if (stepDuration > 0) {
-      setTimeLeft(stepDuration)
-    } else {
-      setTimeLeft(null)
-    }
-  }, [currentStepIndex, stepDuration])
-
-  useEffect(() => {
     if (!timerRunning) return
     const idTimer = window.setInterval(() => {
       setTimeLeft((prev) => {
@@ -100,6 +115,55 @@ export default function CookingMode() {
       setTimerRunning(false)
     }
   }, [timeLeft, timerRunning])
+
+  const flushProgress = useCallback(() => {
+    if (!id || !recipe || !step) return
+    const totalSteps = recipe.steps.length
+    let timerStarted = 0
+    let pausedRem = 0
+    let timerTotal = 0
+    if (stepDuration <= 0) {
+      timerTotal = 0
+    } else if (timerRunning && timeLeft !== null) {
+      timerTotal = stepDuration
+      timerStarted = Date.now() - (stepDuration - timeLeft) * 1000
+    } else if (!timerRunning && timeLeft !== null && timeLeft > 0 && timeLeft < stepDuration) {
+      timerStarted = 0
+      pausedRem = timeLeft
+      timerTotal = stepDuration
+    } else {
+      timerStarted = 0
+      pausedRem = 0
+      timerTotal = stepDuration
+    }
+    void putActiveCooking(id, {
+      step_index: currentStepIndex,
+      total_steps: totalSteps,
+      timer_total_seconds: timerTotal,
+      timer_started_at_ms: Math.round(timerStarted),
+      timer_paused_remaining: pausedRem,
+    }).catch(() => {})
+  }, [id, recipe, step, stepDuration, timerRunning, timeLeft, currentStepIndex])
+
+  useEffect(() => {
+    if (!id || !recipe || loading) return
+    const t = window.setTimeout(() => flushProgress(), SYNC_MS)
+    return () => clearTimeout(t)
+  }, [id, recipe, loading, currentStepIndex, timeLeft, timerRunning, stepDuration, flushProgress])
+
+  useEffect(() => {
+    if (!id || !recipe || loading) return
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') flushProgress()
+    }
+    const onUnload = () => flushProgress()
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('beforeunload', onUnload)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('beforeunload', onUnload)
+    }
+  }, [id, recipe, loading, flushProgress])
 
   if (loading) {
     return (
@@ -120,17 +184,30 @@ export default function CookingMode() {
     )
   }
 
+  const applyStepTimerForIndex = (idx: number) => {
+    const st = recipe?.steps[idx]
+    const dur = st?.time && st.time > 0 ? st.time : 0
+    setTimerRunning(false)
+    if (dur > 0) setTimeLeft(dur)
+    else setTimeLeft(null)
+  }
+
   const nextStep = () => {
     if (currentStepIndex < recipe.steps.length - 1) {
-      setCurrentStepIndex((prev) => prev + 1)
+      const nextIdx = currentStepIndex + 1
+      applyStepTimerForIndex(nextIdx)
+      setCurrentStepIndex(nextIdx)
     } else {
+      void deleteActiveCooking(id).catch(() => {})
       navigate(-1)
     }
   }
 
   const prevStep = () => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex((prev) => prev - 1)
+      const prevIdx = currentStepIndex - 1
+      applyStepTimerForIndex(prevIdx)
+      setCurrentStepIndex(prevIdx)
     }
   }
 

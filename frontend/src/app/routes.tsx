@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from "react-router";
 
 import { isAuthenticated } from "../lib/api/client";
+import AIAssistant from "./components/AIAssistant";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Recipes from "./pages/Recipes";
@@ -20,37 +21,52 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/auth" replace />;
 }
 
+/** Renda Outlet + global AI overlay inside RouterProvider so <Link> / useNavigate work. */
+function AppRoot() {
+  return (
+    <>
+      <Outlet />
+      <AIAssistant />
+    </>
+  );
+}
+
 export const router = createBrowserRouter([
   {
-    path: "/auth",
-    Component: Auth,
-  },
-  {
-    path: "/",
-    element: (
-      <RequireAuth>
-        <Layout />
-      </RequireAuth>
-    ),
+    element: <AppRoot />,
     children: [
-      { index: true, Component: Home },
-      { path: "recipes", Component: Recipes },
-      { path: "recipes/editor", Component: RecipeWorkbenchPage },
-      { path: "recipes/:id/edit", Component: RecipeEdit },
-      { path: "recipes/:id", Component: RecipeDetail },
-      { path: "plan", Component: Plan },
-      { path: "shop", Component: Shop },
-      { path: "profile", Component: Profile },
-      { path: "profile/preferences", Component: Preferences },
-      { path: "profile/knowledge-base", Component: KnowledgeBase },
+      {
+        path: "/auth",
+        Component: Auth,
+      },
+      {
+        path: "/",
+        element: (
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        ),
+        children: [
+          { index: true, Component: Home },
+          { path: "recipes", Component: Recipes },
+          { path: "recipes/editor", Component: RecipeWorkbenchPage },
+          { path: "recipes/:id/edit", Component: RecipeEdit },
+          { path: "recipes/:id", Component: RecipeDetail },
+          { path: "plan", Component: Plan },
+          { path: "shop", Component: Shop },
+          { path: "profile", Component: Profile },
+          { path: "profile/preferences", Component: Preferences },
+          { path: "profile/knowledge-base", Component: KnowledgeBase },
+        ],
+      },
+      {
+        path: "/cook/:id",
+        element: (
+          <RequireAuth>
+            <CookingMode />
+          </RequireAuth>
+        ),
+      },
     ],
-  },
-  {
-    path: "/cook/:id",
-    element: (
-      <RequireAuth>
-        <CookingMode />
-      </RequireAuth>
-    ),
   },
 ]);

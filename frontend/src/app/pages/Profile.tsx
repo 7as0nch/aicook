@@ -1,17 +1,40 @@
-import { useEffect, useState } from "react";
-import { Settings, LogOut, Database, ChevronRight, Home, RefreshCcw, Plus, Download, X } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Settings, LogOut, Database, ChevronRight, Home, RefreshCcw, Plus, Download, X, Camera } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 
-import { clearAuthSession, createHousehold, createShareCode, getAuthSession, getMe, switchHousehold, previewSharedKitchen, importSharedRecipes, createKitchenTag, type AuthSession } from "../../lib/api/client";
+import {
+  clearAuthSession,
+  createHousehold,
+  createShareCode,
+  getAuthSession,
+  getMe,
+  switchHousehold,
+  previewSharedKitchen,
+  importSharedRecipes,
+  createKitchenTag,
+  updateProfile,
+  uploadMedia,
+  type AuthSession,
+  type UpdateProfilePatch,
+} from "../../lib/api/client";
 import { mapCardToUiRecipe, type UiRecipe } from "../../lib/mappers/recipe";
+import { ModalPortal } from "../components/ModalPortal";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [session, setSession] = useState<AuthSession | null>(getAuthSession());
   const [busy, setBusy] = useState(false);
   const [newKitchenName, setNewKitchenName] = useState("");
   const [message, setMessage] = useState("");
+
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [draftDisplayName, setDraftDisplayName] = useState("");
+  const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
+  const [pendingAvatarAssetId, setPendingAvatarAssetId] = useState<string | null>(null);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareCodeInput, setShareCodeInput] = useState("");
@@ -27,6 +50,31 @@ export default function Profile() {
       .then(setSession)
       .catch(() => setSession(getAuthSession()));
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("sheet") !== "account") return;
+    setShowAccountModal(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("sheet");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!showAccountModal) return;
+    const s = getAuthSession();
+    setDraftDisplayName(s?.user.display_name ?? s?.user.username ?? "");
+    setPendingAvatarAssetId(null);
+    setAvatarObjectUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, [showAccountModal]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+    };
+  }, [avatarObjectUrl]);
 
   async function refreshProfile() {
     const latest = await getMe();
@@ -121,23 +169,224 @@ export default function Profile() {
   }
 
   const current = session?.current_household;
+  const profileInitial = (session?.user.display_name || session?.user.username || "厨").slice(0, 1);
+
+  async function handleAccountSave() {
+    const name = draftDisplayName.trim();
+    if (!name) {
+      setMessage("昵称不能为空");
+      return;
+    }
+    setAccountBusy(true);
+    setMessage("");
+    try {
+      const patch: UpdateProfilePatch = { display_name: name };
+      if (pendingAvatarAssetId) patch.avatar_asset_id = pendingAvatarAssetId;
+      const next = await updateProfile(patch);
+      setSession(next);
+      setMessage("资料已更新");
+      setShowAccountModal(false);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setAccountBusy(false);
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setAccountBusy(true);
+    setMessage("");
+    try {
+      const next = await updateProfile({ avatar_asset_id: null });
+      setSession(next);
+      setPendingAvatarAssetId(null);
+      setAvatarObjectUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setMessage("已移除头像");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "操作失败");
+    } finally {
+      setAccountBusy(false);
+    }
+  }
+
+  async function onAvatarFileChange(f: FileList | null) {
+    const file = f?.[0];
+    if (!file) return;
+    setAvatarObjectUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setAccountBusy(true);
+    setMessage("");
+    try {
+      const asset = await uploadMedia(file, "images");
+      setPendingAvatarAssetId(asset.id);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "头像上传失败");
+      setPendingAvatarAssetId(null);
+      setAvatarObjectUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    } finally {
+      setAccountBusy(false);
+    }
+  }
 
   return (
     <div className="space-y-6 p-4 pb-24">
-      <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setShowAccountModal(true)}
+        aria-label="编辑账户资料与头像"
+        className="w-full rounded-3xl border border-gray-100 bg-white p-5 text-left shadow-sm transition-colors active:bg-gray-50"
+      >
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-2xl font-bold text-orange-500">
-            厨
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-2xl font-bold text-orange-500">
+            {session?.user.avatar_url ? (
+              <img src={session.user.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span>{profileInitial}</span>
+            )}
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold text-gray-900">{session?.user.display_name || session?.user.username || "未登录"}</h1>
             <p className="mt-1 text-sm text-gray-500">
               当前厨房：{current?.name || "暂无"} {current?.share_code ? `· 分享码 ${current.share_code}` : ""}
             </p>
+            <p className="mt-2 text-xs font-medium text-orange-500">点击编辑资料、头像或切换厨房</p>
           </div>
         </div>
-        {message ? <p className="mt-4 rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600">{message}</p> : null}
-      </div>
+      </button>
+      {message ? <p className="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600">{message}</p> : null}
+
+      <ModalPortal>
+        <AnimatePresence>
+          {showAccountModal ? (
+            <>
+              <motion.div
+                key="account-scrim"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setAvatarObjectUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return null;
+                  });
+                  setPendingAvatarAssetId(null);
+                  setShowAccountModal(false);
+                }}
+                className="fixed inset-0 z-[200] min-h-[100dvh] w-full bg-black/40 backdrop-blur-sm"
+              />
+              <motion.div
+                key="account-sheet"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-4 right-4 top-1/2 z-[201] max-h-[85vh] -translate-y-1/2 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+              >
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">账户与资料</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAvatarObjectUrl((prev) => {
+                      if (prev) URL.revokeObjectURL(prev);
+                      return null;
+                    });
+                    setPendingAvatarAssetId(null);
+                    setShowAccountModal(false);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-500"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-3xl font-bold text-orange-500">
+                  {avatarObjectUrl ? (
+                    <img src={avatarObjectUrl} alt="" className="h-full w-full object-cover" />
+                  ) : session?.user.avatar_url ? (
+                    <img src={session.user.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{profileInitial}</span>
+                  )}
+                  {accountBusy ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-xs font-medium text-white">…</div>
+                  ) : null}
+                </div>
+                <input
+                  ref={avatarFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void onAvatarFileChange(e.target.files)}
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarFileRef.current?.click()}
+                  disabled={accountBusy}
+                  className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50"
+                >
+                  <Camera className="h-4 w-4" />
+                  上传头像
+                </button>
+                {(session?.user.avatar_url || pendingAvatarAssetId) && (
+                  <button
+                    type="button"
+                    onClick={() => void handleRemoveAvatar()}
+                    disabled={accountBusy}
+                    className="text-xs font-medium text-red-600 disabled:opacity-50"
+                  >
+                    移除头像
+                  </button>
+                )}
+              </div>
+
+              <label className="mt-6 block text-xs font-bold uppercase tracking-wider text-gray-400">昵称</label>
+              <input
+                value={draftDisplayName}
+                onChange={(e) => setDraftDisplayName(e.target.value)}
+                className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-900"
+                placeholder="显示名称"
+                autoComplete="nickname"
+              />
+
+              <button
+                type="button"
+                onClick={() => void handleAccountSave()}
+                disabled={accountBusy || !draftDisplayName.trim()}
+                className="mt-6 w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {accountBusy ? "保存中…" : "保存"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAvatarObjectUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return null;
+                  });
+                  setPendingAvatarAssetId(null);
+                  setShowAccountModal(false);
+                  setShowKitchensModal(true);
+                }}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 py-3.5 text-sm font-bold text-orange-700"
+              >
+                <Home className="h-4 w-4" />
+                切换厨房 / 管理厨房
+              </button>
+              </motion.div>
+            </>
+          ) : null}
+        </AnimatePresence>
+      </ModalPortal>
 
       <div className="space-y-2">
         <button 
@@ -198,22 +447,25 @@ export default function Profile() {
         </button>
       </div>
 
-      <AnimatePresence>
-        {showKitchensModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowKitchensModal(false)}
-              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-4 right-4 top-1/2 z-[101] max-h-[80vh] -translate-y-1/2 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
-            >
+      <ModalPortal>
+        <AnimatePresence>
+          {showKitchensModal ? (
+            <>
+              <motion.div
+                key="kitchens-scrim"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowKitchensModal(false)}
+                className="fixed inset-0 z-[200] min-h-[100dvh] w-full bg-black/40 backdrop-blur-sm"
+              />
+              <motion.div
+                key="kitchens-sheet"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-4 right-4 top-1/2 z-[201] max-h-[80vh] -translate-y-1/2 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+              >
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-900">我的厨房</h3>
                 <button onClick={() => setShowKitchensModal(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-500">
@@ -267,28 +519,32 @@ export default function Profile() {
                   </button>
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          ) : null}
+        </AnimatePresence>
+      </ModalPortal>
 
       {/* Share Modal */}
-      <AnimatePresence>
-        {showShareModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowShareModal(false)}
-              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-4 right-4 top-1/2 z-[101] -translate-y-1/2 rounded-3xl bg-white p-6 shadow-2xl"
-            >
+      <ModalPortal>
+        <AnimatePresence>
+          {showShareModal ? (
+            <>
+              <motion.div
+                key="share-scrim"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowShareModal(false)}
+                className="fixed inset-0 z-[200] min-h-[100dvh] w-full bg-black/40 backdrop-blur-sm"
+              />
+              <motion.div
+                key="share-sheet"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-4 right-4 top-1/2 z-[201] max-h-[85vh] -translate-y-1/2 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+              >
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-900">导入菜谱</h3>
                 <button onClick={() => setShowShareModal(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-500">
@@ -350,10 +606,11 @@ export default function Profile() {
                   </div>
                 ) : null}
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          ) : null}
+        </AnimatePresence>
+      </ModalPortal>
     </div>
   );
 }

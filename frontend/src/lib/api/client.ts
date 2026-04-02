@@ -27,6 +27,8 @@ export interface UserProfile {
   display_name: string
   email?: string
   status?: string
+  /** Signed GET URL when user has avatar */
+  avatar_url?: string
 }
 
 export interface AuthSession {
@@ -43,6 +45,18 @@ export interface KitchenTag {
   icon?: string
   color?: string
   type?: number
+}
+
+export interface ActiveCooking {
+  recipe_id: ID
+  title: string
+  cover_image_url: string
+  step_index: number
+  total_steps: number
+  timer_total_seconds: number
+  remaining_seconds: number
+  updated_at_ms: number
+  timer_running: boolean
 }
 
 export interface RecipeCard {
@@ -271,6 +285,8 @@ export interface AIResponseMeta {
   pending_approval?: AIPendingApproval
   approval_resolved?: AIApprovalResolvedMeta
   timeline?: AIStreamEvent[]
+  /** 厨艺 AI 入库完成等系统通知（见后端 metadata.kind） */
+  kind?: string
 }
 
 export interface SpeechSegment {
@@ -297,8 +313,20 @@ export interface KnowledgeDocument {
   file_name: string
   content_type: string
   status: string
+  processing_stage?: string
+  chunk_count?: number
   summary: string
   text_content?: string
+}
+
+export interface HouseholdAIMemory {
+  id: ID
+  scope: string
+  content: string
+  source?: string
+  user_id?: ID
+  created_at?: string
+  updated_at?: string
 }
 
 export interface AIReply {
@@ -309,6 +337,8 @@ export interface AIReply {
   is_fallback?: boolean
   reply_sources: SourceSnippet[]
   reply_metadata?: AIResponseMeta
+  /** 厨艺 AI 文档附件入库：前端可轮询 /chat/knowledge-ingest/status */
+  knowledge_ingest_watch?: Array<{ asset_id: string; name?: string }>
 }
 
 export interface AISessionSummary {
@@ -456,12 +486,13 @@ function normalizeQuoteContext(raw: any): QuoteContext | undefined {
 }
 
 function normalizeAttachment(raw: any): AIAttachment {
+  const assetRaw = raw.asset_id ?? raw.assetId
   return {
     type: raw.type ?? '',
     url: raw.url ?? '',
     content_type: raw.content_type ?? raw.contentType ?? '',
     name: raw.name ?? '',
-    asset_id: raw.asset_id ?? raw.assetId ? normalizeId(raw.asset_id ?? raw.assetId) : undefined,
+    asset_id: assetRaw != null && assetRaw !== '' ? normalizeId(assetRaw) : undefined,
   }
 }
 
@@ -619,6 +650,7 @@ function normalizeAiResponseMeta(raw: any): AIResponseMeta | undefined {
   if (!raw || typeof raw !== 'object') return undefined
   const approvalResolved = normalizeApprovalResolved(raw.approval_resolved ?? raw.approvalResolved)
   return {
+    kind: raw.kind ?? undefined,
     intent: raw.intent ?? undefined,
     reasoning_content: raw.reasoning_content ?? raw.reasoningContent ?? undefined,
     agent_trace: Array.isArray(raw.agent_trace ?? raw.agentTrace)
@@ -741,6 +773,7 @@ function normalizeUser(raw: any): UserProfile {
     display_name: raw.display_name ?? raw.displayName ?? '',
     email: raw.email ?? '',
     status: raw.status ?? 'active',
+    avatar_url: raw.avatar_url ?? raw.avatarUrl ?? '',
   }
 }
 
@@ -966,7 +999,46 @@ function buildUploadHeaders(headers: UploadPrepareReply['upload_headers'], conte
   return result
 }
 
-async function putObject(uploadUrl: string, file: File, headers: UploadPrepareReply['upload_headers']) {
+function putObjectXhr(
+  uploadUrl: string,
+  file: File,
+  headers: UploadPrepareReply['upload_headers'],
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', uploadUrl)
+    const hdrs = buildUploadHeaders(headers, file.type)
+    hdrs.forEach((value, key) => {
+      xhr.setRequestHeader(key, value)
+    })
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(e.loaded, e.total)
+      }
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve()
+      } else {
+        reject(new Error(`上传到对象存储失败 (${xhr.status})`))
+      }
+    }
+    xhr.onerror = () => reject(new Error('上传到对象存储失败'))
+    xhr.send(file)
+  })
+}
+
+async function putObject(
+  uploadUrl: string,
+  file: File,
+  headers: UploadPrepareReply['upload_headers'],
+  onProgress?: (loaded: number, total: number) => void,
+) {
+  if (onProgress) {
+    await putObjectXhr(uploadUrl, file, headers, onProgress)
+    return
+  }
   const response = await fetch(uploadUrl, {
     method: 'PUT',
     headers: buildUploadHeaders(headers, file.type),
@@ -1047,6 +1119,36 @@ export async function getMe(): Promise<AuthSession> {
   return session
 }
 
+export type UpdateProfilePatch = {
+  display_name?: string
+  /** 设为新头像 asset id；`null` 表示清空头像；省略表示不改头像 */
+  avatar_asset_id?: ID | null
+}
+
+export async function updateProfile(patch: UpdateProfilePatch): Promise<AuthSession> {
+  const body: Record<string, unknown> = {}
+  if (patch.display_name !== undefined) {
+    body.displayName = patch.display_name
+  }
+  if (patch.avatar_asset_id !== undefined) {
+    body.avatarAssetId = patch.avatar_asset_id === null ? 0 : String(patch.avatar_asset_id)
+  }
+  const payload = await request<any>('/api/v1/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+  const session = {
+    ...(getAuthSession() ?? {}),
+    ...normalizeAuthSession({
+      token: getAuthSession()?.token ?? '',
+      ...payload,
+    }),
+  } as AuthSession
+  setAuthSession(session)
+  cache.clear()
+  return session
+}
+
 export async function switchHousehold(householdId: ID): Promise<AuthSession> {
   const payload = await request<any>('/api/v1/auth/switch-household', {
     method: 'POST',
@@ -1112,6 +1214,56 @@ export async function deleteKitchenTag(id: ID): Promise<void> {
   if (!idStr) throw new Error('无效的标签 id')
   await request(`/api/v1/kitchen-tags/${encodeURIComponent(idStr)}`, { method: 'DELETE' })
   bustKitchenTagsListCache()
+}
+
+function normalizeActiveCooking(raw: any): ActiveCooking {
+  return {
+    recipe_id: normalizeId(raw.recipe_id ?? raw.recipeId),
+    title: raw.title ?? '',
+    cover_image_url: raw.cover_image_url ?? raw.coverImageUrl ?? '',
+    step_index: Number(raw.step_index ?? raw.stepIndex ?? 0),
+    total_steps: Number(raw.total_steps ?? raw.totalSteps ?? 0),
+    timer_total_seconds: Number(raw.timer_total_seconds ?? raw.timerTotalSeconds ?? 0),
+    remaining_seconds: Number(raw.remaining_seconds ?? raw.remainingSeconds ?? 0),
+    updated_at_ms: Number(raw.updated_at_ms ?? raw.updatedAtMs ?? 0),
+    timer_running: Boolean(raw.timer_running ?? raw.timerRunning),
+  }
+}
+
+export async function listActiveCooking(): Promise<ActiveCooking[]> {
+  const payload = await request<any>('/api/v1/cooking/active')
+  const items = payload.items ?? payload.Items ?? []
+  return Array.isArray(items) ? items.map(normalizeActiveCooking) : []
+}
+
+export async function putActiveCooking(
+  recipeId: ID,
+  body: {
+    step_index: number
+    total_steps: number
+    timer_total_seconds: number
+    timer_started_at_ms: number
+    timer_paused_remaining?: number
+  },
+): Promise<ActiveCooking> {
+  const rid = String(recipeId).trim()
+  const payload = await request<any>(`/api/v1/cooking/active/${encodeURIComponent(rid)}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      recipe_id: rid,
+      step_index: body.step_index,
+      total_steps: body.total_steps,
+      timer_total_seconds: body.timer_total_seconds,
+      timer_started_at_ms: body.timer_started_at_ms,
+      timer_paused_remaining: body.timer_paused_remaining ?? 0,
+    }),
+  })
+  return normalizeActiveCooking(payload.item ?? payload)
+}
+
+export async function deleteActiveCooking(recipeId: ID): Promise<void> {
+  const rid = String(recipeId).trim()
+  await request(`/api/v1/cooking/active/${encodeURIComponent(rid)}`, { method: 'DELETE' })
 }
 
 export async function previewSharedKitchen(shareCode: string): Promise<{ household: HouseholdSummary; recipes: RecipeCard[] }> {
@@ -1217,12 +1369,16 @@ export async function deleteRecipe(id: ID): Promise<void> {
   cache.clear()
 }
 
-export async function uploadMedia(file: File, kind: 'images' | 'audio' | 'knowledge'): Promise<MediaAsset> {
+export async function uploadMedia(
+  file: File,
+  kind: 'images' | 'audio' | 'knowledge',
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<MediaAsset> {
   const prepared = await prepareMediaUpload(file, kind)
   if (!prepared.upload_url) {
     throw new Error('后端未返回有效的上传地址')
   }
-  await putObject(prepared.upload_url, file, prepared.upload_headers)
+  await putObject(prepared.upload_url, file, prepared.upload_headers, onProgress)
   const payload = await request<{ asset: any }>(`/api/v1/media/uploads/${prepared.asset_id}:complete`, {
     method: 'POST',
     body: JSON.stringify({ asset_id: prepared.asset_id }),
@@ -1340,6 +1496,31 @@ export async function listAiSessions(scene = '', limit = 30): Promise<AISessionS
   return Array.isArray(payload.sessions) ? payload.sessions.map(normalizeAiSession) : []
 }
 
+export interface ChatKnowledgeIngestStatus {
+  pending: boolean
+  settled: boolean
+  document_id?: ID
+  title: string
+  processing_stage: string
+  status: string
+  chunk_count: number
+  stage_label: string
+}
+
+export async function fetchChatKnowledgeIngestStatus(assetId: ID): Promise<ChatKnowledgeIngestStatus> {
+  const payload = await request<any>(`/chat/knowledge-ingest/status?asset_id=${encodeURIComponent(String(assetId))}`)
+  return {
+    pending: Boolean(payload.pending),
+    settled: Boolean(payload.settled),
+    document_id: payload.document_id != null ? normalizeId(payload.document_id) : undefined,
+    title: payload.title ?? '',
+    processing_stage: payload.processing_stage ?? '',
+    status: payload.status ?? '',
+    chunk_count: Number(payload.chunk_count ?? 0),
+    stage_label: payload.stage_label ?? '',
+  }
+}
+
 export async function listAiMessages(
   sessionId: ID,
   options?: { limit?: number; beforeMessageId?: ID },
@@ -1432,6 +1613,7 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
   let isFallback = false
   let sessionId = options.sessionId
   let replyMetadata: AIResponseMeta | undefined
+  let knowledgeIngestWatch: Array<{ asset_id: string; name?: string }> | undefined
 
   const processEvent = (rawBlock: string) => {
     const block = rawBlock.trim()
@@ -1509,6 +1691,12 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
       if (replyMetadata && !replyMetadata.reasoning_content && reasoningContent) {
         replyMetadata.reasoning_content = reasoningContent
       }
+      if (Array.isArray(payload.knowledge_ingest_watch)) {
+        knowledgeIngestWatch = payload.knowledge_ingest_watch.map((item: any) => ({
+          asset_id: String(item.asset_id ?? item.assetId ?? ''),
+          name: item.name != null ? String(item.name) : undefined,
+        })).filter((x: { asset_id: string }) => x.asset_id)
+      }
       return
     }
     if (event === 'error') {
@@ -1542,6 +1730,7 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
     is_fallback: isFallback,
     reply_sources: [],
     reply_metadata: replyMetadata,
+    knowledge_ingest_watch: knowledgeIngestWatch,
   }
 }
 
@@ -1571,19 +1760,80 @@ export async function createKnowledgeBase(name: string, description: string): Pr
   }
 }
 
-export async function listKnowledgeDocuments(baseId: ID): Promise<KnowledgeDocument[]> {
-  const payload = await request<{ documents?: any[] }>(`/api/v1/knowledge-bases/${baseId}/documents`)
-  return (payload.documents ?? []).map((doc) => ({
+function mapKnowledgeDocument(doc: any, fallbackFile?: File): KnowledgeDocument {
+  return {
     id: normalizeId(doc.id),
     knowledge_base_id: normalizeId(doc.knowledge_base_id),
     media_asset_id: doc.media_asset_id ? normalizeId(doc.media_asset_id) : undefined,
     title: doc.title ?? '',
-    file_name: doc.file_name ?? '',
-    content_type: doc.content_type ?? '',
+    file_name: doc.file_name ?? fallbackFile?.name ?? '',
+    content_type: doc.content_type ?? fallbackFile?.type ?? '',
     status: doc.status ?? '',
+    processing_stage: doc.processing_stage ?? doc.processingStage ?? '',
+    chunk_count: Number(doc.chunk_count ?? doc.chunkCount ?? 0),
     summary: doc.summary ?? '',
-    text_content: doc.text_content ?? '',
-  }))
+    text_content: doc.text_content ?? doc.textContent ?? '',
+  }
+}
+
+export async function listKnowledgeDocuments(baseId: ID): Promise<KnowledgeDocument[]> {
+  const payload = await request<{ documents?: any[] }>(`/api/v1/knowledge-bases/${baseId}/documents`)
+  return (payload.documents ?? []).map((doc) => mapKnowledgeDocument(doc))
+}
+
+/** 将后端 processing_stage 转成简短中文（用于进度展示） */
+export function knowledgeDocStageLabel(stage: string | undefined, status: string): string {
+  const s = (stage || '').toLowerCase()
+  switch (s) {
+    case 'extract_timeout':
+      return '解析超时'
+    case 'extract_skipped_large':
+      return '超过大小上限'
+    case 'fetch_object':
+    case 'download':
+      return '拉取文件…'
+    case 'extract':
+      return '解析文本…'
+    case 'chunk_embed':
+      return '切块与索引…'
+    case 'done':
+      return '已完成'
+    case 'extract_empty':
+      return '无文本可索引'
+  }
+  if (status === 'failed' || s === 'error') return '处理失败'
+  if (status === 'processing') return '处理中…'
+  return status === 'indexed' || status === 'uploaded' ? '已完成' : status
+}
+
+export async function pollKnowledgeDocumentUntilSettled(
+  baseId: ID,
+  docId: ID,
+  onProgress?: (label: string) => void,
+  opts?: { maxTicks?: number; intervalMs?: number },
+): Promise<KnowledgeDocument | undefined> {
+  const maxTicks = opts?.maxTicks ?? 80
+  const intervalMs = opts?.intervalMs ?? 350
+  for (let i = 0; i < maxTicks; i++) {
+    const docs = await listKnowledgeDocuments(baseId)
+    const d = docs.find((x) => x.id === docId)
+    if (!d) return undefined
+    onProgress?.(knowledgeDocStageLabel(d.processing_stage, d.status))
+    if (
+      d.processing_stage === 'done' ||
+      d.status === 'failed' ||
+      d.processing_stage === 'error' ||
+      d.processing_stage === 'extract_timeout' ||
+      d.processing_stage === 'extract_skipped_large' ||
+      d.processing_stage === 'extract_empty' ||
+      (d.status !== 'processing' && (d.processing_stage === '' || !d.processing_stage))
+    ) {
+      return d
+    }
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+  const docs = await listKnowledgeDocuments(baseId)
+  return docs.find((x) => x.id === docId)
 }
 
 export async function uploadKnowledgeDocument(baseId: ID, file: File): Promise<KnowledgeDocument> {
@@ -1597,17 +1847,20 @@ export async function uploadKnowledgeDocument(baseId: ID, file: File): Promise<K
     }),
   })
   const document = payload.document ?? payload
-  return {
-    id: normalizeId(document.id),
-    knowledge_base_id: normalizeId(document.knowledge_base_id),
-    media_asset_id: document.media_asset_id ? normalizeId(document.media_asset_id) : undefined,
-    title: document.title ?? '',
-    file_name: document.file_name ?? file.name,
-    content_type: document.content_type ?? file.type,
-    status: document.status ?? '',
-    summary: document.summary ?? '',
-    text_content: document.text_content ?? '',
-  }
+  return mapKnowledgeDocument(document, file)
+}
+
+export async function listHouseholdAIMemories(): Promise<HouseholdAIMemory[]> {
+  const payload = await request<{ memories?: any[] }>('/api/v1/household-ai-memories')
+  return (payload.memories ?? []).map((m) => ({
+    id: normalizeId(m.id),
+    scope: m.scope ?? 'general',
+    content: m.content ?? '',
+    source: m.source,
+    user_id: m.user_id != null ? normalizeId(m.user_id) : undefined,
+    created_at: m.created_at,
+    updated_at: m.updated_at,
+  }))
 }
 
 export async function reindexKnowledgeBase(baseId: ID) {

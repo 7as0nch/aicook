@@ -51,25 +51,27 @@ export default function Plan() {
 
   return (
     <div className="space-y-6 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">本周菜单</h1>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={genBusy}
-            onClick={() => void onAiGenerate()}
-            className="flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1.5 text-xs font-bold text-purple-700 disabled:opacity-50"
-          >
-            <Wand2 className="h-3.5 w-3.5" />
-            {genBusy ? '生成中…' : 'AI 生成'}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/shop')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600"
-          >
-            <ShoppingBag className="h-4 w-4" />
-          </button>
+      <div className="sticky top-0 z-20 -mx-4 shrink-0 bg-gray-50/95 px-4 pb-2 pt-0 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">本周菜单</h1>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={genBusy}
+              onClick={() => void onAiGenerate()}
+              className="flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1.5 text-xs font-bold text-purple-700 disabled:opacity-50"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              {genBusy ? '生成中…' : 'AI 生成'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/shop')}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600"
+            >
+              <ShoppingBag className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
