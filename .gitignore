@@ -39,4 +39,4 @@ aidesign/
 ios/
 android/
 
-backend/configs/config.yaml
+config.yaml
