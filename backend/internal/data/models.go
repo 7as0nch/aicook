@@ -17,5 +17,7 @@ type KnowledgeBase = legacy.KnowledgeBase
 type KnowledgeDocument = legacy.KnowledgeDocument
 type KnowledgeChunk = legacy.KnowledgeChunk
 type KnowledgeIndexJob = legacy.KnowledgeIndexJob
+type HouseholdAIMemory = legacy.HouseholdAIMemory
+type KnowledgeGraphEdge = legacy.KnowledgeGraphEdge
 type AISession = legacy.AISession
 type AIMessage = legacy.AIMessage

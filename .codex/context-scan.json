@@ -1,42 +1,45 @@
-﻿{
+{
   "affected_areas": [
-    "backend/api",
-    "backend/cmd/server",
-    "backend/internal/biz",
-    "backend/internal/data",
-    "backend/internal/service",
-    "backend/internal/server",
-    "frontend/src/api",
-    "frontend/src/components",
-    "backend/Dockerfile"
+    "backend/internal/platform/airuntime/adk_runtime.go",
+    "backend/internal/platform/airuntime/chat.go",
+    "backend/internal/platform/airuntime/deep_tools.go",
+    "backend/internal/platform/airuntime/graph/localize.go",
+    "backend/internal/platform/airuntime/graph/web_search.go",
+    "backend/internal/platform/airuntime/graph_runtime.go",
+    "backend/internal/platform/airuntime/tool/search_tools.go",
+    "backend/internal/platform/airuntime/websearch.go",
+    "frontend/src/app/components/AIAssistant.tsx",
+    "frontend/src/app/components/ai-assistant/AIChatMessages.tsx",
+    "frontend/src/lib/api/client.ts"
   ],
   "current_behavior": {
-    "backend": "原先以手写 HTTP handler 为主，目录不符合标准 Kratos layout。",
-    "frontend": "媒体和知识库文档仍通过 multipart 直传后端。",
-    "deployment": "backend Dockerfile 仍指向旧的 cmd/backend 入口。"
+    "backend": "网页搜索已收敛成显式的 web_search graph，先检查开关，再执行搜索，最后把结果继续串回现有知识库、菜谱查询和生成流程。",
+    "search_execution": "MiMo 原生联网保留为 web_search graph 内部执行器；非 MiMo 或原生能力不可用时，DuckDuckGo 继续作为 fallback。",
+    "tooling": "deep planner 重新暴露了 web_search 工具，但它现在只负责触发统一 graph，而不是各处直接零散搜索。",
+    "frontend": "前端在流式 onToolCall(web_search) 阶段即可实时接住搜索结果，并继续在 done/history 阶段用 search_results 回放与补齐。"
   },
   "similar_cases": [
-    "现有 recipe/media/importer/knowledge/ai 六组业务逻辑可复用为新的 biz 层实现",
-    "frontend 现有 client.ts 已集中管理 API，可作为协议切换入口"
+    "backend/internal/platform/airuntime/graph/text_recipe.go 已经采用 graph 节点串联搜索、知识整合、生成与校验，适合作为 web_search graph 的接入风格参考。",
+    "backend/internal/platform/airuntime/deep_tools.go 已承担工具调用后的 bridge 回写职责，适合继续承接 search_results/search_error 的统一落库。",
+    "frontend/src/app/components/AIAssistant.tsx 已具备 workflow/tool_call/message 三层状态合并逻辑，适合继续复用而不是另起一套页面状态。"
   ],
   "stack": {
-    "backend": "Go 1.25.3, Kratos, protobuf, Wire, Gorm, PostgreSQL, MinIO",
-    "frontend": "Vue 3, TypeScript, Vite, pnpm"
+    "backend": "Go, Kratos, CloudWeGo Eino ADK, Eino Graph, Xiaomi MiMo OpenAI 兼容接口",
+    "frontend": "React, TypeScript, Ant Design X, SSE 流式消息"
   },
   "tests": {
     "available": [
-      "go test ./...",
-      "pnpm.cmd --dir frontend build"
+      "$env:GOCACHE='D:\\workspace\\goproject\\my\\aicook\\backend\\.gocache'; go test ./internal/platform/airuntime/... ./internal/server/..."
     ],
     "environment_gaps": [
-      "默认 Go 模块缓存目录写入受限，需要使用仓库内 GOMODCACHE",
-      "前端 Vite/esbuild 在沙箱中无法直接 spawn，需要放行后执行",
-      "当前环境没有 docker CLI，无法实际构建镜像"
+      "当前环境无法直接对外联调真实 MiMo API，只能做本地编译与流程代码验证。",
+      "前端仓库存在历史 TypeScript/依赖问题，无法用全量 tsc 作为本轮唯一验收依据。",
+      "当前环境缺少 gofmt 可执行文件，无法直接运行 go fmt。"
     ]
   },
   "observations": [
-    "backend 已提前补入 proto 文件与生成代码，可直接在其上继续装配 Kratos 新主链路",
-    "旧 internal/app 与 cmd/backend 仍需保留编译兼容，避免中途把现有链路打断",
-    "仓库中部分旧中文文案存在乱码，本轮优先保证接口和构建链路可用"
+    "如果让 MiMo 原生联网直接挂在普通模型调用上，会绕过 ADK/tool/workflow 事件，导致前端执行过程缺少统一可视化。",
+    "把搜索收敛为显式 graph 后，可以同时满足三件事：未开启时有统一提示、流式阶段有搜索过程、搜索完成后还能把结果继续喂给知识库/菜谱生成流程。",
+    "reply_sources 与 search_results 必须继续分开：前者服务 citation 弹窗，后者服务执行过程搜索列表，否则正文引用编号和流程搜索结果会混淆。"
   ]
 }

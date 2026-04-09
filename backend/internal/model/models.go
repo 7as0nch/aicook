@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/pgvector/pgvector-go"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 
@@ -45,6 +46,8 @@ type User struct {
 	DisplayName string `gorm:"size:60;not null" json:"display_name"`
 	Email       string `gorm:"size:120;uniqueIndex" json:"email"`
 	Status      string `gorm:"size:20;default:'active'" json:"status"`
+	// AvatarAssetID 指向 media_assets.id；空表示未设置头像。
+	AvatarAssetID *int64 `gorm:"type:bigint;index" json:"avatar_asset_id,string,omitempty"`
 }
 
 // HouseholdMember 支持一个用户加入多个厨房，并为角色扩展预留空间。
@@ -173,9 +176,11 @@ type KnowledgeDocument struct {
 	Bucket          string            `gorm:"size:120;not null" json:"bucket"`
 	ObjectKey       string            `gorm:"size:255;not null" json:"object_key"`
 	Status          string            `gorm:"size:30;default:'uploaded';index" json:"status"`
+	ProcessingStage string            `gorm:"size:50;default:''" json:"processing_stage"`
 	TextContent     string            `gorm:"type:text" json:"text_content"`
 	Summary         string            `gorm:"type:text" json:"summary"`
 	MetadataJSON    datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
+	ChunkCount      int               `gorm:"-" json:"chunk_count"`
 }
 
 type KnowledgeChunk struct {
@@ -186,7 +191,32 @@ type KnowledgeChunk struct {
 	Content         string            `gorm:"type:text;not null" json:"content"`
 	SourceSnippet   string            `gorm:"type:text" json:"source_snippet"`
 	TokenSize       int               `gorm:"default:0" json:"token_size"`
+	Embedding       *pgvector.Vector  `gorm:"type:vector(1536)" json:"-"`
 	MetadataJSON    datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
+}
+
+// HouseholdAIMemory 家庭级 AI 长期记忆（饮食偏好、禁忌等），供对话与知识检索注入。
+type HouseholdAIMemory struct {
+	BaseModel
+	HouseholdID int64      `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	UserID      *int64     `gorm:"type:bigint;index" json:"user_id,string,omitempty"`
+	Scope       string     `gorm:"size:40;not null;default:'general'" json:"scope"`
+	Content     string     `gorm:"type:text;not null" json:"content"`
+	Source      string     `gorm:"size:50;not null;default:'user_stated'" json:"source"`
+	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
+}
+
+// KnowledgeGraphEdge 简易知识图谱边（主体—谓词—客体），可按 household 过滤检索。
+type KnowledgeGraphEdge struct {
+	BaseModel
+	HouseholdID  int64             `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	SubjectKind  string            `gorm:"size:40;not null" json:"subject_kind"`
+	SubjectID    string            `gorm:"size:64;not null" json:"subject_id"`
+	Predicate    string            `gorm:"size:80;not null" json:"predicate"`
+	ObjectKind   string            `gorm:"size:40;not null" json:"object_kind"`
+	ObjectID     string            `gorm:"size:64;not null" json:"object_id"`
+	Weight       float64           `gorm:"default:1" json:"weight"`
+	MetadataJSON datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
 }
 
 type KnowledgeIndexJob struct {

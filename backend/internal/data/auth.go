@@ -60,6 +60,13 @@ func (r *AuthRepo) GetUser(ctx context.Context, userID int64) (*User, error) {
 	return &user, nil
 }
 
+func (r *AuthRepo) UpdateUser(ctx context.Context, userID int64, updates map[string]any) error {
+	if len(updates) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(updates).Error
+}
+
 func (r *AuthRepo) GetHousehold(ctx context.Context, householdID int64) (*Household, error) {
 	var household Household
 	if err := r.db.WithContext(ctx).First(&household, "id = ?", householdID).Error; err != nil {

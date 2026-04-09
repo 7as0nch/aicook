@@ -15,24 +15,46 @@ import (
 func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 	tools := make([]componenttool.BaseTool, 0, 6)
 
-	webTool, err := airtool.NewWebSearchTool(func(ctx context.Context, query string) ([]airtool.Source, error) {
+	webTool, err := airtool.NewWebSearchTool(func(ctx context.Context, query string) (*airtool.SearchResult, error) {
 		req, err := replyRequestFromContext(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if !req.WebSearchEnabled {
-			return nil, nil
-		}
-		results, err := searchDuckDuckGo(ctx, query)
+		bridge, _ := streamBridgeFromContext(ctx)
+		output, err := r.runWebSearchGraph(ctx, req, query, bridge)
 		if err != nil {
 			return nil, err
 		}
-		return toToolSources(results), nil
+		if output == nil {
+			return &airtool.SearchResult{Query: query}, nil
+		}
+		return &airtool.SearchResult{
+			Query:          query,
+			Status:         output.Status,
+			Summary:        output.Summary,
+			Results:        toToolSources(fromGraphSources(output.Results)),
+			ErrorMessage:   output.ErrorMessage,
+			NeedWebEnabled: output.NeedWebEnabled,
+		}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	tools = append(tools, webTool)
+
+	if r.memoryWriter != nil {
+		memTool, err := airtool.NewSaveHouseholdMemoryTool(func(ctx context.Context, scope, content string) error {
+			req, err := replyRequestFromContext(ctx)
+			if err != nil {
+				return err
+			}
+			return r.memoryWriter.SaveHouseholdMemory(ctx, req.HouseholdID, req.UserID, scope, content, "adk_tool")
+		})
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, memTool)
+	}
 
 	if r.knowledgeLookup != nil {
 		knowledgeTool, err := airtool.NewKnowledgeLookupTool(func(ctx context.Context, query string, limit int) ([]airtool.Source, error) {
@@ -112,6 +134,7 @@ func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 				Duration:   preferences.Duration,
 				Difficulty: preferences.Difficulty,
 				Style:      preferences.Style,
+				Constraints: append([]string(nil), preferences.Constraints...),
 			}, coverImageURL, bridge)
 			if err != nil {
 				return nil, err
@@ -128,6 +151,9 @@ func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 				Card:    toToolRecipeCard(output.Card),
 				Sources: toToolSources(output.Sources),
 			}, nil
+		},
+		func(ctx context.Context, query string, preferences airtool.TextRecipePreferences) (*airtool.RecipePreferencePlan, error) {
+			return r.generateRecipePreferencePlan(ctx, query, preferences)
 		},
 	)
 	if err != nil {
@@ -160,7 +186,7 @@ func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 	return tools, nil
 }
 
-func filterDeepTools(ctx context.Context, tools []componenttool.BaseTool, allowed ...string) []componenttool.BaseTool {
+func (r *Runtime) filterDeepTools(ctx context.Context, tools []componenttool.BaseTool, allowed ...string) []componenttool.BaseTool {
 	if len(allowed) == 0 {
 		return nil
 	}
@@ -239,6 +265,15 @@ func (r *Runtime) applyToolResult(bridge *streamBridge, name, result string) {
 		var payload airtool.SearchResult
 		if err := json.Unmarshal([]byte(result), &payload); err == nil {
 			bridge.addSources(fromToolSources(payload.Results))
+			if name == "web_search" {
+				bridge.addSearchResults(fromToolSources(payload.Results))
+				if strings.TrimSpace(payload.ErrorMessage) != "" {
+					bridge.reply.Metadata.SearchError = strings.TrimSpace(payload.ErrorMessage)
+				}
+				if payload.NeedWebEnabled && strings.TrimSpace(payload.Summary) != "" && strings.TrimSpace(bridge.reply.Content) == "" {
+					bridge.reply.Content = strings.TrimSpace(payload.Summary)
+				}
+			}
 		}
 		if name == "knowledge_lookup" {
 			bridge.reply.Metadata.Intent = string(IntentKnowledge)
@@ -264,6 +299,7 @@ func (r *Runtime) applyToolResult(bridge *streamBridge, name, result string) {
 		var payload airtool.TextRecipeResult
 		if err := json.Unmarshal([]byte(result), &payload); err == nil {
 			bridge.addSources(fromToolSources(payload.Sources))
+			bridge.addSearchResults(filterSearchResultSources(fromToolSources(payload.Sources)))
 			if payload.Card != nil {
 				_ = bridge.emitRecipeCard(fromToolRecipeCard(payload.Card))
 			}
@@ -281,6 +317,10 @@ func toToolSources(items []Source) []airtool.Source {
 			Title:      item.Title,
 			DocumentID: item.DocumentID,
 			Snippet:    item.Snippet,
+			SourceKind: item.SourceKind,
+			SiteName:   item.SiteName,
+			PublishTime: item.PublishTime,
+			LogoURL:    item.LogoURL,
 		})
 	}
 	return results
@@ -293,6 +333,10 @@ func fromToolSources(items []airtool.Source) []Source {
 			Title:      item.Title,
 			DocumentID: item.DocumentID,
 			Snippet:    item.Snippet,
+			SourceKind: item.SourceKind,
+			SiteName:   item.SiteName,
+			PublishTime: item.PublishTime,
+			LogoURL:    item.LogoURL,
 		})
 	}
 	return results
@@ -433,17 +477,24 @@ func fromToolApproval(info *airtool.ApprovalInterrupt, interruptID string) *Pend
 	options := make([]ApprovalOption, 0, len(info.Options))
 	for _, option := range info.Options {
 		options = append(options, ApprovalOption{
-			ID:         option.ID,
-			Title:      option.Title,
-			Summary:    option.Summary,
-			RecipeCard: fromToolRecipeCard(option.RecipeCard),
+			ID:            option.ID,
+			Title:         option.Title,
+			Summary:       option.Summary,
+			RecipeCard:    fromToolRecipeCard(option.RecipeCard),
+			PreferenceKey: option.PreferenceKey,
+			Value:         option.Value,
 		})
 	}
 	return &PendingApproval{
-		ID:      interruptID,
-		Kind:    info.Kind,
-		Prompt:  info.Prompt,
-		Status:  "pending",
-		Options: options,
+		ID:                interruptID,
+		Kind:              info.Kind,
+		Prompt:            info.Prompt,
+		Status:            "pending",
+		SelectionMode:     info.SelectionMode,
+		StepIndex:         info.StepIndex,
+		StepTotal:         info.StepTotal,
+		AllowSkip:         info.AllowSkip,
+		SelectedOptionIDs: append([]string(nil), info.SelectedOptionIDs...),
+		Options:           options,
 	}
 }

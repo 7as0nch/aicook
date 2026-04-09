@@ -61,6 +61,7 @@ func (r *Runtime) runTextRecipeGraph(ctx context.Context, req ReplyRequest, quer
 			Duration:   preferences.Duration,
 			Difficulty: preferences.Difficulty,
 			Style:      preferences.Style,
+			Constraints: append([]string(nil), preferences.Constraints...),
 		},
 		SeedCoverImageURL: strings.TrimSpace(seedCoverImageURL),
 	}, graphruntime.TextRecipeCallbacks{
@@ -74,12 +75,25 @@ func (r *Runtime) runTextRecipeGraph(ctx context.Context, req ReplyRequest, quer
 			}
 			return toGraphSources(results), nil
 		},
-		SearchWeb: func(ctx context.Context, question string) ([]graphruntime.Source, error) {
-			results, err := searchDuckDuckGo(ctx, question+" 做法 菜谱")
+		QueryRecipes: func(ctx context.Context, question string, limit int) ([]graphruntime.Source, error) {
+			if r.recipeLookup == nil {
+				return nil, nil
+			}
+			results, err := r.recipeLookup.SearchRecipesForAI(ctx, req.HouseholdID, question, limit)
 			if err != nil {
 				return nil, err
 			}
-			return toGraphSources(results), nil
+			return recipeCardsToGraphSources(results), nil
+		},
+		SearchWeb: func(ctx context.Context, question string) ([]graphruntime.Source, error) {
+			output, err := r.runWebSearchGraph(ctx, req, question+" 做法 菜谱", nil)
+			if err != nil {
+				return nil, err
+			}
+			if output == nil {
+				return nil, nil
+			}
+			return output.Results, nil
 		},
 		GenerateDraft: func(ctx context.Context, input graphruntime.TextRecipeRequest, sources []graphruntime.Source) (*graphruntime.TextRecipeDraft, error) {
 			draft, err := r.generateTextRecipeDraft(ctx, input.Query, fromGraphSources(sources), TextRecipePreferences{
@@ -87,6 +101,7 @@ func (r *Runtime) runTextRecipeGraph(ctx context.Context, req ReplyRequest, quer
 				Duration:   input.Preferences.Duration,
 				Difficulty: input.Preferences.Difficulty,
 				Style:      input.Preferences.Style,
+				Constraints: append([]string(nil), input.Preferences.Constraints...),
 			})
 			if err != nil {
 				return nil, err
@@ -99,6 +114,7 @@ func (r *Runtime) runTextRecipeGraph(ctx context.Context, req ReplyRequest, quer
 				Duration:   input.Preferences.Duration,
 				Difficulty: input.Preferences.Difficulty,
 				Style:      input.Preferences.Style,
+				Constraints: append([]string(nil), input.Preferences.Constraints...),
 			}, input.SeedCoverImageURL)
 			if err != nil {
 				return nil, err
@@ -174,6 +190,10 @@ func toGraphSources(items []Source) []graphruntime.Source {
 			Title:      item.Title,
 			DocumentID: item.DocumentID,
 			Snippet:    item.Snippet,
+			SourceKind: item.SourceKind,
+			SiteName:   item.SiteName,
+			PublishTime: item.PublishTime,
+			LogoURL:    item.LogoURL,
 		})
 	}
 	return results
@@ -186,6 +206,33 @@ func fromGraphSources(items []graphruntime.Source) []Source {
 			Title:      item.Title,
 			DocumentID: item.DocumentID,
 			Snippet:    item.Snippet,
+			SourceKind: item.SourceKind,
+			SiteName:   item.SiteName,
+			PublishTime: item.PublishTime,
+			LogoURL:    item.LogoURL,
+		})
+	}
+	return results
+}
+
+func recipeCardsToGraphSources(items []RecipeCard) []graphruntime.Source {
+	results := make([]graphruntime.Source, 0, len(items))
+	for _, item := range items {
+		snippetParts := make([]string, 0, 3)
+		if strings.TrimSpace(item.Summary) != "" {
+			snippetParts = append(snippetParts, strings.TrimSpace(item.Summary))
+		}
+		if strings.TrimSpace(item.Time) != "" {
+			snippetParts = append(snippetParts, "时长："+strings.TrimSpace(item.Time))
+		}
+		if strings.TrimSpace(item.Difficulty) != "" {
+			snippetParts = append(snippetParts, "难度："+strings.TrimSpace(item.Difficulty))
+		}
+		results = append(results, graphruntime.Source{
+			Title:      item.Title,
+			DocumentID: strings.TrimSpace(item.RecipeID),
+			Snippet:    strings.Join(snippetParts, "；"),
+			SourceKind: "recipe_query",
 		})
 	}
 	return results

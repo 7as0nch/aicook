@@ -31,7 +31,12 @@ go.work.sum
 # .idea/
 # .vscode/
 .cache/
+.gocache/
 node_modules/
 dist/
 venv/
 aidesign/
+ios/
+android/
+
+backend/configs/config.yaml

@@ -15,8 +15,9 @@ import (
 )
 
 type AIChatHandler struct {
-	usecase  *biz.AIUsecase
-	authRepo auth.AuthRepo
+	usecase   *biz.AIUsecase
+	knowledge *biz.KnowledgeUsecase
+	authRepo  auth.AuthRepo
 }
 
 type chatSessionID string
@@ -61,16 +62,18 @@ func (id chatSessionID) Int64() (int64, error) {
 	return strconv.ParseInt(string(id), 10, 64)
 }
 
-func NewAIChatHandler(usecase *biz.AIUsecase, authRepo auth.AuthRepo) *AIChatHandler {
+func NewAIChatHandler(usecase *biz.AIUsecase, knowledge *biz.KnowledgeUsecase, authRepo auth.AuthRepo) *AIChatHandler {
 	return &AIChatHandler{
-		usecase:  usecase,
-		authRepo: authRepo,
+		usecase:   usecase,
+		knowledge: knowledge,
+		authRepo:  authRepo,
 	}
 }
 
 func (h *AIChatHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /chat/send", h.handleSend)
 	mux.HandleFunc("GET /chat/sessions/{session_id}/messages", h.handleListMessages)
+	mux.HandleFunc("GET /chat/knowledge-ingest/status", h.handleKnowledgeIngestStatus)
 }
 
 func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
@@ -183,20 +186,82 @@ func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
 	if timeline := reply.Reply.Metadata.Timeline; len(timeline) > 0 {
 		runID = timeline[len(timeline)-1].RunID
 	}
-	_ = writeSSE(w, "done", map[string]any{
-		"session_id":            strconv.FormatInt(reply.Session.ID, 10),
-		"user_message_id":       strconv.FormatInt(reply.User.ID, 10),
-		"assistant_message_id":  strconv.FormatInt(reply.Assistant.ID, 10),
-		"run_id":                runID,
-		"reply_content":         reply.Reply.Content,
-		"reasoning_content":     reply.Reply.ReasoningContent,
-		"reply_mode":            reply.Reply.Mode,
-		"reply_model":           reply.Reply.Model,
-		"reply_sources_count":   len(reply.Reply.Sources),
-		"is_fallback":           reply.Reply.IsFallback,
-		"reply_metadata":        reply.Reply.Metadata,
-	})
+	donePayload := map[string]any{
+		"session_id":           strconv.FormatInt(reply.Session.ID, 10),
+		"user_message_id":      strconv.FormatInt(reply.User.ID, 10),
+		"assistant_message_id": strconv.FormatInt(reply.Assistant.ID, 10),
+		"run_id":               runID,
+		"reply_content":        reply.Reply.Content,
+		"reasoning_content":    reply.Reply.ReasoningContent,
+		"reply_mode":           reply.Reply.Mode,
+		"reply_model":          reply.Reply.Model,
+		"reply_sources":        reply.Reply.Sources,
+		"reply_sources_count":  len(reply.Reply.Sources),
+		"search_results":       reply.Reply.Metadata.SearchResults,
+		"is_fallback":          reply.Reply.IsFallback,
+		"reply_metadata":       reply.Reply.Metadata,
+	}
+	if watch := knowledgeIngestWatchFromRequest(req); len(watch) > 0 {
+		donePayload["knowledge_ingest_watch"] = watch
+	}
+	_ = writeSSE(w, "done", donePayload)
 	flusher.Flush()
+}
+
+func knowledgeIngestWatchFromRequest(req chatSendRequest) []map[string]any {
+	out := make([]map[string]any, 0, len(req.Attachments))
+	for _, a := range req.Attachments {
+		if !knowledgeIngestAttachmentType(a.Type) {
+			continue
+		}
+		aid := strings.TrimSpace(a.AssetID)
+		if aid == "" {
+			continue
+		}
+		out = append(out, map[string]any{
+			"asset_id": aid,
+			"name":     strings.TrimSpace(a.Name),
+		})
+	}
+	return out
+}
+
+func knowledgeIngestAttachmentType(t string) bool {
+	switch strings.ToLower(strings.TrimSpace(t)) {
+	case "document", "file":
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *AIChatHandler) handleKnowledgeIngestStatus(w http.ResponseWriter, r *http.Request) {
+	if h.knowledge == nil {
+		writeErrorJSON(w, http.StatusServiceUnavailable, "knowledge not configured")
+		return
+	}
+	assetIDStr := strings.TrimSpace(r.URL.Query().Get("asset_id"))
+	if assetIDStr == "" {
+		writeErrorJSON(w, http.StatusBadRequest, "asset_id is required")
+		return
+	}
+	assetID, err := strconv.ParseInt(assetIDStr, 10, 64)
+	if err != nil || assetID <= 0 {
+		writeErrorJSON(w, http.StatusBadRequest, "invalid asset_id")
+		return
+	}
+	ctx := h.authContext(r)
+	actor := biz.ActorFromContext(ctx)
+	if actor.HouseholdID == 0 {
+		writeErrorJSON(w, http.StatusUnauthorized, "household required")
+		return
+	}
+	st, err := h.knowledge.GetIngestStatusByMediaAsset(ctx, actor.HouseholdID, assetID)
+	if err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, st)
 }
 
 func (h *AIChatHandler) ensureSession(ctx context.Context, sessionID int64, scene string, req chatSendRequest) (*data.AISession, error) {
@@ -328,6 +393,9 @@ func buildMessagePayload(message *data.AIMessage) map[string]any {
 			"title":       source.Title,
 			"document_id": source.DocumentID,
 			"snippet":     source.Snippet,
+			"site_name":   source.SiteName,
+			"publish_time": source.PublishTime,
+			"logo_url":    source.LogoURL,
 		})
 	}
 	attachmentItems := make([]map[string]any, 0, len(attachments))

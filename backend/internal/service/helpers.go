@@ -117,11 +117,11 @@ func toProtoHouseholds(items []*data.Household) []*v1.HouseholdSummary {
 	return out
 }
 
-func toProtoUser(model *data.User) *v1.UserProfile {
+func toProtoUser(ctx context.Context, model *data.User, media *biz.MediaUsecase) *v1.UserProfile {
 	if model == nil {
 		return nil
 	}
-	return &v1.UserProfile{
+	p := &v1.UserProfile{
 		Id:          model.ID,
 		HouseholdId: model.HouseholdID,
 		Username:    model.Username,
@@ -132,6 +132,12 @@ func toProtoUser(model *data.User) *v1.UserProfile {
 		CreatedAt:   toTimestamp(model.CreatedAt),
 		UpdatedAt:   toTimestamp(model.UpdatedAt),
 	}
+	if model.AvatarAssetID != nil && *model.AvatarAssetID != 0 && media != nil {
+		if u, err := media.SignedURLForAsset(ctx, *model.AvatarAssetID); err == nil && u != "" {
+			p.AvatarUrl = u
+		}
+	}
+	return p
 }
 
 func toProtoKitchenTag(model *data.KitchenTag) *v1.KitchenTag {
@@ -312,20 +318,22 @@ func toProtoKnowledgeDocument(model *data.KnowledgeDocument) *v1.KnowledgeDocume
 		return nil
 	}
 	return &v1.KnowledgeDocument{
-		Id:              model.ID,
-		KnowledgeBaseId: model.KnowledgeBaseID,
-		MediaAssetId:    model.MediaAssetID,
-		Title:           model.Title,
-		FileName:        model.FileName,
-		ContentType:     model.ContentType,
-		Bucket:          model.Bucket,
-		ObjectKey:       model.ObjectKey,
-		Status:          model.Status,
-		TextContent:     model.TextContent,
-		Summary:         model.Summary,
-		Metadata:        jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:       toTimestamp(model.CreatedAt),
-		UpdatedAt:       toTimestamp(model.UpdatedAt),
+		Id:               model.ID,
+		KnowledgeBaseId:  model.KnowledgeBaseID,
+		MediaAssetId:     model.MediaAssetID,
+		Title:            model.Title,
+		FileName:         model.FileName,
+		ContentType:      model.ContentType,
+		Bucket:           model.Bucket,
+		ObjectKey:        model.ObjectKey,
+		Status:           model.Status,
+		TextContent:      model.TextContent,
+		Summary:          model.Summary,
+		Metadata:         jsonMapToStruct(model.MetadataJSON),
+		CreatedAt:        toTimestamp(model.CreatedAt),
+		UpdatedAt:        toTimestamp(model.UpdatedAt),
+		ProcessingStage:  model.ProcessingStage,
+		ChunkCount:       int32(model.ChunkCount),
 	}
 }
 
@@ -426,6 +434,7 @@ func fromProtoAttachments(items []*v1.Attachment) []airuntime.Attachment {
 			URL:         item.GetUrl(),
 			ContentType: item.GetContentType(),
 			Name:        item.GetName(),
+			AssetID:     item.GetAssetId(),
 		})
 	}
 	return result

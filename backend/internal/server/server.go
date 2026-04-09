@@ -12,6 +12,7 @@ import (
 
 var ProviderSet = wire.NewSet(
 	NewAIChatHandler,
+	NewHouseholdMemoryHandler,
 	NewHTTPServer,
 	NewGRPCServer,
 	NewApp,

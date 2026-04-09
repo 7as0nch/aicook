@@ -14,12 +14,24 @@ func LocalizeStepTitle(title string) string {
 		return "生成草稿并入库"
 	case "text_recipe_knowledge":
 		return "查询家庭知识库"
+	case "text_recipe_recipe_query":
+		return "查询家庭菜谱库"
 	case "text_recipe_web":
 		return "补充网页检索"
+	case "web_search_check":
+		return "检查网页搜索开关"
+	case "web_search_execute":
+		return "执行网页搜索"
+	case "web_search_finalize":
+		return "整理搜索结果"
 	case "text_recipe_generate":
 		return "生成结构化菜谱"
 	case "text_recipe_validate":
 		return "校验菜谱字段"
+	case "doc_knowledge_vector":
+		return "文档向量索引"
+	case "doc_knowledge_graph":
+		return "知识图谱生成"
 	default:
 		return title
 	}

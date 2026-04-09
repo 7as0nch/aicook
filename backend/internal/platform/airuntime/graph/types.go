@@ -28,6 +28,10 @@ type Source struct {
 	Title      string `json:"title"`
 	DocumentID string `json:"document_id"`
 	Snippet    string `json:"snippet"`
+	SourceKind string `json:"source_kind,omitempty"`
+	SiteName   string `json:"site_name,omitempty"`
+	PublishTime string `json:"publish_time,omitempty"`
+	LogoURL    string `json:"logo_url,omitempty"`
 }
 
 type DraftIngredient struct {
@@ -66,6 +70,7 @@ type TextRecipePreferences struct {
 	Duration   string `json:"duration,omitempty"`
 	Difficulty string `json:"difficulty,omitempty"`
 	Style      string `json:"style,omitempty"`
+	Constraints []string `json:"constraints,omitempty"`
 }
 
 type Input struct {

@@ -24,6 +24,7 @@ const OperationAuthServiceListMyHouseholds = "/aicook.v1.AuthService/ListMyHouse
 const OperationAuthServiceLogin = "/aicook.v1.AuthService/Login"
 const OperationAuthServiceRegister = "/aicook.v1.AuthService/Register"
 const OperationAuthServiceSwitchHousehold = "/aicook.v1.AuthService/SwitchHousehold"
+const OperationAuthServiceUpdateProfile = "/aicook.v1.AuthService/UpdateProfile"
 
 type AuthServiceHTTPServer interface {
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
@@ -31,6 +32,7 @@ type AuthServiceHTTPServer interface {
 	Login(context.Context, *LoginRequest) (*AuthReply, error)
 	Register(context.Context, *RegisterRequest) (*AuthReply, error)
 	SwitchHousehold(context.Context, *SwitchHouseholdRequest) (*AuthReply, error)
+	UpdateProfile(context.Context, *UpdateProfileRequest) (*GetMeReply, error)
 }
 
 func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
@@ -38,6 +40,7 @@ func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
 	r.POST("/api/v1/auth/register", _AuthService_Register0_HTTP_Handler(srv))
 	r.POST("/api/v1/auth/login", _AuthService_Login0_HTTP_Handler(srv))
 	r.GET("/api/v1/auth/me", _AuthService_GetMe0_HTTP_Handler(srv))
+	r.PATCH("/api/v1/auth/profile", _AuthService_UpdateProfile0_HTTP_Handler(srv))
 	r.GET("/api/v1/auth/households", _AuthService_ListMyHouseholds0_HTTP_Handler(srv))
 	r.POST("/api/v1/auth/switch-household", _AuthService_SwitchHousehold0_HTTP_Handler(srv))
 }
@@ -105,6 +108,28 @@ func _AuthService_GetMe0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.C
 	}
 }
 
+func _AuthService_UpdateProfile0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateProfileRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceUpdateProfile)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateProfile(ctx, req.(*UpdateProfileRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetMeReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _AuthService_ListMyHouseholds0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListMyHouseholdsRequest
@@ -152,6 +177,7 @@ type AuthServiceHTTPClient interface {
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *AuthReply, err error)
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *AuthReply, err error)
 	SwitchHousehold(ctx context.Context, req *SwitchHouseholdRequest, opts ...http.CallOption) (rsp *AuthReply, err error)
+	UpdateProfile(ctx context.Context, req *UpdateProfileRequest, opts ...http.CallOption) (rsp *GetMeReply, err error)
 }
 
 type AuthServiceHTTPClientImpl struct {
@@ -221,6 +247,19 @@ func (c *AuthServiceHTTPClientImpl) SwitchHousehold(ctx context.Context, in *Swi
 	opts = append(opts, http.Operation(OperationAuthServiceSwitchHousehold))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AuthServiceHTTPClientImpl) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...http.CallOption) (*GetMeReply, error) {
+	var out GetMeReply
+	pattern := "/api/v1/auth/profile"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationAuthServiceUpdateProfile))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

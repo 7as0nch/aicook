@@ -10,11 +10,14 @@ import (
 	einoopenai "github.com/cloudwego/eino-ext/components/model/openai"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
+	"github.com/chengjiang/aicook/backend/internal/platform/airuntime/audioinput"
+	aircheckpoint "github.com/chengjiang/aicook/backend/internal/platform/airuntime/checkpoint"
 )
 
 type Runtime struct {
 	mode                Mode
 	provider            *conf.AI
+	mediaHostAllowlist  map[string]struct{}
 	textModelName       string
 	multimodalModelName string
 	textModel           *einoopenai.ChatModel
@@ -22,16 +25,17 @@ type Runtime struct {
 	textModelErr        error
 	multimodalModelErr  error
 	knowledgeLookup     KnowledgeLookup
+	memoryWriter        MemoryWriter
 	recipeLookup        RecipeLookup
 	imageRecipeCreator  ImageRecipeCreator
 
-	deepRootAgent     einoadk.ResumableAgent
-	deepRunner        *einoadk.Runner
-	deepCheckpointStore *memoryCheckpointStore
-	adkErr            error
+	deepRootAgent       einoadk.ResumableAgent
+	deepRunner          *einoadk.Runner
+	deepCheckpointStore *aircheckpoint.MemoryStore
+	adkErr              error
 }
 
-func New(cfg *conf.AI) *Runtime {
+func New(cfg *conf.AI, oss *conf.OSS) *Runtime {
 	mode := ModeADK
 	if cfg != nil {
 		mode = Mode(strings.ToLower(strings.TrimSpace(cfg.GetMode())))
@@ -40,7 +44,11 @@ func New(cfg *conf.AI) *Runtime {
 		mode = ModeADK
 	}
 
-	runtime := &Runtime{mode: mode, provider: cfg}
+	runtime := &Runtime{
+		mode:               mode,
+		provider:           cfg,
+		mediaHostAllowlist: audioinput.MediaHostAllowlist(oss),
+	}
 	if cfg == nil {
 		runtime.initADK()
 		return runtime
@@ -122,9 +130,15 @@ func (r *Runtime) selectChatModel(useMultimodal bool) (*einoopenai.ChatModel, st
 	return nil, r.textModelName, fmt.Errorf("chat model is not configured")
 }
 
+// hasRichInput selects the multimodal-capable model only for image/audio attachments.
+// Documents (PDF 等) are inlined as text in the user message and must use the text model stack.
 func hasRichInput(attachments []Attachment) bool {
 	for _, attachment := range attachments {
-		if strings.TrimSpace(attachment.URL) != "" {
+		if strings.TrimSpace(attachment.URL) == "" {
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(attachment.Type)) {
+		case "image", "audio":
 			return true
 		}
 	}
@@ -146,7 +160,7 @@ func resolveBaseURL(cfg *conf.AI) string {
 		return baseURL
 	}
 	if strings.EqualFold(strings.TrimSpace(cfg.GetProvider()), "xiaomi") || strings.EqualFold(strings.TrimSpace(cfg.GetProvider()), "mimo") {
-		return "https://api.mimo-v2.com/v1"
+		return "https://api.xiaomimimo.com/v1"
 	}
-	return "https://api.mimo-v2.com/v1"
+	return "https://api.xiaomimimo.com/v1"
 }

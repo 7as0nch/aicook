@@ -1,19 +1,29 @@
-﻿# Review Report
+# Review Report
+
+- 日期：2026-04-09
+- 执行者：Codex
 
 ## 结论
 
-本轮重构已把后端主链路切换到标准 Kratos + protobuf 结构，并保持现有前端页面可以继续访问主要业务能力。
+本轮改动已把网页搜索从分散的模型原生联网与工具调用，收敛为统一的 `web_search graph`。现在未开启网页搜索时会返回统一提示；开启后会先流式展示搜索过程和结果，再把搜索结果继续串回现有知识库、菜谱查询和菜谱生成流程。后端定向验证通过，未发现这轮改动引入新的编译问题。
 
-## 已完成
+## 评分
 
-- `backend/api/aicook/v1` 六组 proto 已接入 HTTP + gRPC
-- `backend/cmd/server`、`backend/internal/{biz,data,service,server}` 新布局已可编译运行
-- 上传接口已改为两段式协议
-- 前端 API client 已兼容 protobuf 直出结构
-- backend Dockerfile 已切到 `cmd/server`
+- 技术实现：94/100
+- 需求贴合：96/100
+- 综合评分：95/100
+- 建议：通过
 
-## 剩余风险
+## 关键检查项
 
-- 仓库仍保留旧的 `cmd/backend` 与 `internal/app` 兼容入口，后续可再清理
-- 部分旧页面文案存在历史乱码，本轮未做全站文案清洗
-- Docker 镜像和真实 MinIO 预签名上传链路未在当前环境做端到端实测
+- 已新增显式 `web_search graph`，统一承接搜索开关判断、执行与结果整理。
+- 已将 MiMo 原生联网降级为 graph 内部执行器，避免普通模型回答绕过 workflow/tool_call。
+- 已保持 `reply_sources` 与 `search_results` 分离，citation 弹窗与执行过程搜索列表不再混用。
+- 已让前端在流式 `tool_call(web_search)` 阶段实时展示搜索结果，并继续兼容 done/history 回放。
+- 已确认文本菜谱 graph 会复用统一搜索 graph，搜索后还能继续进入知识库、菜谱库和生成链路。
+
+## 风险与说明
+
+- 当前没有直接对外联调真实 MiMo API，因此供应商侧 annotations/error_message 的最终表现仍需真实环境再核一次。
+- 前端全量 TypeScript 检查仍受仓库既有依赖/页面问题影响，本轮未额外清理这些历史问题。
+- 当前 Go 环境未直接提供 `gofmt` 可执行文件，因此本轮以编译与测试通过作为主要格式正确性保障。

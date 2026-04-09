@@ -11,4 +11,5 @@ var ProviderSet = wire.NewSet(
 	NewImportUsecase,
 	NewKnowledgeUsecase,
 	NewAIUsecase,
+	NewCookingProgressUsecase,
 )

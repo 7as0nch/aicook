@@ -22,15 +22,36 @@ type QuoteContext struct {
 	Scene           string `json:"scene"`
 }
 
+// SourceKind distinguishes household AI memory, uploaded KB chunks, and graph edges for UI and prompts.
+const (
+	SourceKindMemory         = "memory"
+	SourceKindKnowledgeBase  = "knowledge_base"
+	SourceKindKnowledgeGraph = "knowledge_graph"
+)
+
 type Source struct {
 	Title      string `json:"title"`
 	DocumentID string `json:"document_id"`
 	Snippet    string `json:"snippet"`
+	SourceKind string `json:"source_kind,omitempty"`
+	SiteName   string `json:"site_name,omitempty"`
+	PublishTime string `json:"publish_time,omitempty"`
+	LogoURL    string `json:"logo_url,omitempty"`
 }
 
 type HistoryMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+// ActiveCookingSummary is injected into model prompts when the user has in-progress recipes.
+type ActiveCookingSummary struct {
+	RecipeID         int64  `json:"recipe_id"`
+	Title            string `json:"title"`
+	StepIndex        int    `json:"step_index"`
+	TotalSteps       int    `json:"total_steps"`
+	RemainingSeconds int    `json:"remaining_seconds"`
+	CookPath         string `json:"cook_path"`
 }
 
 type ReplyRequest struct {
@@ -48,6 +69,7 @@ type ReplyRequest struct {
 	ImageRecipeEnabled bool             `json:"image_recipe_enabled"`
 	InputSource        string           `json:"input_source"`
 	ApprovalResponse   *ApprovalResponse `json:"approval_response,omitempty"`
+	ActiveCooking      []ActiveCookingSummary `json:"active_cooking,omitempty"`
 }
 
 type ReplyResponse struct {
@@ -133,25 +155,33 @@ type RecipeCard struct {
 }
 
 type ApprovalOption struct {
-	ID         string      `json:"id"`
-	Title      string      `json:"title"`
-	Summary    string      `json:"summary,omitempty"`
-	RecipeCard *RecipeCard `json:"recipe_card,omitempty"`
+	ID            string      `json:"id"`
+	Title         string      `json:"title"`
+	Summary       string      `json:"summary,omitempty"`
+	RecipeCard    *RecipeCard `json:"recipe_card,omitempty"`
+	PreferenceKey string      `json:"preference_key,omitempty"`
+	Value         string      `json:"value,omitempty"`
 }
 
 type PendingApproval struct {
-	ID      string           `json:"id"`
-	Kind    string           `json:"kind"`
-	Prompt  string           `json:"prompt"`
-	Status  string           `json:"status,omitempty"`
-	Options []ApprovalOption `json:"options,omitempty"`
+	ID                string           `json:"id"`
+	Kind              string           `json:"kind"`
+	Prompt            string           `json:"prompt"`
+	Status            string           `json:"status,omitempty"`
+	SelectionMode     string           `json:"selection_mode,omitempty"`
+	StepIndex         int              `json:"step_index,omitempty"`
+	StepTotal         int              `json:"step_total,omitempty"`
+	AllowSkip         bool             `json:"allow_skip,omitempty"`
+	SelectedOptionIDs []string         `json:"selected_option_ids,omitempty"`
+	Options           []ApprovalOption `json:"options,omitempty"`
 }
 
 type ApprovalResponse struct {
-	ApprovalID string          `json:"approval_id"`
-	OptionID   string          `json:"option_id"`
-	Confirmed  bool            `json:"confirmed"`
-	Selection  *ApprovalOption `json:"selection,omitempty"`
+	ApprovalID string           `json:"approval_id"`
+	OptionID   string           `json:"option_id"`
+	OptionIDs  []string         `json:"option_ids,omitempty"`
+	Confirmed  bool             `json:"confirmed"`
+	Selection  *ApprovalOption  `json:"selection,omitempty"`
 }
 
 type TimelineEvent struct {
@@ -170,6 +200,8 @@ type ReplyMetadata struct {
 	AgentTrace       []AgentTrace     `json:"agent_trace,omitempty"`
 	Workflow         []WorkflowStep   `json:"workflow,omitempty"`
 	ToolCalls        []ToolCallRecord `json:"tool_calls,omitempty"`
+	SearchResults    []Source         `json:"search_results,omitempty"`
+	SearchError      string           `json:"search_error,omitempty"`
 	RecipeCard       *RecipeCard      `json:"recipe_card,omitempty"`
 	PendingApproval  *PendingApproval `json:"pending_approval,omitempty"`
 	Timeline         []TimelineEvent  `json:"timeline,omitempty"`
@@ -230,4 +262,5 @@ type TextRecipePreferences struct {
 	Duration   string `json:"duration,omitempty"`
 	Difficulty string `json:"difficulty,omitempty"`
 	Style      string `json:"style,omitempty"`
+	Constraints []string `json:"constraints,omitempty"`
 }

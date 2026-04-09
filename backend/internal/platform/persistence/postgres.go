@@ -35,6 +35,8 @@ func AutoMigrate(ctx context.Context, db *gorm.DB) error {
 		&model.KnowledgeDocument{},
 		&model.KnowledgeChunk{},
 		&model.KnowledgeIndexJob{},
+		&model.HouseholdAIMemory{},
+		&model.KnowledgeGraphEdge{},
 		&model.AISession{},
 		&model.AIMessage{},
 	)

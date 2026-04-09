@@ -57,6 +57,18 @@ func NewMediaUsecase(repo *data.MediaRepo, objectStorage storage.ObjectStorage, 
 	}
 }
 
+// SignedURLForAsset 读取媒体并返回可访问 URL（私有桶下为预签名 GET）。
+func (u *MediaUsecase) SignedURLForAsset(ctx context.Context, id int64) (string, error) {
+	if u == nil || id == 0 {
+		return "", fmt.Errorf("invalid asset")
+	}
+	asset, err := u.repo.Get(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	return u.SignMediaURL(ctx, asset.StorageURL)
+}
+
 // SignMediaURL 将指向本 OSS（公共访问域名）的直链换成短期预签名 GET，便于浏览器在私有桶下展示图片。
 // 非本站 URL（如外链图床）原样返回。
 func (u *MediaUsecase) SignMediaURL(ctx context.Context, raw string) (string, error) {

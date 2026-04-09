@@ -15,6 +15,7 @@ import (
 
 type AuthUsecase struct {
 	repo      *data.AuthRepo
+	mediaRepo *data.MediaRepo
 	tokenRepo auth.AuthRepo
 }
 
@@ -34,8 +35,8 @@ type AuthResult struct {
 	Households       []*data.Household
 }
 
-func NewAuthUsecase(repo *data.AuthRepo, tokenRepo auth.AuthRepo) *AuthUsecase {
-	return &AuthUsecase{repo: repo, tokenRepo: tokenRepo}
+func NewAuthUsecase(repo *data.AuthRepo, mediaRepo *data.MediaRepo, tokenRepo auth.AuthRepo) *AuthUsecase {
+	return &AuthUsecase{repo: repo, mediaRepo: mediaRepo, tokenRepo: tokenRepo}
 }
 
 func (u *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*AuthResult, error) {
@@ -142,6 +143,52 @@ func (u *AuthUsecase) GetMe(ctx context.Context, actor Actor) (*AuthResult, erro
 		CurrentHousehold: current,
 		Households:       households,
 	}, nil
+}
+
+// UpdateProfile 更新昵称与/或头像 asset（avatar_asset_id 为 0 且字段已设置时表示清空）。
+func (u *AuthUsecase) UpdateProfile(ctx context.Context, actor Actor, displayName *string, avatarAssetID *int64) (*AuthResult, error) {
+	if displayName == nil && avatarAssetID == nil {
+		return u.GetMe(ctx, actor)
+	}
+	user, err := u.repo.GetUser(ctx, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	updates := map[string]any{}
+	if displayName != nil {
+		dn := strings.TrimSpace(*displayName)
+		if dn == "" {
+			return nil, fmt.Errorf("display_name cannot be empty")
+		}
+		if len(dn) > 60 {
+			return nil, fmt.Errorf("display_name too long")
+		}
+		updates["display_name"] = dn
+	}
+	if avatarAssetID != nil {
+		if *avatarAssetID == 0 {
+			updates["avatar_asset_id"] = nil
+		} else {
+			asset, err := u.mediaRepo.Get(ctx, *avatarAssetID)
+			if err != nil {
+				return nil, fmt.Errorf("avatar asset not found")
+			}
+			if asset.UserID != actor.UserID {
+				return nil, fmt.Errorf("avatar asset does not belong to user")
+			}
+			if asset.HouseholdID != actor.HouseholdID {
+				return nil, fmt.Errorf("avatar asset household mismatch")
+			}
+			if asset.MediaType != "image" {
+				return nil, fmt.Errorf("avatar must be an image")
+			}
+			updates["avatar_asset_id"] = *avatarAssetID
+		}
+	}
+	if err := u.repo.UpdateUser(ctx, user.ID, updates); err != nil {
+		return nil, err
+	}
+	return u.GetMe(ctx, actor)
 }
 
 func (u *AuthUsecase) ListMyHouseholds(ctx context.Context, userID int64) ([]*data.Household, error) {

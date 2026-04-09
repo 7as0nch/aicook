@@ -11,10 +11,11 @@ type AuthService struct {
 	v1.UnimplementedAuthServiceServer
 
 	usecase *biz.AuthUsecase
+	media   *biz.MediaUsecase
 }
 
-func NewAuthService(usecase *biz.AuthUsecase) *AuthService {
-	return &AuthService{usecase: usecase}
+func NewAuthService(usecase *biz.AuthUsecase, media *biz.MediaUsecase) *AuthService {
+	return &AuthService{usecase: usecase, media: media}
 }
 
 func (s *AuthService) Register(ctx context.Context, req *v1.RegisterRequest) (*v1.AuthReply, error) {
@@ -31,7 +32,7 @@ func (s *AuthService) Register(ctx context.Context, req *v1.RegisterRequest) (*v
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(result.User),
+		User:             toProtoUser(ctx, result.User, s.media),
 		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
 		Households:       toProtoHouseholds(result.Households),
 	}, nil
@@ -44,7 +45,7 @@ func (s *AuthService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Auth
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(result.User),
+		User:             toProtoUser(ctx, result.User, s.media),
 		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
 		Households:       toProtoHouseholds(result.Households),
 	}, nil
@@ -57,7 +58,29 @@ func (s *AuthService) GetMe(ctx context.Context, req *v1.GetMeRequest) (*v1.GetM
 		return nil, err
 	}
 	return &v1.GetMeReply{
-		User:             toProtoUser(result.User),
+		User:             toProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
+		Households:       toProtoHouseholds(result.Households),
+	}, nil
+}
+
+func (s *AuthService) UpdateProfile(ctx context.Context, req *v1.UpdateProfileRequest) (*v1.GetMeReply, error) {
+	var displayName *string
+	if req.DisplayName != nil {
+		dn := req.GetDisplayName()
+		displayName = &dn
+	}
+	var avatarID *int64
+	if req.AvatarAssetId != nil {
+		id := req.GetAvatarAssetId()
+		avatarID = &id
+	}
+	result, err := s.usecase.UpdateProfile(ctx, biz.ActorFromContext(ctx), displayName, avatarID)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetMeReply{
+		User:             toProtoUser(ctx, result.User, s.media),
 		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
 		Households:       toProtoHouseholds(result.Households),
 	}, nil
@@ -79,7 +102,7 @@ func (s *AuthService) SwitchHousehold(ctx context.Context, req *v1.SwitchHouseho
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(result.User),
+		User:             toProtoUser(ctx, result.User, s.media),
 		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
 		Households:       toProtoHouseholds(result.Households),
 	}, nil

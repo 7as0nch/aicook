@@ -164,6 +164,9 @@ export interface SourceSnippet {
   title: string
   document_id: ID
   snippet: string
+  site_name?: string
+  publish_time?: string
+  logo_url?: string
 }
 
 export interface AIAttachment {
@@ -248,6 +251,8 @@ export interface AIApprovalOption {
   title: string
   summary?: string
   recipe_card?: AIRecipeCardMeta
+  preference_key?: string
+  value?: string
 }
 
 export interface AIPendingApproval {
@@ -255,6 +260,11 @@ export interface AIPendingApproval {
   kind: string
   prompt: string
   status?: string
+  selection_mode?: 'single' | 'multi'
+  step_index?: number
+  step_total?: number
+  allow_skip?: boolean
+  selected_option_ids?: string[]
   options: AIApprovalOption[]
 }
 
@@ -262,7 +272,9 @@ export interface AIPendingApproval {
 export interface AIApprovalResolvedMeta {
   approval_id?: string
   option_id: string
+  option_ids?: string[]
   title?: string
+  titles?: string[]
   confirmed?: boolean
   prompt?: string
 }
@@ -271,6 +283,7 @@ export interface AIApprovalResponse {
   /** Official interrupt ID returned by backend approval event */
   approval_id: string
   option_id: string
+  option_ids?: string[]
   confirmed: boolean
   selection?: AIApprovalOption
 }
@@ -281,6 +294,8 @@ export interface AIResponseMeta {
   agent_trace?: AIAgentTrace[]
   workflow?: AIWorkflowStep[]
   tool_calls?: AIToolCall[]
+  search_results?: SourceSnippet[]
+  search_error?: string
   recipe_card?: AIRecipeCardMeta
   pending_approval?: AIPendingApproval
   approval_resolved?: AIApprovalResolvedMeta
@@ -396,6 +411,16 @@ export interface AIStreamEvent {
   metadata?: Record<string, unknown>
 }
 
+const SSE_TOOL_EVENTS = new Set([
+  'web_search',
+  'knowledge_lookup',
+  'recipe_query',
+  'image_recipe_create',
+  'save_household_memory',
+  'recipe_generate',
+  'recipe_recommend',
+])
+
 export interface ImportJob {
   id: ID
   status: string
@@ -501,6 +526,9 @@ function normalizeSourceSnippet(raw: any): SourceSnippet {
     title: raw.title ?? '',
     document_id: normalizeId(raw.document_id ?? raw.documentId),
     snippet: raw.snippet ?? '',
+    site_name: raw.site_name ?? raw.siteName ?? undefined,
+    publish_time: raw.publish_time ?? raw.publishTime ?? undefined,
+    logo_url: raw.logo_url ?? raw.logoUrl ?? undefined,
   }
 }
 
@@ -529,6 +557,35 @@ function normalizeToolCall(raw: any): AIToolCall {
     status: raw.status ?? '',
     arguments: raw.arguments ?? undefined,
     result: raw.result ?? undefined,
+  }
+}
+
+function normalizeCompatToolEvent(eventName: string, payload: any): AIToolCall {
+  const normalizedName = String(eventName || '').trim()
+  if (Array.isArray(payload)) {
+    return {
+      name: normalizedName,
+      status: 'success',
+      result: JSON.stringify({ results: payload }),
+    }
+  }
+  if (payload && typeof payload === 'object') {
+    const toolCall = normalizeToolCall({
+      ...payload,
+      name: payload.name ?? normalizedName,
+      status: payload.status ?? 'success',
+      result:
+        payload.result ??
+        (payload.results || payload.query || payload.answer || payload.summary
+          ? JSON.stringify(payload)
+          : undefined),
+    })
+    if (toolCall.name) return toolCall
+  }
+  return {
+    name: normalizedName,
+    status: 'success',
+    result: typeof payload === 'string' ? payload : JSON.stringify(payload ?? {}),
   }
 }
 
@@ -617,6 +674,8 @@ function normalizeApprovalOption(raw: any): AIApprovalOption {
     title: raw.title ?? '',
     summary: raw.summary ?? undefined,
     recipe_card: raw.recipe_card ?? raw.recipeCard ? normalizeRecipeCardMeta(raw.recipe_card ?? raw.recipeCard) : undefined,
+    preference_key: raw.preference_key ?? raw.preferenceKey ?? undefined,
+    value: raw.value ?? undefined,
   }
 }
 
@@ -626,6 +685,13 @@ function normalizePendingApproval(raw: any): AIPendingApproval {
     kind: raw.kind ?? '',
     prompt: raw.prompt ?? '',
     status: raw.status ?? undefined,
+    selection_mode: (raw.selection_mode ?? raw.selectionMode ?? 'single') === 'multi' ? 'multi' : 'single',
+    step_index: raw.step_index != null ? Number(raw.step_index) : raw.stepIndex != null ? Number(raw.stepIndex) : undefined,
+    step_total: raw.step_total != null ? Number(raw.step_total) : raw.stepTotal != null ? Number(raw.stepTotal) : undefined,
+    allow_skip: raw.allow_skip != null ? Boolean(raw.allow_skip) : raw.allowSkip != null ? Boolean(raw.allowSkip) : undefined,
+    selected_option_ids: Array.isArray(raw.selected_option_ids ?? raw.selectedOptionIds)
+      ? (raw.selected_option_ids ?? raw.selectedOptionIds).map((item: any) => normalizeId(item))
+      : [],
     options: Array.isArray(raw.options) ? raw.options.map(normalizeApprovalOption) : [],
   }
 }
@@ -640,7 +706,11 @@ function normalizeApprovalResolved(raw: any): AIApprovalResolvedMeta | undefined
         ? normalizeId(String(raw.approval_id ?? raw.approvalId))
         : undefined,
     option_id: optionId,
+    option_ids: Array.isArray(raw.option_ids ?? raw.optionIds)
+      ? (raw.option_ids ?? raw.optionIds).map((item: any) => normalizeId(item))
+      : undefined,
     title: raw.title != null ? String(raw.title) : undefined,
+    titles: Array.isArray(raw.titles) ? raw.titles.map((item: any) => String(item ?? '')) : undefined,
     confirmed: raw.confirmed != null ? Boolean(raw.confirmed) : undefined,
     prompt: raw.prompt != null ? String(raw.prompt) : undefined,
   }
@@ -660,6 +730,10 @@ function normalizeAiResponseMeta(raw: any): AIResponseMeta | undefined {
     tool_calls: Array.isArray(raw.tool_calls ?? raw.toolCalls)
       ? (raw.tool_calls ?? raw.toolCalls).map(normalizeToolCall)
       : [],
+    search_results: Array.isArray(raw.search_results ?? raw.searchResults)
+      ? (raw.search_results ?? raw.searchResults).map(normalizeSourceSnippet)
+      : [],
+    search_error: raw.search_error ?? raw.searchError ?? undefined,
     recipe_card: raw.recipe_card ?? raw.recipeCard ? normalizeRecipeCardMeta(raw.recipe_card ?? raw.recipeCard) : undefined,
     pending_approval:
       approvalResolved
@@ -1612,6 +1686,7 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
   let replyModel = ''
   let isFallback = false
   let sessionId = options.sessionId
+  let replySources: SourceSnippet[] = []
   let replyMetadata: AIResponseMeta | undefined
   let knowledgeIngestWatch: Array<{ asset_id: string; name?: string }> | undefined
 
@@ -1669,6 +1744,19 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
       options.onToolCall?.(normalizeToolCall(payload))
       return
     }
+    if (SSE_TOOL_EVENTS.has(event)) {
+      const compatToolCall = normalizeCompatToolEvent(event, payload)
+      options.onEvent?.(
+        normalizeStreamEvent('tool_call', {
+          ...payload,
+          name: compatToolCall.name,
+          status: compatToolCall.status,
+          result: compatToolCall.result,
+        }),
+      )
+      options.onToolCall?.(compatToolCall)
+      return
+    }
     if (event === 'recipe_card') {
       options.onEvent?.(normalizeStreamEvent('recipe_card', payload.card ?? payload))
       options.onRecipeCard?.(normalizeRecipeCardMeta(payload.card ?? payload))
@@ -1687,7 +1775,22 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
       replyModel = String(payload.reply_model ?? replyModel)
       isFallback = Boolean(payload.is_fallback)
       sessionId = payload.session_id ? normalizeId(payload.session_id) : sessionId
+      replySources = Array.isArray(payload.reply_sources ?? payload.sources)
+        ? (payload.reply_sources ?? payload.sources).map(normalizeSourceSnippet)
+        : replySources
       replyMetadata = normalizeAiResponseMeta(payload.reply_metadata ?? payload.metadata)
+      if (!replyMetadata && (Array.isArray(payload.search_results) || payload.search_error)) {
+        replyMetadata = normalizeAiResponseMeta({
+          search_results: payload.search_results,
+          search_error: payload.search_error,
+        })
+      }
+      if (replyMetadata && (!replyMetadata.search_results || replyMetadata.search_results.length === 0) && Array.isArray(payload.search_results)) {
+        replyMetadata.search_results = payload.search_results.map(normalizeSourceSnippet)
+      }
+      if (replyMetadata && !replyMetadata.search_error && payload.search_error) {
+        replyMetadata.search_error = String(payload.search_error)
+      }
       if (replyMetadata && !replyMetadata.reasoning_content && reasoningContent) {
         replyMetadata.reasoning_content = reasoningContent
       }
@@ -1728,7 +1831,7 @@ export async function streamAiMessage(options: StreamAiMessageOptions): Promise<
     reply_mode: replyMode,
     reply_model: replyModel,
     is_fallback: isFallback,
-    reply_sources: [],
+    reply_sources: replySources,
     reply_metadata: replyMetadata,
     knowledge_ingest_watch: knowledgeIngestWatch,
   }

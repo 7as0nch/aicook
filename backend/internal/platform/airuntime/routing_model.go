@@ -58,9 +58,9 @@ func (m *routingChatModel) prepareModel(ctx context.Context, input []*schema.Mes
 func (m *routingChatModel) callOptions(ctx context.Context) []einomodel.Option {
 	req, err := replyRequestFromContext(ctx)
 	if err != nil {
-		return nil
+		return m.runtime.buildCallOptionsWithTooling(ReplyRequest{}, m.toolInfos)
 	}
-	return buildCallOptions(req)
+	return m.runtime.buildCallOptionsWithTooling(req, m.toolInfos)
 }
 
 func needsMultimodalModel(messages []*schema.Message) bool {
@@ -72,8 +72,7 @@ func needsMultimodalModel(messages []*schema.Message) bool {
 			switch part.Type {
 			case schema.ChatMessagePartTypeImageURL,
 				schema.ChatMessagePartTypeAudioURL,
-				schema.ChatMessagePartTypeVideoURL,
-				schema.ChatMessagePartTypeFileURL:
+				schema.ChatMessagePartTypeVideoURL:
 				return true
 			}
 		}

@@ -26,17 +26,17 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 		return nil, nil, err
 	}
 	dataAuthRepo := data.NewAuthRepo(db)
-	authUsecase := biz.NewAuthUsecase(dataAuthRepo, authRepo)
-	authService := service.NewAuthService(authUsecase)
-	householdRepo := data.NewHouseholdRepo(db)
-	householdUsecase := biz.NewHouseholdUsecase(householdRepo)
 	mediaRepo := data.NewMediaRepo(db)
+	authUsecase := biz.NewAuthUsecase(dataAuthRepo, mediaRepo, authRepo)
 	objectStorage, cleanup2, err := data.NewObjectStorage(cfg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
 	mediaUsecase := biz.NewMediaUsecase(mediaRepo, objectStorage, cfg)
+	authService := service.NewAuthService(authUsecase, mediaUsecase)
+	householdRepo := data.NewHouseholdRepo(db)
+	householdUsecase := biz.NewHouseholdUsecase(householdRepo)
 	householdService := service.NewHouseholdService(householdUsecase, mediaUsecase)
 	recipeRepo := data.NewRecipeRepo(db)
 	runtime := data.NewAIRuntime(cfg)
@@ -50,16 +50,28 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	importUsecase := biz.NewImportUsecase(importRepo, mediaRepo, recipeRepo, objectStorage, client, runtime)
 	importService := service.NewImportService(importUsecase)
 	knowledgeRepo := data.NewKnowledgeRepo(db)
-	knowledgeUsecase := biz.NewKnowledgeUsecase(knowledgeRepo, mediaRepo, objectStorage, cfg, runtime)
+	embeddingsClient := data.NewEmbeddingClient(cfg)
+	knowledgeUsecase := biz.NewKnowledgeUsecase(knowledgeRepo, mediaRepo, recipeRepo, objectStorage, cfg, runtime, embeddingsClient)
 	knowledgeService := service.NewKnowledgeService(knowledgeUsecase)
 	aiRepo := data.NewAIRepo(db)
-	aiUsecase := biz.NewAIUsecase(aiRepo, runtime)
+	redisClient, cleanup3, err := data.NewRedis(cfg)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	cookingProgressStore := data.NewCookingProgressStore(redisClient)
+	cookingProgressUsecase := biz.NewCookingProgressUsecase(recipeRepo, cookingProgressStore)
+	aiUsecase := biz.NewAIUsecase(aiRepo, runtime, cookingProgressUsecase, knowledgeUsecase)
 	aiService := service.NewAIService(aiUsecase)
-	aiChatHandler := server.NewAIChatHandler(aiUsecase, authRepo)
-	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, aiChatHandler)
-	grpcServer := server.NewGRPCServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService)
+	cookingService := service.NewCookingService(cookingProgressUsecase, mediaUsecase)
+	aiChatHandler := server.NewAIChatHandler(aiUsecase, knowledgeUsecase, authRepo)
+	householdMemoryHandler := server.NewHouseholdMemoryHandler(knowledgeUsecase, authRepo)
+	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, aiChatHandler, householdMemoryHandler)
+	grpcServer := server.NewGRPCServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService)
 	app := server.NewApp(cfg, logger, httpServer, grpcServer)
 	return app, func() {
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil

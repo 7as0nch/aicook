@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	apierrors "github.com/chengjiang/aicook/backend/api/aicook/errors"
 	"github.com/chengjiang/aicook/backend/internal/data"
@@ -70,13 +71,24 @@ type ListMessagesRequest struct {
 type AIUsecase struct {
 	repo      AIRepo
 	aiRuntime *airuntime.Runtime
+	cooking   *CookingProgressUsecase
+	knowledge *KnowledgeUsecase
 }
 
-func NewAIUsecase(repo *data.AIRepo, aiRuntime *airuntime.Runtime) *AIUsecase {
+func NewAIUsecase(repo *data.AIRepo, aiRuntime *airuntime.Runtime, cooking *CookingProgressUsecase, knowledge *KnowledgeUsecase) *AIUsecase {
 	return &AIUsecase{
 		repo:      repo,
 		aiRuntime: aiRuntime,
+		cooking:   cooking,
+		knowledge: knowledge,
 	}
+}
+
+func (u *AIUsecase) activeCookingForPrompt(ctx context.Context, actor Actor) []airuntime.ActiveCookingSummary {
+	if u.cooking == nil {
+		return nil
+	}
+	return u.cooking.ListSummariesForAI(ctx, actor)
 }
 
 func (u *AIUsecase) CreateSession(ctx context.Context, req CreateSessionRequest) (*data.AISession, error) {
@@ -133,8 +145,10 @@ func (u *AIUsecase) SendMessage(ctx context.Context, sessionID int64, req SendMe
 	u.persistAssistantApprovalChoice(ctx, session.ID, req.ApprovalResponse)
 	session = u.updateSessionTitleIfNeeded(ctx, session, req.Text)
 
-	recentMessages, _ := u.repo.ListRecentMessages(ctx, session.ID, 6)
 	actor := ActorFromContext(ctx)
+	u.queueKnowledgeIngestFromAttachments(actor, session.ID, req.Attachments)
+
+	recentMessages, _ := u.repo.ListRecentMessages(ctx, session.ID, 6)
 	reply, err := u.aiRuntime.Reply(ctx, airuntime.ReplyRequest{
 		ConversationID:   fmt.Sprintf("%d", session.ID),
 		HouseholdID:      actor.HouseholdID,
@@ -150,6 +164,7 @@ func (u *AIUsecase) SendMessage(ctx context.Context, sessionID int64, req SendMe
 		ImageRecipeEnabled: req.ImageRecipeEnabled,
 		InputSource:      detectInputSource(req.Attachments),
 		ApprovalResponse: req.ApprovalResponse,
+		ActiveCooking:    u.activeCookingForPrompt(ctx, actor),
 	})
 	if err != nil {
 		return nil, err
@@ -200,8 +215,10 @@ func (u *AIUsecase) StreamMessage(ctx context.Context, sessionID int64, req Send
 	u.persistAssistantApprovalChoice(ctx, session.ID, req.ApprovalResponse)
 	session = u.updateSessionTitleIfNeeded(ctx, session, req.Text)
 
-	recentMessages, _ := u.repo.ListRecentMessages(ctx, session.ID, 6)
 	actor := ActorFromContext(ctx)
+	u.queueKnowledgeIngestFromAttachments(actor, session.ID, req.Attachments)
+
+	recentMessages, _ := u.repo.ListRecentMessages(ctx, session.ID, 6)
 	reply, err := u.aiRuntime.StreamReply(ctx, airuntime.ReplyRequest{
 		ConversationID:   fmt.Sprintf("%d", session.ID),
 		HouseholdID:      actor.HouseholdID,
@@ -217,6 +234,7 @@ func (u *AIUsecase) StreamMessage(ctx context.Context, sessionID int64, req Send
 		ImageRecipeEnabled: req.ImageRecipeEnabled,
 		InputSource:      detectInputSource(req.Attachments),
 		ApprovalResponse: req.ApprovalResponse,
+		ActiveCooking:    u.activeCookingForPrompt(ctx, actor),
 	}, onChunk)
 	if err != nil {
 		return nil, err
@@ -443,6 +461,16 @@ func optionTitleFromPendingApproval(pa map[string]any, optionID string) string {
 	return ""
 }
 
+func optionTitlesFromPendingApproval(pa map[string]any, optionIDs []string) []string {
+	titles := make([]string, 0, len(optionIDs))
+	for _, optionID := range optionIDs {
+		if title := optionTitleFromPendingApproval(pa, optionID); title != "" {
+			titles = append(titles, title)
+		}
+	}
+	return titles
+}
+
 // persistAssistantApprovalChoice clears pending_approval on the matching assistant row and stores approval_resolved so history reloads cannot re-submit.
 func (u *AIUsecase) persistAssistantApprovalChoice(ctx context.Context, sessionID int64, ar *airuntime.ApprovalResponse) {
 	if ar == nil || strings.TrimSpace(ar.ApprovalID) == "" {
@@ -470,9 +498,19 @@ func (u *AIUsecase) persistAssistantApprovalChoice(ctx context.Context, sessionI
 	if jsonMapString(pa, "id") != strings.TrimSpace(ar.ApprovalID) {
 		return
 	}
+	optionIDs := append([]string(nil), ar.OptionIDs...)
+	if len(optionIDs) == 0 && strings.TrimSpace(ar.OptionID) != "" {
+		optionIDs = []string{strings.TrimSpace(ar.OptionID)}
+	}
 	title := ""
 	if ar.Selection != nil {
 		title = strings.TrimSpace(ar.Selection.Title)
+	}
+	if title == "" && len(optionIDs) > 0 {
+		titles := optionTitlesFromPendingApproval(pa, optionIDs)
+		if len(titles) > 0 {
+			title = strings.Join(titles, "、")
+		}
 	}
 	if title == "" {
 		title = optionTitleFromPendingApproval(pa, ar.OptionID)
@@ -485,7 +523,9 @@ func (u *AIUsecase) persistAssistantApprovalChoice(ctx context.Context, sessionI
 	metaRaw["approval_resolved"] = map[string]any{
 		"approval_id": ar.ApprovalID,
 		"option_id":   ar.OptionID,
+		"option_ids":  optionIDs,
 		"title":       title,
+		"titles":      optionTitlesFromPendingApproval(pa, optionIDs),
 		"confirmed":   ar.Confirmed,
 		"prompt":      prompt,
 	}
@@ -495,6 +535,104 @@ func (u *AIUsecase) persistAssistantApprovalChoice(ctx context.Context, sessionI
 		return
 	}
 	_ = u.repo.UpdateMessageResponseMetaJSON(ctx, sessionID, msg.ID, datatypes.JSON(out))
+}
+
+func (u *AIUsecase) queueKnowledgeIngestFromAttachments(actor Actor, sessionID int64, attachments []airuntime.Attachment) {
+	if u == nil || u.knowledge == nil || actor.HouseholdID == 0 {
+		return
+	}
+	for _, a := range attachments {
+		if !isKnowledgeDocumentAttachment(a) {
+			continue
+		}
+		aid := strings.TrimSpace(a.AssetID)
+		if aid == "" {
+			continue
+		}
+		assetID, err := strconv.ParseInt(aid, 10, 64)
+		if err != nil || assetID <= 0 {
+			continue
+		}
+		title := strings.TrimSpace(a.Name)
+		householdID := actor.HouseholdID
+		ku := u.knowledge
+		sid := sessionID
+		go func(assetID int64, fileTitle string) {
+			bg, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+			defer cancel()
+			if sid > 0 {
+				if s, err := u.repo.GetSession(bg, sid); err != nil || s.HouseholdID != householdID {
+					return
+				}
+			}
+			doc, err := ku.IngestMediaAssetAsDocument(bg, householdID, assetID, fileTitle)
+			if sid <= 0 {
+				return
+			}
+			u.appendKnowledgeIngestCompletionMessage(bg, sid, doc, fileTitle, err)
+		}(assetID, title)
+	}
+}
+
+func (u *AIUsecase) appendKnowledgeIngestCompletionMessage(ctx context.Context, sessionID int64, doc *data.KnowledgeDocument, fileTitle string, ingestErr error) {
+	if u == nil || u.repo == nil {
+		return
+	}
+	meta := map[string]any{
+		"kind":    "knowledge_ingest_notice",
+		"version": 1,
+	}
+	displayName := strings.TrimSpace(fileTitle)
+	if displayName == "" {
+		displayName = "该文件"
+	}
+	var content string
+	if ingestErr != nil {
+		content = fmt.Sprintf("「%s」未能入库到「厨艺AI资料库」：%v", displayName, ingestErr)
+		meta["status"] = "failed"
+	} else if doc != nil {
+		meta["document_id"] = strconv.FormatInt(doc.ID, 10)
+		meta["status"] = strings.TrimSpace(doc.ProcessingStage)
+		switch {
+		case strings.TrimSpace(doc.ProcessingStage) == "extract_empty":
+			content = fmt.Sprintf("「%s」已归档到「厨艺AI资料库」，但未能解析出可读文本（例如扫描版 PDF），暂无法用于向量检索。", strings.TrimSpace(doc.Title))
+		case strings.TrimSpace(doc.ProcessingStage) == "extract_timeout":
+			content = fmt.Sprintf("「%s」PDF 文本解析超时，可拆成较小文件或使用 Markdown/纯文本上传后再试。", strings.TrimSpace(doc.Title))
+		case strings.TrimSpace(doc.ProcessingStage) == "extract_skipped_large":
+			content = fmt.Sprintf("「%s」超过知识库单文档大小上限，请拆分或压缩后再上传。", strings.TrimSpace(doc.Title))
+		case doc.Status == "failed" || strings.TrimSpace(doc.ProcessingStage) == "error":
+			content = fmt.Sprintf("「%s」处理失败，请到知识库页查看详情或稍后重试。", strings.TrimSpace(doc.Title))
+		default:
+			content = fmt.Sprintf("「%s」已入库「厨艺AI资料库」：共 %d 条文本片段，可直接让我按菜名、食材检索。", strings.TrimSpace(doc.Title), doc.ChunkCount)
+		}
+	} else {
+		content = fmt.Sprintf("「%s」入库结果未知。", displayName)
+		meta["status"] = "unknown"
+	}
+	envelope := map[string]any{
+		"sources":  []airuntime.Source{},
+		"metadata": meta,
+	}
+	b, _ := json.Marshal(envelope)
+	msg := &data.AIMessage{
+		AISessionID:      sessionID,
+		Role:             "assistant",
+		Content:          content,
+		Mode:             "notice",
+		QuoteContextJSON: datatypes.JSON([]byte("{}")),
+		AttachmentsJSON:  datatypes.JSON([]byte("[]")),
+		ResponseMetaJSON: datatypes.JSON(b),
+	}
+	_ = u.repo.CreateMessage(ctx, msg)
+}
+
+func isKnowledgeDocumentAttachment(a airuntime.Attachment) bool {
+	switch strings.ToLower(strings.TrimSpace(a.Type)) {
+	case "document", "file":
+		return true
+	default:
+		return false
+	}
 }
 
 func detectInputSource(attachments []airuntime.Attachment) string {

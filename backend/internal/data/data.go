@@ -10,6 +10,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	"github.com/chengjiang/aicook/backend/internal/platform/demo"
+	"github.com/chengjiang/aicook/backend/internal/platform/embeddings"
 	"github.com/chengjiang/aicook/backend/internal/platform/inference"
 	"github.com/chengjiang/aicook/backend/internal/platform/persistence"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
@@ -17,9 +18,11 @@ import (
 
 var ProviderSet = wire.NewSet(
 	NewDB,
+	NewRedis,
 	NewObjectStorage,
 	NewInferenceClient,
 	NewAIRuntime,
+	NewEmbeddingClient,
 	auth.NewAuthRepo,
 	NewAuthRepo,
 	NewHouseholdRepo,
@@ -28,6 +31,7 @@ var ProviderSet = wire.NewSet(
 	NewImportRepo,
 	NewKnowledgeRepo,
 	NewAIRepo,
+	NewCookingProgressStore,
 )
 
 func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
@@ -75,5 +79,9 @@ func NewInferenceClient(cfg *conf.Bootstrap) *inference.Client {
 }
 
 func NewAIRuntime(cfg *conf.Bootstrap) *airuntime.Runtime {
-	return airuntime.New(cfg.GetAi())
+	return airuntime.New(cfg.GetAi(), cfg.GetOss())
+}
+
+func NewEmbeddingClient(cfg *conf.Bootstrap) *embeddings.Client {
+	return embeddings.NewClient(cfg.GetAi())
 }

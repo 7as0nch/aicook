@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+
+service CookingService {
+  rpc ListActiveCooking(ListActiveCookingRequest) returns (ListActiveCookingReply) {
+    option (google.api.http) = {get: "/api/v1/cooking/active"};
+  }
+
+  rpc UpsertActiveCooking(UpsertActiveCookingRequest) returns (UpsertActiveCookingReply) {
+    option (google.api.http) = {
+      put: "/api/v1/cooking/active/{recipe_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteActiveCooking(DeleteActiveCookingRequest) returns (DeleteActiveCookingReply) {
+    option (google.api.http) = {delete: "/api/v1/cooking/active/{recipe_id}"};
+  }
+}
+
+message ListActiveCookingRequest {}
+
+message ListActiveCookingReply {
+  repeated ActiveCooking items = 1;
+}
+
+message ActiveCooking {
+  int64 recipe_id = 1;
+  string title = 2;
+  string cover_image_url = 3;
+  int32 step_index = 4;
+  int32 total_steps = 5;
+  int32 timer_total_seconds = 6;
+  int32 remaining_seconds = 7;
+  int64 updated_at_ms = 8;
+  bool timer_running = 9;
+}
+
+message UpsertActiveCookingRequest {
+  int64 recipe_id = 1;
+  int32 step_index = 2;
+  int32 total_steps = 3;
+  int32 timer_total_seconds = 4;
+  int64 timer_started_at_ms = 5;
+  // When timer is paused (timer_started_at_ms == 0), seconds left for current step.
+  int32 timer_paused_remaining = 6;
+}
+
+message UpsertActiveCookingReply {
+  ActiveCooking item = 1;
+}
+
+message DeleteActiveCookingRequest {
+  int64 recipe_id = 1;
+}
+
+message DeleteActiveCookingReply {}

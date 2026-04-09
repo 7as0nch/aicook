@@ -11,7 +11,9 @@ import (
 	"github.com/cloudwego/eino/adk/prebuilt/deep"
 	"github.com/cloudwego/eino/schema"
 
+	airinstruction "github.com/chengjiang/aicook/backend/internal/platform/airuntime/instruction"
 	airtool "github.com/chengjiang/aicook/backend/internal/platform/airuntime/tool"
+	aircheckpoint "github.com/chengjiang/aicook/backend/internal/platform/airuntime/checkpoint"
 )
 
 const (
@@ -27,178 +29,10 @@ const (
 	streamBridgeContextKey adkContextKey = "aicook.stream_bridge"
 )
 
-type streamBridge struct {
-	onChunk func(StreamEvent) error
-	reply   ReplyResponse
-	runID   string
-	seq     int
-}
-
-func newStreamBridge(req ReplyRequest, onChunk func(StreamEvent) error) *streamBridge {
-	reply := ReplyResponse{
-		Mode:       ModeADK,
-		Sources:    append([]Source(nil), req.Sources...),
-		IsFallback: false,
-		Metadata: ReplyMetadata{
-			Intent: string(IntentChat),
-		},
-	}
-	return &streamBridge{
-		onChunk: onChunk,
-		reply:   reply,
-		runID:   fmt.Sprintf("run_%d", time.Now().UnixNano()),
-	}
-}
-
-func (b *streamBridge) nextSequence() int {
-	b.seq++
-	return b.seq
-}
-
-func (b *streamBridge) emit(kind StreamEventKind, content, partType, callID string, metadata map[string]any) error {
-	event := StreamEvent{
-		Kind:      kind,
-		RunID:     b.runID,
-		MessageID: "assistant",
-		Sequence:  b.nextSequence(),
-		PartType:  partType,
-		CallID:    callID,
-		Content:   content,
-		Metadata:  metadata,
-	}
-	b.reply.Metadata.Timeline = append(b.reply.Metadata.Timeline, TimelineEvent{
-		Kind:     event.Kind,
-		RunID:    event.RunID,
-		Sequence: event.Sequence,
-		PartType: event.PartType,
-		CallID:   event.CallID,
-		Content:  event.Content,
-		Metadata: event.Metadata,
-	})
-	if b.onChunk != nil {
-		if err := b.onChunk(event); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (b *streamBridge) emitAnswer(chunk string) error {
-	if chunk == "" {
-		return nil
-	}
-	b.reply.Content += chunk
-	return b.emit(StreamEventAnswer, chunk, "delta", "", nil)
-}
-
-func (b *streamBridge) emitReasoning(chunk string) error {
-	if chunk == "" {
-		return nil
-	}
-	b.reply.ReasoningContent += chunk
-	b.reply.Metadata.ReasoningContent = b.reply.ReasoningContent
-	return b.emit(StreamEventReasoning, chunk, "delta", "", nil)
-}
-
-func (b *streamBridge) emitAgent(name, status, detail string) error {
-	index := -1
-	for idx, item := range b.reply.Metadata.AgentTrace {
-		if item.Name == name {
-			index = idx
-			break
-		}
-	}
-	trace := AgentTrace{ID: name, Name: name, Status: status, Detail: detail}
-	if index >= 0 {
-		b.reply.Metadata.AgentTrace[index] = trace
-	} else {
-		b.reply.Metadata.AgentTrace = append(b.reply.Metadata.AgentTrace, trace)
-	}
-	return b.emit(StreamEventAgentCall, detail, status, name, map[string]any{
-		"id":     trace.ID,
-		"name":   trace.Name,
-		"status": trace.Status,
-		"detail": trace.Detail,
-	})
-}
-
-func (b *streamBridge) emitWorkflow(step WorkflowStep) error {
-	index := -1
-	for idx, item := range b.reply.Metadata.Workflow {
-		if item.ID == step.ID {
-			index = idx
-			break
-		}
-	}
-	if index >= 0 {
-		b.reply.Metadata.Workflow[index] = step
-	} else {
-		b.reply.Metadata.Workflow = append(b.reply.Metadata.Workflow, step)
-	}
-	return b.emit(StreamEventStatus, step.Title, step.Status, step.ID, map[string]any{
-		"step_id": step.ID,
-		"title":   step.Title,
-		"status":  step.Status,
-		"detail":  step.Detail,
-	})
-}
-
-func (b *streamBridge) emitTool(record ToolCallRecord) error {
-	index := -1
-	for idx, item := range b.reply.Metadata.ToolCalls {
-		if item.CallID != "" && item.CallID == record.CallID {
-			index = idx
-			break
-		}
-		if item.Name == record.Name && item.Arguments == record.Arguments {
-			index = idx
-			break
-		}
-	}
-	if index >= 0 {
-		b.reply.Metadata.ToolCalls[index] = record
-	} else {
-		b.reply.Metadata.ToolCalls = append(b.reply.Metadata.ToolCalls, record)
-	}
-	return b.emit(StreamEventToolCall, record.Name, record.Status, record.CallID, map[string]any{
-		"call_id":   record.CallID,
-		"name":      record.Name,
-		"status":    record.Status,
-		"arguments": record.Arguments,
-		"result":    record.Result,
-	})
-}
-
-func (b *streamBridge) emitRecipeCard(card *RecipeCard) error {
-	if card == nil {
-		return nil
-	}
-	b.reply.Metadata.RecipeCard = card
-	return b.emit(StreamEventRecipeCard, card.Summary, "snapshot", "recipe_card", map[string]any{
-		"card": card,
-	})
-}
-
-func (b *streamBridge) emitApproval(approval *PendingApproval) error {
-	if approval == nil {
-		return nil
-	}
-	b.reply.Metadata.PendingApproval = approval
-	return b.emit(StreamEventApproval, approval.Prompt, approval.Status, approval.ID, map[string]any{
-		"approval": approval,
-	})
-}
-
-func (b *streamBridge) addSources(items []Source) {
-	if len(items) == 0 {
-		return
-	}
-	b.reply.Sources = append(b.reply.Sources, items...)
-}
-
-func (b *streamBridge) setModeAndModel(mode Mode, model string) {
-	b.reply.Mode = mode
-	b.reply.Model = strings.TrimSpace(model)
+// RefreshADKAfterRegistrations 在业务层完成 RegisterKnowledgeLookup 等依赖注入后调用，
+// 使 deep agent 构建时能挂上全部工具（避免 New() 早于 Wire 注册导致工具缺失）。
+func (r *Runtime) RefreshADKAfterRegistrations() {
+	r.initADK()
 }
 
 func (r *Runtime) initADK() {
@@ -213,9 +47,9 @@ func (r *Runtime) initADK() {
 	multimodalSubAgent, err := einoadk.NewChatModelAgent(ctx, &einoadk.ChatModelAgentConfig{
 		Name:          adkMultimodalAgentName,
 		Description:   "负责处理上传图片后的菜谱识别与 graph 草稿流程。",
-		Instruction:   buildMultimodalSubAgentInstruction(),
+		Instruction:   airinstruction.BuildMultimodalSubAgentInstruction(),
 		Model:         routingModel,
-		ToolsConfig:   r.deepToolsConfig(filterDeepTools(ctx, tools, "image_recipe_create")),
+		ToolsConfig:   r.deepToolsConfig(r.filterDeepTools(ctx, tools, "image_recipe_create")),
 		MaxIterations: 6,
 	})
 	if err != nil {
@@ -226,9 +60,9 @@ func (r *Runtime) initADK() {
 	recommendSubAgent, err := einoadk.NewChatModelAgent(ctx, &einoadk.ChatModelAgentConfig{
 		Name:          adkRecommendAgentName,
 		Description:   "负责处理我要做某道菜时的候选推荐、approval 等待与恢复后确认。",
-		Instruction:   buildRecommendSubAgentInstruction(),
+		Instruction:   airinstruction.BuildRecommendSubAgentInstruction(),
 		Model:         routingModel,
-		ToolsConfig:   r.deepToolsConfig(filterDeepTools(ctx, tools, "recipe_generate", "recipe_recommend", "recipe_query")),
+		ToolsConfig:   r.deepToolsConfig(r.filterDeepTools(ctx, tools, "recipe_generate", "recipe_recommend", "recipe_query")),
 		MaxIterations: 6,
 	})
 	if err != nil {
@@ -240,8 +74,8 @@ func (r *Runtime) initADK() {
 		Name:                  adkRootAgentName,
 		Description:           "AICook 官方 deep planner，处理聊天、工具增强、多模态与可恢复的候选确认。",
 		ChatModel:             routingModel,
-		Instruction:           buildDeepInstruction(),
-		ToolsConfig:           r.deepToolsConfig(filterDeepTools(ctx, tools, "web_search", "knowledge_lookup", "recipe_query")),
+		Instruction:           airinstruction.BuildDeepInstruction(adkMultimodalAgentName, adkRecommendAgentName),
+		ToolsConfig:           r.deepToolsConfig(r.filterDeepTools(ctx, tools, "web_search", "knowledge_lookup", "save_household_memory", "recipe_query")),
 		SubAgents:             []einoadk.Agent{multimodalSubAgent, recommendSubAgent},
 		MaxIteration:          12,
 		WithoutWriteTodos:     true,
@@ -253,43 +87,12 @@ func (r *Runtime) initADK() {
 	}
 
 	r.deepRootAgent = rootAgent
-	r.deepCheckpointStore = newMemoryCheckpointStore()
+	r.deepCheckpointStore = aircheckpoint.NewMemoryStore()
 	r.deepRunner = einoadk.NewRunner(ctx, einoadk.RunnerConfig{
 		Agent:           rootAgent,
 		EnableStreaming: true,
 		CheckPointStore: r.deepCheckpointStore,
 	})
-}
-
-func buildDeepInstruction() string {
-	return strings.TrimSpace(fmt.Sprintf(`
-你是 AICook 的智能烹饪助手，请始终使用中文回答。
-你当前运行在 deep planner 中，请优先直接完成用户问题；只有在必要时再调用工具。
-
-规则：
-1. 只有用户明确开启联网时，才调用 web_search。
-2. 需要查询家庭知识、已有菜谱或推荐候选时，优先调用对应工具。
-3. 用户上传图片并希望识别成菜谱时，优先使用 task 调用 %s 子 agent，由它处理多模态与 graph 工作流。
-4. 用户表达“我要做某道菜”“帮我推荐更合适的做法/口味”“给我生成某道菜谱”时，优先使用 task 调用 %s 子 agent，由它处理候选推荐、文本菜谱 graph、approval 恢复与最终确认。
-5. 当工具已经返回足够信息后，直接整理成简洁、可执行的中文结果，不要暴露内部工具名或 JSON。
-`, adkMultimodalAgentName, adkRecommendAgentName))
-}
-
-func buildMultimodalSubAgentInstruction() string {
-	return strings.TrimSpace(`
-你是 AICook 的多模态菜谱子 agent。
-当用户上传图片并希望整理成菜谱时，只调用 image_recipe_create。
-该工具内部已经接了 graph 工作流，请根据返回的工作流状态与菜谱卡片，继续给出简短确认说明。
-`)
-}
-
-func buildRecommendSubAgentInstruction() string {
-	return strings.TrimSpace(`
-你是 AICook 的推荐子 agent。
-当用户说“我要做某道菜”“给我生成某道菜谱”或表达口味偏好时，优先调用 recipe_generate。
-如果用户只是明确要查现有库里的菜谱，再调用 recipe_query 或 recipe_recommend。
-当 recipe_generate 进入 approval 恢复后，请根据用户选择继续推进，不要直接跳过现有菜谱确认。
-`)
 }
 
 func withReplyRequest(ctx context.Context, req ReplyRequest) context.Context {
@@ -327,6 +130,7 @@ func (r *Runtime) runWithADK(ctx context.Context, req ReplyRequest, onChunk func
 	bridge := newStreamBridge(req, onChunk)
 	runCtx := withReplyRequest(ctx, req)
 	runCtx = withStreamBridge(runCtx, bridge)
+	runCtx = withCitationsCollector(runCtx)
 	if err := bridge.emitAgent(adkRootAgentName, "running", "官方 deep planner 调度中"); err != nil {
 		return nil, err
 	}
@@ -343,13 +147,18 @@ func (r *Runtime) runWithADK(ctx context.Context, req ReplyRequest, onChunk func
 		iter, err = r.deepRunner.ResumeWithParams(runCtx, checkpointID, &einoadk.ResumeParams{
 			Targets: map[string]any{
 				req.ApprovalResponse.ApprovalID: &airtool.ApprovalResult{
-					Approved: req.ApprovalResponse.Confirmed,
-					OptionID: req.ApprovalResponse.OptionID,
+					Approved:  req.ApprovalResponse.Confirmed,
+					OptionID:  req.ApprovalResponse.OptionID,
+					OptionIDs: append([]string(nil), req.ApprovalResponse.OptionIDs...),
 				},
 			},
 		})
 	} else {
-		iter = r.deepRunner.Run(runCtx, buildConversationMessages(req), einoadk.WithCheckPointID(checkpointID))
+		msgs, convErr := r.buildConversationMessages(runCtx, req)
+		if convErr != nil {
+			return nil, convErr
+		}
+		iter = r.deepRunner.Run(runCtx, msgs, einoadk.WithCheckPointID(checkpointID))
 	}
 	if err != nil {
 		return nil, err
@@ -361,11 +170,13 @@ func (r *Runtime) runWithADK(ctx context.Context, req ReplyRequest, onChunk func
 	if bridge.reply.Metadata.PendingApproval == nil && r.deepCheckpointStore != nil {
 		r.deepCheckpointStore.Delete(checkpointID)
 	}
+	bridge.finishPendingAgents(adkRootAgentName)
 	_ = bridge.emitAgent(adkRootAgentName, "done", "deep planner 完成")
 
 	bridge.reply.Content = strings.TrimSpace(bridge.reply.Content)
 	bridge.reply.ReasoningContent = strings.TrimSpace(bridge.reply.ReasoningContent)
 	bridge.reply.Metadata.ReasoningContent = bridge.reply.ReasoningContent
+	bridge.reply.Metadata.SearchResults = dedupeSources(bridge.reply.Metadata.SearchResults)
 	return &bridge.reply, nil
 }
 
@@ -380,6 +191,9 @@ func (r *Runtime) consumeDeepEvents(ctx context.Context, bridge *streamBridge, i
 		}
 		if event.Err != nil {
 			return event.Err
+		}
+		if err := syncAgentTraceFromEvent(bridge, event); err != nil {
+			return err
 		}
 		if event.Action != nil && event.Action.Interrupted != nil {
 			approval := extractPendingApproval(event.Action.Interrupted)
@@ -396,18 +210,19 @@ func (r *Runtime) consumeDeepEvents(ctx context.Context, bridge *streamBridge, i
 	}
 }
 
-func consumeMessageOutput(_ context.Context, bridge *streamBridge, event *einoadk.AgentEvent) error {
+func consumeMessageOutput(ctx context.Context, bridge *streamBridge, event *einoadk.AgentEvent) error {
 	if event.Output == nil || event.Output.MessageOutput == nil {
 		return nil
 	}
 	output := event.Output.MessageOutput
 	if output.IsStreaming && output.MessageStream != nil {
 		defer output.MessageStream.Close()
+		streamedAnswer := false
 		for {
 			chunk, err := output.MessageStream.Recv()
 			if err != nil {
 				if err == io.EOF {
-					return nil
+					break
 				}
 				return err
 			}
@@ -417,10 +232,37 @@ func consumeMessageOutput(_ context.Context, bridge *streamBridge, event *einoad
 			if err := bridge.emitReasoning(chunk.ReasoningContent); err != nil {
 				return err
 			}
+			if err := bridge.syncNativeWebSearch(nativeSearchSnapshotFromContext(ctx), false); err != nil {
+				return err
+			}
 			if err := bridge.emitAnswer(chunk.Content); err != nil {
 				return err
 			}
+			if strings.TrimSpace(chunk.Content) != "" {
+				streamedAnswer = true
+			}
 		}
+		if output.Message == nil || output.Role != schema.Assistant {
+			return nil
+		}
+		if strings.TrimSpace(bridge.reply.ReasoningContent) == "" {
+			if err := bridge.emitReasoning(output.Message.ReasoningContent); err != nil {
+				return err
+			}
+		}
+		nativeSearchResults := citationsFromContext(ctx)
+		bridge.addSources(nativeSearchResults)
+		bridge.addSearchResults(nativeSearchResults)
+		if searchError := searchErrorFromContext(ctx); strings.TrimSpace(searchError) != "" {
+			bridge.reply.Metadata.SearchError = strings.TrimSpace(searchError)
+		}
+		if err := bridge.syncNativeWebSearch(nativeSearchSnapshotFromContext(ctx), true); err != nil {
+			return err
+		}
+		if !streamedAnswer && strings.TrimSpace(output.Message.Content) != "" {
+			return bridge.emitAnswer(output.Message.Content)
+		}
+		return nil
 	}
 	if output.Message == nil || output.Role != schema.Assistant {
 		return nil
@@ -428,7 +270,50 @@ func consumeMessageOutput(_ context.Context, bridge *streamBridge, event *einoad
 	if err := bridge.emitReasoning(output.Message.ReasoningContent); err != nil {
 		return err
 	}
+	nativeSearchResults := citationsFromContext(ctx)
+	bridge.addSources(nativeSearchResults)
+	bridge.addSearchResults(nativeSearchResults)
+	if searchError := searchErrorFromContext(ctx); strings.TrimSpace(searchError) != "" {
+		bridge.reply.Metadata.SearchError = strings.TrimSpace(searchError)
+	}
+	if err := bridge.syncNativeWebSearch(nativeSearchSnapshotFromContext(ctx), true); err != nil {
+		return err
+	}
 	return bridge.emitAnswer(output.Message.Content)
+}
+
+func syncAgentTraceFromEvent(bridge *streamBridge, event *einoadk.AgentEvent) error {
+	if bridge == nil || event == nil {
+		return nil
+	}
+	name := strings.TrimSpace(event.AgentName)
+	if name == "" || name == adkRootAgentName {
+		return nil
+	}
+	status := "running"
+	detail := "执行中"
+	if event.Output != nil && event.Output.MessageOutput != nil && event.Output.MessageOutput.IsStreaming {
+		detail = "生成中"
+	}
+	if event.Action != nil {
+		switch {
+		case event.Action.Interrupted != nil:
+			status = "done"
+			detail = "等待用户确认"
+		case event.Action.Exit:
+			status = "done"
+			detail = "执行完成"
+		case event.Action.TransferToAgent != nil:
+			status = "done"
+			dest := strings.TrimSpace(event.Action.TransferToAgent.DestAgentName)
+			if dest != "" {
+				detail = "转交给 " + dest
+			} else {
+				detail = "已转交后续节点"
+			}
+		}
+	}
+	return bridge.emitAgent(name, status, detail)
 }
 
 func extractPendingApproval(info *einoadk.InterruptInfo) *PendingApproval {

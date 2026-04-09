@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS users (
   -- 手机号字段先入库预留，后续版本再扩展手机号登录。
   phone VARCHAR(32) DEFAULT '',
   display_name VARCHAR(60) NOT NULL,
+  -- 用户头像，逻辑关联 media_assets.id（表定义在后，不使用 DB 级外键以免初始化顺序问题）。
+  avatar_asset_id BIGINT,
   email VARCHAR(120) UNIQUE,
   status VARCHAR(20) NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -193,6 +195,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
   bucket VARCHAR(120) NOT NULL,
   object_key VARCHAR(255) NOT NULL,
   status VARCHAR(30) NOT NULL DEFAULT 'uploaded',
+  processing_stage VARCHAR(50) NOT NULL DEFAULT '',
   text_content TEXT NOT NULL DEFAULT '',
   summary TEXT NOT NULL DEFAULT '',
   metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -223,6 +226,34 @@ CREATE TABLE IF NOT EXISTS knowledge_index_jobs (
   status VARCHAR(30) NOT NULL,
   stage VARCHAR(50) NOT NULL DEFAULT '',
   error_message TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS household_ai_memories (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL REFERENCES households(id),
+  user_id BIGINT REFERENCES users(id),
+  scope VARCHAR(40) NOT NULL DEFAULT 'general',
+  content TEXT NOT NULL DEFAULT '',
+  source VARCHAR(50) NOT NULL DEFAULT 'user_stated',
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_graph_edges (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL REFERENCES households(id),
+  subject_kind VARCHAR(40) NOT NULL DEFAULT '',
+  subject_id VARCHAR(64) NOT NULL DEFAULT '',
+  predicate VARCHAR(80) NOT NULL DEFAULT '',
+  object_kind VARCHAR(40) NOT NULL DEFAULT '',
+  object_id VARCHAR(64) NOT NULL DEFAULT '',
+  weight DOUBLE PRECISION NOT NULL DEFAULT 1,
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
@@ -276,6 +307,8 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_bases_household_id ON knowledge_bases(h
 CREATE INDEX IF NOT EXISTS idx_knowledge_documents_base_id ON knowledge_documents(knowledge_base_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_base_id ON knowledge_chunks(knowledge_base_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_document_id ON knowledge_chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_household_ai_memories_household_id ON household_ai_memories(household_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_graph_edges_household_id ON knowledge_graph_edges(household_id);
 CREATE INDEX IF NOT EXISTS idx_ai_sessions_household_id ON ai_sessions(household_id);
 CREATE INDEX IF NOT EXISTS idx_ai_messages_session_id ON ai_messages(ai_session_id);
 CREATE INDEX IF NOT EXISTS idx_recipes_title_tsv ON recipes USING GIN (

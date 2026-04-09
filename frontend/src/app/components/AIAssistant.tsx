@@ -1,31 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
-import { Link } from 'react-router'
 import html2canvas from 'html2canvas'
 import { useAI } from '../contexts/AIContext'
 import { motion, AnimatePresence } from 'motion/react'
-import {
-  X,
-  Image as ImageIcon,
-  Paperclip,
-  Camera,
-  Send,
-  Bot,
-  ChefHat,
-  Clock,
-  Check,
-  FileText,
-  ChevronDown,
-  ChevronUp,
-  History,
-  Plus,
-  Trash2,
-  Maximize2,
-  Minimize2,
-  Mic,
-} from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from './ui/drawer'
+import { Bot, History, Maximize2, Minimize2, X } from 'lucide-react'
 import {
   type QuoteContext,
   type AISessionSummary,
@@ -36,9 +13,8 @@ import {
   type AIApprovalResponse,
   type AIPendingApproval,
   type AIRecipeCardMeta,
-  type AITextRecipeDraft,
-  type AIWorkflowStep,
   type AIToolCall,
+  type AIWorkflowStep,
   type ActiveCooking,
   createTextRecipeDraft,
   deleteAiSession,
@@ -52,94 +28,18 @@ import {
   subscribeAuthSession,
   uploadMedia,
 } from '../../lib/api/client'
-import { formatMessageTime } from '../../lib/utils/time'
 import { useVoiceRecorder, type VoiceRecorderResult } from '../../components/media/useVoiceRecorder'
-import { VoiceMessageBar } from '../../components/media/VoiceMessageBar'
-
-type Message = {
-  id?: string
-  role: 'user' | 'assistant'
-  content: string
-  contentCollapsed?: boolean
-  contentExpandable?: boolean
-  contentStreamingView?: boolean
-  attachments?: Array<{
-    kind: 'image' | 'file' | 'audio'
-    name: string
-    previewUrl?: string
-    url?: string
-    contentType?: string
-    assetId?: string
-  }>
-  reasoning?: {
-    content: string
-    collapsed: boolean
-  }
-  type?: 'text' | 'recipe_card'
-  recipeData?: {
-    recipeId?: string
-    title: string
-    summary?: string
-    coverImageUrl?: string
-    ingredients: string[]
-    time: string
-    difficulty: string
-    status?: string
-    source?: string
-    isRecipe?: boolean
-    rejectReason?: string
-    draft?: AITextRecipeDraft
-  }
-  workflow?: AIWorkflowStep[]
-  agentTrace?: AIAgentTrace[]
-  toolCalls?: AIToolCall[]
-  approval?: AIPendingApproval
-  /** Set when user picked an option; buttons stay hidden for this message. */
-  approvalResolved?: { optionId: string; title: string; prompt?: string }
-  toolsExpanded?: boolean
-  /** ISO / RFC3339 from server, or local ISO when sending */
-  createdAt?: string
-  /** response_meta.kind，如 knowledge_ingest_notice */
-  kind?: string
-}
-
-type PendingAttachment = {
-  id: string
-  type: 'image' | 'document'
-  file: File
-  name: string
-  previewUrl?: string
-}
-
-function knowledgeHitBadge(kind: string | undefined): { label: string; className: string } {
-  switch (kind) {
-    case 'memory':
-      return { label: '长期记忆', className: 'bg-violet-100 text-violet-800' }
-    case 'knowledge_base':
-      return { label: '知识库', className: 'bg-amber-100 text-amber-950' }
-    case 'knowledge_graph':
-      return { label: '知识图谱', className: 'bg-sky-100 text-sky-900' }
-    default:
-      return { label: '资料', className: 'bg-gray-100 text-gray-600' }
-  }
-}
-
-function toRecipeData(card: AIRecipeCardMeta): NonNullable<Message['recipeData']> {
-  return {
-    recipeId: card.recipe_id,
-    title: card.title,
-    summary: card.summary,
-    coverImageUrl: card.cover_image_url ?? card.draft?.cover_image_url,
-    ingredients: card.ingredients ?? [],
-    time: card.time,
-    difficulty: card.difficulty,
-    status: card.status,
-    source: card.source,
-    isRecipe: card.is_recipe,
-    rejectReason: card.reject_reason,
-    draft: card.draft,
-  }
-}
+import type { Message, PendingAttachment } from './ai-assistant/types'
+import { WELCOME } from './ai-assistant/types'
+import {
+  normalizeMessageDisplayState,
+  serializeMessages,
+  shouldCollapseContent,
+  toRecipeData,
+} from './ai-assistant/helpers'
+import { AIChatMessages } from './ai-assistant/AIChatMessages'
+import { AIChatComposer } from './ai-assistant/AIChatComposer'
+import { AIChatHistory } from './ai-assistant/AIChatHistory'
 
 function buildQuoteContext(pageContext: unknown): QuoteContext {
   const serialized =
@@ -152,80 +52,31 @@ function buildQuoteContext(pageContext: unknown): QuoteContext {
   }
 }
 
-const WELCOME: Message = {
-  role: 'assistant',
-  content: '你好！我是你的家庭厨艺助手。无论是找菜谱、问做法，还是传图让我解析菜谱，我都在！',
-}
-
 const AI_ASSISTANT_STORAGE_PREFIX = 'aicook-ai-assistant'
 const STREAMING_CONTENT_THRESHOLD = 320
-const COLLAPSIBLE_CONTENT_THRESHOLD = 220
 const MESSAGE_PAGE_SIZE = 5
-/** Composer textarea auto-grow (px); no scrollbar — clamp at max. */
-const COMPOSER_TEXTAREA_MIN_PX = 44
-const COMPOSER_TEXTAREA_MAX_PX = 280
-/** Long-press on empty textarea: slower than mic so 系统「粘贴」菜单更容易先出现。 */
-const VOICE_PRESS_MS_TEXTAREA = 500
-
-function MarkdownBlock({ content }: { content: string }) {
-  return (
-    <div className="wrap-break-word text-[15px] leading-relaxed [&_a]:text-orange-600 [&_a]:underline [&_code]:rounded [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre]:text-sm [&_pre]:text-white [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-    </div>
-  )
-}
-
-function serializeMessages(messages: Message[]) {
-  return messages.map((message) => ({
-    ...message,
-    attachments: message.attachments?.map((item) => ({
-      ...item,
-      previewUrl: item.previewUrl?.startsWith('blob:') ? undefined : item.previewUrl,
-    })),
-  }))
-}
-
-function shouldCollapseContent(content: string) {
-  return content.trim().length > COLLAPSIBLE_CONTENT_THRESHOLD
-}
-
-function normalizeMessageDisplayState(message: Message): Message {
-  if (message.role !== 'assistant') {
-    return {
-      ...message,
-      contentCollapsed: false,
-      contentExpandable: false,
-      contentStreamingView: false,
-    }
-  }
-  const expandable = typeof message.contentExpandable === 'boolean'
-    ? message.contentExpandable
-    : shouldCollapseContent(message.content)
-  return {
-    ...message,
-    contentExpandable: expandable,
-    contentCollapsed: typeof message.contentCollapsed === 'boolean' ? message.contentCollapsed : expandable,
-    contentStreamingView: Boolean(message.contentStreamingView),
-  }
-}
 
 export default function AIAssistant() {
   const { isOpen, openAI, closeAI, pageContext } = useAI()
+  const showCookingContextBanner = Boolean(
+    pageContext && typeof pageContext === 'object' && (pageContext as { type?: string }).type === 'cooking',
+  )
   const [authed, setAuthed] = useState(() => isAuthenticated())
   const [inputValue, setInputValue] = useState('')
   const [savedRecipes, setSavedRecipes] = useState<string[]>([])
   const [savingRecipeKeys, setSavingRecipeKeys] = useState<string[]>([])
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messageListRef = useRef<HTMLDivElement>(null)
+  const messagesTopChromeRef = useRef<HTMLDivElement>(null)
+  const messagesTopChromeHeightRef = useRef(0)
+  const messagesTopChromeLaidOutRef = useRef(false)
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null)
   const messageEndRef = useRef<HTMLDivElement>(null)
   const streamingContentRef = useRef<HTMLDivElement>(null)
   const streamingReasoningRef = useRef<HTMLDivElement>(null)
-  const composerTextareaRef = useRef<HTMLTextAreaElement>(null)
   const micButtonRef = useRef<HTMLButtonElement>(null)
   /** 忽略 iOS 等触屏后紧跟的合成鼠标 pointer，避免话筒被连点两次 */
   const micLastRealTouchTs = useRef(0)
@@ -285,6 +136,13 @@ export default function AIAssistant() {
     else void startRecordingRef.current()
   }, [])
 
+  const scrollMessageListToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const list = messageListRef.current
+    if (!list) return
+    const top = Math.max(0, list.scrollHeight - list.clientHeight)
+    list.scrollTo({ top, behavior })
+  }, [])
+
   const composerInputEmpty = !inputValue.trim()
   useEffect(() => {
     if (!isOpen || !composerInputEmpty || !authed) return
@@ -296,18 +154,6 @@ export default function AIAssistant() {
     btn.addEventListener('touchstart', onTouchStart, { capture: true, passive: true })
     return () => btn.removeEventListener('touchstart', onTouchStart, { capture: true })
   }, [isOpen, composerInputEmpty, authed, runMicToggleFromGesture])
-
-  const syncComposerTextareaSize = useCallback(() => {
-    const el = composerTextareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    const h = Math.min(Math.max(el.scrollHeight, COMPOSER_TEXTAREA_MIN_PX), COMPOSER_TEXTAREA_MAX_PX)
-    el.style.height = `${h}px`
-  }, [])
-
-  useLayoutEffect(() => {
-    syncComposerTextareaSize()
-  }, [inputValue, isRecording, voiceBusy, syncComposerTextareaSize])
 
   useEffect(() => {
     const unsubscribe = subscribeAuthSession(() => {
@@ -425,25 +271,90 @@ export default function AIAssistant() {
     return () => list.removeEventListener('scroll', handleScroll)
   }, [isOpen])
 
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      messagesTopChromeHeightRef.current = 0
+      messagesTopChromeLaidOutRef.current = false
+      return
+    }
+    const list = messageListRef.current
+    const chrome = messagesTopChromeRef.current
+    if (!list || !chrome) return
+    const next = chrome.offsetHeight
+    if (!messagesTopChromeLaidOutRef.current) {
+      messagesTopChromeLaidOutRef.current = true
+      messagesTopChromeHeightRef.current = next
+      return
+    }
+    const prev = messagesTopChromeHeightRef.current
+    const delta = next - prev
+    if (delta !== 0) {
+      list.scrollTop = Math.max(0, list.scrollTop + delta)
+    }
+    messagesTopChromeHeightRef.current = next
+  }, [
+    isOpen,
+    activeSessionId,
+    loadingMoreMessages,
+    hasMoreMessages,
+    continueSessionPrompt?.id,
+    showCookingContextBanner,
+  ])
+
+  /** Pin outer list to latest message synchronously after DOM updates (rAF scrollIntoView can run before Bubble list finishes layout). */
+  useLayoutEffect(() => {
+    if (!isOpen || historyBusy) return
+    if (sendBusy) {
+      scrollMessageListToBottom('auto')
+      shouldAutoScrollRef.current = true
+      return
+    }
+    if (shouldAutoScrollRef.current) {
+      scrollMessageListToBottom('auto')
+    }
+  }, [isOpen, historyBusy, messages, sendBusy, activeSessionId, scrollMessageListToBottom])
+
   useEffect(() => {
     if (!isOpen || historyBusy || !shouldAutoScrollRef.current) return
     const raf = window.requestAnimationFrame(() => {
-      messageEndRef.current?.scrollIntoView({ block: 'end', behavior: sendBusy ? 'auto' : 'smooth' })
+      scrollMessageListToBottom('auto')
     })
     return () => window.cancelAnimationFrame(raf)
-  }, [isOpen, messages.length, sendBusy, historyBusy, isFullscreen, historyOpen])
+  }, [isOpen, messages, sendBusy, historyBusy, scrollMessageListToBottom])
+
+  useEffect(() => {
+    if (!isOpen || historyBusy || !shouldAutoScrollRef.current) return
+    const list = messageListRef.current
+    if (!list) return
+    let raf = 0
+    const scrollToLatest = () => {
+      if (raf) window.cancelAnimationFrame(raf)
+      raf = window.requestAnimationFrame(() => {
+        if (!shouldAutoScrollRef.current) return
+        scrollMessageListToBottom('auto')
+      })
+    }
+    const observer = new MutationObserver(() => {
+      scrollToLatest()
+    })
+    observer.observe(list, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+    })
+    return () => {
+      observer.disconnect()
+      if (raf) window.cancelAnimationFrame(raf)
+    }
+  }, [isOpen, historyBusy, messages, scrollMessageListToBottom])
 
   useEffect(() => {
     if (!isOpen || !sendBusy) return
     const raf = window.requestAnimationFrame(() => {
-      if (streamingContentRef.current) {
-        streamingContentRef.current.scrollTop = streamingContentRef.current.scrollHeight
-      }
+      // 流式正文跟随外层消息列表滚动，避免正文内部和消息列表双滚动互相打架。
       if (streamingReasoningRef.current) {
         streamingReasoningRef.current.scrollTop = streamingReasoningRef.current.scrollHeight
-      }
-      if (shouldAutoScrollRef.current) {
-        messageEndRef.current?.scrollIntoView({ block: 'end', behavior: 'auto' })
       }
     })
     return () => window.cancelAnimationFrame(raf)
@@ -505,12 +416,29 @@ export default function AIAssistant() {
     return [...items, incoming]
   }
 
+  function buildStageReasoningContent(workflow: AIWorkflowStep[] | undefined) {
+    const items = (workflow ?? []).filter((item) => (item.title || item.detail || '').trim())
+    if (items.length === 0) return ''
+    const lines = items.map((item) => {
+      const title = (item.title || '执行步骤').trim()
+      const detail = (item.detail || '').trim()
+      return detail ? `- ${title}：${detail}` : `- ${title}`
+    })
+    return ['[阶段化思考]', ...lines].join('\n')
+  }
+
   function mergeToolCalls(existing: AIToolCall[] | undefined, incoming: AIToolCall): AIToolCall[] {
     const items = [...(existing ?? [])]
     const key = incoming.call_id || `${incoming.name}:${incoming.arguments ?? ''}`
     const index = items.findIndex((item) => (item.call_id || `${item.name}:${item.arguments ?? ''}`) === key)
     if (index >= 0) {
-      items[index] = { ...items[index], ...incoming }
+      const prevItem = items[index]
+      items[index] = {
+        ...prevItem,
+        ...incoming,
+        result: incoming.result !== undefined ? incoming.result : prevItem.result,
+        arguments: incoming.arguments !== undefined ? incoming.arguments : prevItem.arguments,
+      }
       return items
     }
     return [...items, incoming]
@@ -524,6 +452,54 @@ export default function AIAssistant() {
       return items
     }
     return [...items, incoming]
+  }
+
+  function extractSearchPayload(toolCall: AIToolCall | undefined) {
+    const searchNames = new Set(['web_search', 'native_web_search'])
+    if (!toolCall?.result || !searchNames.has(toolCall.name)) {
+      return null
+    }
+    try {
+      const parsed = JSON.parse(toolCall.result) as {
+        status?: string
+        summary?: string
+        results?: Array<{
+          title?: string
+          document_id?: string
+          documentId?: string
+          snippet?: string
+          site_name?: string
+          siteName?: string
+          publish_time?: string
+          publishTime?: string
+          logo_url?: string
+          logoUrl?: string
+        }>
+        error_message?: string
+        errorMessage?: string
+        need_web_enabled?: boolean
+        needWebEnabled?: boolean
+      }
+      const results = Array.isArray(parsed.results)
+        ? parsed.results.map((item) => ({
+            title: item.title ?? '',
+            documentId: item.document_id ?? item.documentId ?? '',
+            snippet: item.snippet ?? '',
+            siteName: item.site_name ?? item.siteName ?? undefined,
+            publishTime: item.publish_time ?? item.publishTime ?? undefined,
+            logoUrl: item.logo_url ?? item.logoUrl ?? undefined,
+          }))
+        : []
+      return {
+        results,
+        error:
+          parsed.error_message ??
+          parsed.errorMessage ??
+          ((parsed.need_web_enabled ?? parsed.needWebEnabled) ? (parsed.summary ?? '当前会话未开启网页搜索，请先打开网页搜索开关。') : undefined),
+      }
+    } catch {
+      return null
+    }
   }
 
   function getVisibleAgentTrace(items: AIAgentTrace[] | undefined) {
@@ -574,7 +550,9 @@ export default function AIAssistant() {
     const approvalResolved = ar
       ? {
           optionId: ar.option_id,
+          optionIds: ar.option_ids ?? undefined,
           title: ar.title ?? '',
+          titles: ar.titles ?? undefined,
           prompt: ar.prompt,
         }
       : undefined
@@ -582,6 +560,23 @@ export default function AIAssistant() {
       id: item.id,
       role: item.role,
       content: item.content,
+      sources: (item.response_sources ?? []).map((source) => ({
+        title: source.title,
+        documentId: source.document_id,
+        snippet: source.snippet,
+        siteName: source.site_name,
+        publishTime: source.publish_time,
+        logoUrl: source.logo_url,
+      })),
+      searchResults: (item.response_meta?.search_results ?? []).map((source) => ({
+        title: source.title,
+        documentId: source.document_id,
+        snippet: source.snippet,
+        siteName: source.site_name,
+        publishTime: source.publish_time,
+        logoUrl: source.logo_url,
+      })),
+      searchError: item.response_meta?.search_error,
       contentExpandable: expandable,
       contentCollapsed: expandable,
       contentStreamingView: false,
@@ -775,28 +770,50 @@ export default function AIAssistant() {
         updateLastAssistantMessage((last) => ({
           ...last,
           reasoning: {
-            content: `${last.reasoning?.content ?? ''}${chunk}`,
+            content: `${(last.reasoning?.content ?? '').startsWith('[阶段化思考]') ? '' : (last.reasoning?.content ?? '')}${chunk}`,
             collapsed: false,
           },
         }))
       },
       onStatusDelta: (step) => {
-        updateLastAssistantMessage((last) => ({
-          ...last,
-          workflow: mergeWorkflowSteps(last.workflow, step),
-        }))
+        updateLastAssistantMessage((last) => {
+          const nextWorkflow = mergeWorkflowSteps(last.workflow, step)
+          const stageReasoning = buildStageReasoningContent(nextWorkflow)
+          const currentReasoning = last.reasoning?.content ?? ''
+          const shouldUseStageReasoning = !currentReasoning.trim() || currentReasoning.startsWith('[阶段化思考]')
+          return {
+            ...last,
+            content: last.content || ' ',
+            workflow: nextWorkflow,
+            reasoning:
+              reasoningEnabled && shouldUseStageReasoning
+                ? {
+                    content: stageReasoning || currentReasoning,
+                    collapsed: false,
+                  }
+                : last.reasoning,
+          }
+        })
       },
       onAgentDelta: (agentItem) => {
         updateLastAssistantMessage((last) => ({
           ...last,
+          content: last.content || ' ',
           agentTrace: mergeAgentTrace(last.agentTrace, agentItem),
         }))
       },
       onToolCall: (toolCall) => {
-        updateLastAssistantMessage((last) => ({
-          ...last,
-          toolCalls: mergeToolCalls(last.toolCalls, toolCall),
-        }))
+        updateLastAssistantMessage((last) => {
+          const nextToolCalls = mergeToolCalls(last.toolCalls, toolCall)
+          const searchPayload = extractSearchPayload(toolCall)
+          return {
+            ...last,
+            content: last.content || ' ',
+            toolCalls: nextToolCalls,
+            searchResults: searchPayload?.results?.length ? searchPayload.results : last.searchResults,
+            searchError: searchPayload?.error ?? last.searchError,
+          }
+        })
       },
       onRecipeCard: (card) => {
         updateLastAssistantMessage((last) => ({
@@ -816,6 +833,27 @@ export default function AIAssistant() {
     updateLastAssistantMessage((last) => ({
       ...last,
       content: last.content || reply.reply_content || '',
+      sources: reply.reply_sources?.length
+        ? reply.reply_sources.map((source) => ({
+            title: source.title,
+            documentId: source.document_id,
+            snippet: source.snippet,
+            siteName: source.site_name,
+            publishTime: source.publish_time,
+            logoUrl: source.logo_url,
+          }))
+        : last.sources,
+      searchResults: reply.reply_metadata?.search_results?.length
+        ? reply.reply_metadata.search_results.map((source) => ({
+            title: source.title,
+            documentId: source.document_id,
+            snippet: source.snippet,
+            siteName: source.site_name,
+            publishTime: source.publish_time,
+            logoUrl: source.logo_url,
+          }))
+        : last.searchResults,
+      searchError: reply.reply_metadata?.search_error ?? last.searchError,
       contentExpandable: shouldCollapseContent(last.content || reply.reply_content || ''),
       contentCollapsed: shouldCollapseContent(last.content || reply.reply_content || ''),
       contentStreamingView: false,
@@ -962,6 +1000,12 @@ export default function AIAssistant() {
         if (idx !== msgIndex) return message
         return { ...message, toolsExpanded: !message.toolsExpanded }
       }),
+    )
+  }
+
+  function toggleSearchResults(msgIndex: number) {
+    setMessages((prev) =>
+      prev.map((message, idx) => (idx === msgIndex ? { ...message, searchResultsExpanded: !message.searchResultsExpanded } : message)),
     )
   }
 
@@ -1147,8 +1191,12 @@ export default function AIAssistant() {
     }
   }
 
-  async function handleApprovalSelection(approval: AIPendingApproval, option: AIApprovalOption) {
+  async function handleApprovalSelection(approval: AIPendingApproval, selection: AIApprovalOption | AIApprovalOption[]) {
     if (sendBusy) return
+    const selectedOptions = Array.isArray(selection) ? selection : [selection]
+    if (selectedOptions.length === 0) return
+    const optionIds = selectedOptions.map((item) => item.id)
+    const selectionTitle = selectedOptions.map((item) => item.title).join('、')
     setContinueSessionPrompt(null)
     shouldAutoScrollRef.current = true
     setSendBusy(true)
@@ -1160,8 +1208,10 @@ export default function AIAssistant() {
             ? {
                 ...m,
                 approvalResolved: {
-                  optionId: option.id,
-                  title: option.title,
+                  optionId: optionIds[0] ?? '',
+                  optionIds,
+                  title: selectionTitle,
+                  titles: selectedOptions.map((item) => item.title),
                   prompt: m.approval?.prompt,
                 },
               }
@@ -1171,17 +1221,21 @@ export default function AIAssistant() {
           ...marked,
           {
             role: 'user',
-            content: `我选《${option.title}》`,
+            content:
+              selectedOptions.length > 1
+                ? `我选这些偏好：${selectionTitle}`
+                : `我选《${selectionTitle}》`,
             createdAt: sentAt,
           },
         ]
       })
       await runStreamRequest(
-        `我选择了《${option.title}》`,
+        selectedOptions.length > 1 ? `我选择了这些偏好：${selectionTitle}` : `我选择了《${selectionTitle}》`,
         [],
         {
           approval_id: approval.id,
-          option_id: option.id,
+          option_id: optionIds[0] ?? '',
+          option_ids: optionIds,
           confirmed: true,
         },
       )
@@ -1205,7 +1259,7 @@ export default function AIAssistant() {
     )
   }
 
-  function handleInputPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+  function handleInputPaste(e: React.ClipboardEvent<HTMLElement>) {
     if (sendBusy) {
       return
     }
@@ -1234,71 +1288,6 @@ export default function AIAssistant() {
         type: 'image' as const,
         previewUrl: URL.createObjectURL(file),
       })),
-    )
-  }
-
-  function renderAssistantContent(msg: Message, idx: number, isStreamingMessage: boolean) {
-    const hasContent = msg.content.trim().length > 0
-    if (!hasContent) {
-      return null
-    }
-
-    const useStreamingWindow = isStreamingMessage
-    const useCollapsedWindow = !isStreamingMessage && msg.contentExpandable
-    const contentContainerClass = useStreamingWindow
-      ? 'max-h-64 overflow-y-auto'
-      : useCollapsedWindow && msg.contentCollapsed
-        ? 'max-h-44 overflow-hidden'
-        : ''
-    const isIngestNotice = msg.kind === 'knowledge_ingest_notice'
-
-    return (
-      <div className="w-full">
-        {isIngestNotice ? (
-          <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-800/80">资料库</div>
-        ) : null}
-        <div
-          ref={useStreamingWindow ? streamingContentRef : null}
-          className={`rounded-2xl px-4 py-3 text-[15px] leading-relaxed rounded-tl-sm border text-gray-800 shadow-sm ${
-            isIngestNotice
-              ? 'border-amber-100 bg-amber-50/90'
-              : 'border-gray-100 bg-white'
-          } ${contentContainerClass}`}
-        >
-          <MarkdownBlock content={msg.content} />
-        </div>
-        {useCollapsedWindow && msg.contentCollapsed ? (
-          <div className="-mt-12 h-12 rounded-b-2xl bg-linear-to-t from-white via-white/95 to-transparent" />
-        ) : null}
-        {useStreamingWindow || useCollapsedWindow ? (
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-            {useStreamingWindow ? <span>生成中，内容会在窗口内自动滚动</span> : null}
-            {useCollapsedWindow ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => toggleContentCollapsed(idx)}
-                  className="rounded-full bg-gray-100 px-3 py-1 text-gray-600"
-                >
-                  {msg.contentCollapsed ? '展开全文' : '收起'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDetailMessage({
-                      title: '完整回答',
-                      content: msg.content,
-                    })
-                  }
-                  className="rounded-full bg-gray-100 px-3 py-1 text-gray-600"
-                >
-                  详细查看
-                </button>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
     )
   }
 
@@ -1396,884 +1385,92 @@ export default function AIAssistant() {
                 </div>
               </div>
 
-              {historyOpen ? (
-                <div className={`absolute inset-x-4 top-20 z-20 overflow-hidden rounded-2xl border border-gray-100 bg-white/95 shadow-lg backdrop-blur-md ${isFullscreen ? 'bottom-24' : ''}`}>
-                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">最近会话</div>
-                      <div className="text-xs text-gray-400">服务器历史为准，本地仅保留最近缓存</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        resetConversation()
-                        setContinueSessionPrompt(null)
-                        setHistoryOpen(false)
-                      }}
-                      className="flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-600"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      新对话
-                    </button>
-                  </div>
-                  <div className={`space-y-2 overflow-y-auto p-3 ${isFullscreen ? 'max-h-[calc(100dvh-180px)]' : 'max-h-[34vh]'}`}>
-                    {sessionsBusy ? <div className="text-xs text-gray-400">加载中…</div> : null}
-                    {!sessionsBusy && sessions.length === 0 ? <div className="text-xs text-gray-400">还没有历史会话</div> : null}
-                    {sessions.map((session) => {
-                      const isActive = activeSessionId === session.id
-                      return (
-                        <div
-                          key={session.id}
-                          className={`flex items-center gap-2 rounded-2xl border px-3 py-2 ${
-                            isActive ? 'border-orange-200 bg-orange-50' : 'border-gray-100 bg-gray-50'
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => void loadSessionHistory(session.id)}
-                            className="min-w-0 flex-1 text-left"
-                          >
-                            <div className="truncate text-sm font-medium text-gray-900">{session.title || '未命名对话'}</div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
-                              <span>{session.scene || 'assistant'}</span>
-                              {formatSessionTime(session.updated_at) ? <span>{formatSessionTime(session.updated_at)}</span> : null}
-                              {isActive ? <span className="text-orange-500">当前</span> : null}
-                            </div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              void handleDeleteSession(session.id)
-                            }}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-gray-400 hover:text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                            {historyOpen ? (
+                <AIChatHistory
+                  sessions={sessions}
+                  sessionsBusy={sessionsBusy}
+                  activeSessionId={activeSessionId}
+                  isFullscreen={isFullscreen}
+                  onSelectSession={(id) => void loadSessionHistory(id)}
+                  onDeleteSession={(id) => void handleDeleteSession(id)}
+                  onNewChat={() => {
+                    resetConversation()
+                    setContinueSessionPrompt(null)
+                    setHistoryOpen(false)
+                  }}
+                />
               ) : null}
 
-              <div ref={messageListRef} className="flex-1 min-h-0 space-y-6 overflow-y-auto p-4 pb-5 pt-20">
-                {detailMessage ? (
-                  <div className="absolute inset-0 z-40 bg-gray-50/95 backdrop-blur-sm">
-                    <div className="flex h-full flex-col">
-                      <div className="flex items-center justify-between border-b border-gray-100 bg-white/90 px-4 py-4">
-                        <div className="text-base font-semibold text-gray-900">{detailMessage.title}</div>
-                        <button
-                          type="button"
-                          onClick={() => setDetailMessage(null)}
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="flex-1 overflow-y-auto px-4 py-4">
-                        <MarkdownBlock content={detailMessage.content} />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-                {pageContext?.type === 'cooking' && (
-                  <div className="sticky top-0 z-20 mx-auto mb-6 flex w-max items-center gap-1.5 rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs text-orange-600 shadow-sm">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
-                    正在制作《{pageContext.recipe}》
-                  </div>
-                )}
-                {!activeSessionId && continueSessionPrompt ? (
-                  <div className="rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-sm">
-                    <div className="text-sm font-medium text-gray-900">检测到你上次的会话</div>
-                    <div className="mt-1 text-xs text-gray-500">
-                      {continueSessionPrompt.title || '未命名对话'}
-                      {formatSessionTime(continueSessionPrompt.updated_at) ? ` · ${formatSessionTime(continueSessionPrompt.updated_at)}` : ''}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void loadSessionHistory(continueSessionPrompt.id, false)}
-                        className="rounded-full bg-orange-500 px-3 py-1.5 text-xs font-medium text-white"
-                      >
-                        继续会话
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setContinueSessionPrompt(null)}
-                        className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-600"
-                      >
-                        新会话开始
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                {activeSessionId ? (
-                  <div className="flex flex-col items-center gap-1 py-1">
-                    <div ref={loadMoreSentinelRef} className="h-1 w-full shrink-0" aria-hidden />
-                    {loadingMoreMessages ? (
-                      <span className="text-[11px] text-gray-400">加载更早消息…</span>
-                    ) : null}
-                    {!loadingMoreMessages && !hasMoreMessages ? (
-                      <span className="text-[11px] text-gray-300">已到最早</span>
-                    ) : null}
-                  </div>
-                ) : null}
-                {messages.map((msg, idx) => {
-                  const visibleAgentTrace = getVisibleAgentTrace(msg.agentTrace)
-                  return (
-                  <div key={msg.id ?? idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex max-w-[80%] flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                      {msg.role === 'assistant' && msg.reasoning ? (
-                        <div className="w-full min-w-[240px] overflow-hidden rounded-2xl bg-linear-to-b from-gray-100/90 via-gray-100/55 to-gray-100/80">
-                          <button
-                            type="button"
-                            onClick={() => toggleReasoning(idx)}
-                            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-gray-500 hover:text-gray-700"
-                          >
-                            <span>{msg.reasoning.collapsed ? '查看思考过程' : '思考过程'}</span>
-                            {msg.reasoning.collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                          </button>
-                          {!msg.reasoning.collapsed ? (
-                            <div className="relative border-t border-gray-200/40">
-                              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-linear-to-b from-gray-200/70 to-transparent" />
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-4 bg-linear-to-t from-gray-200/70 to-transparent" />
-                              <div
-                                ref={idx === activeStreamingAssistantIndex ? streamingReasoningRef : null}
-                                className="max-h-48 overflow-y-auto px-3 py-2 text-xs leading-6 text-gray-600 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                              >
-                                <MarkdownBlock content={msg.reasoning.content || '思考中...'} />
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
+              <AIChatMessages
+                messages={messages}
+                activeStreamingAssistantIndex={activeStreamingAssistantIndex}
+                sendBusy={sendBusy}
+                detailMessage={detailMessage}
+                setDetailMessage={setDetailMessage}
+                pageContext={pageContext}
+                activeSessionId={activeSessionId}
+                continueSessionPrompt={continueSessionPrompt}
+                setContinueSessionPrompt={setContinueSessionPrompt}
+                loadSessionHistory={loadSessionHistory}
+                loadingMoreMessages={loadingMoreMessages}
+                hasMoreMessages={hasMoreMessages}
+                loadMoreSentinelRef={loadMoreSentinelRef}
+                messagesTopChromeRef={messagesTopChromeRef}
+                messageListRef={messageListRef}
+                messageEndRef={messageEndRef}
+                streamingContentRef={streamingContentRef}
+                streamingReasoningRef={streamingReasoningRef}
+                historyBusy={historyBusy}
+                toggleReasoning={toggleReasoning}
+                toggleContentCollapsed={toggleContentCollapsed}
+                toggleToolList={toggleToolList}
+                toggleSearchResults={toggleSearchResults}
+                toggleToolCall={toggleToolCall}
+                onApprovalSelect={handleApprovalSelection}
+                onSaveRecipe={handleSaveRecipe}
+                savedRecipes={savedRecipes}
+                savingRecipeKeys={savingRecipeKeys}
+                formatSessionTime={formatSessionTime}
+                getVisibleAgentTrace={getVisibleAgentTrace}
+              />
 
-                      {msg.role === 'assistant' ? (
-                        renderAssistantContent(msg, idx, idx === activeStreamingAssistantIndex)
-                      ) : (() => {
-                        const audioItems = msg.attachments?.filter((a) => a.kind === 'audio') ?? []
-                        const hasUserAudio = audioItems.length > 0
-                        const transcript = msg.content.trim()
-                        if (hasUserAudio) {
-                          return (
-                            <div className="flex max-w-[min(100%,320px)] flex-col items-end gap-2">
-                              {audioItems.map((item, aidx) => (
-                                <VoiceMessageBar
-                                  key={`${item.url ?? item.name}-${aidx}`}
-                                  src={item.url}
-                                  label={item.name}
-                                  assetId={item.assetId}
-                                  fallbackText={transcript}
-                                />
-                              ))}
-                              {transcript ? (
-                                <p className="max-w-full px-1 text-left text-xs leading-relaxed text-gray-500">{transcript}</p>
-                              ) : null}
-                            </div>
-                          )
-                        }
-                        return (
-                          <div className="rounded-2xl rounded-tr-sm bg-gray-900 px-4 py-3 text-[15px] leading-relaxed text-white">
-                            <MarkdownBlock content={msg.content} />
-                          </div>
-                        )
-                      })()}
 
-                      {visibleAgentTrace.length ? (
-                        <div className="w-full space-y-1 px-1">
-                          {visibleAgentTrace.map((item) => (
-                            <div key={item.id} className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                              <span className={`h-1.5 w-1.5 rounded-full ${item.status === 'done' ? 'bg-emerald-400' : item.status === 'running' ? 'animate-pulse bg-orange-400' : 'bg-gray-300'}`} />
-                              <span>{item.detail || item.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {msg.toolCalls?.length ? (
-                        <div className="w-full space-y-1 px-1">
-                          {(() => {
-                            const runningTool = msg.toolCalls.find((t) => t.status === 'start' || t.status === 'running')
-                            const allDone = msg.toolCalls.every((t) => t.status === 'success' || t.status === 'error')
-                            const getToolDisplayName = (name: string) => {
-                              return name === 'web_search'
-                                ? '网页搜索'
-                                : name === 'knowledge_lookup'
-                                  ? '知识库检索'
-                                  : name === 'recipe_query'
-                                    ? '菜谱查询'
-                                    : name === 'image_recipe_create'
-                                      ? '图文识别'
-                                      : name
-                            }
-
-                            if (runningTool && !msg.toolsExpanded) {
-                              return (
-                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
-                                  <span className="animate-pulse">正在{getToolDisplayName(runningTool.name)}...</span>
-                                </div>
-                              )
-                            }
-
-                            if (allDone && !msg.toolsExpanded) {
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleToolList(idx)}
-                                  className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600"
-                                >
-                                  <Check className="h-3 w-3 text-emerald-500" />
-                                  <span>已完成 {msg.toolCalls.length} 项操作</span>
-                                  <ChevronDown className="h-3 w-3" />
-                                </button>
-                              )
-                            }
-
-                            return (
-                              <div className="space-y-1">
-                                {allDone && (
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleToolList(idx)}
-                                    className="mb-2 flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600"
-                                  >
-                                    <Check className="h-3 w-3 text-emerald-500" />
-                                    <span>已完成 {msg.toolCalls.length} 项操作</span>
-                                    <ChevronUp className="h-3 w-3" />
-                                  </button>
-                                )}
-                                {msg.toolCalls.map((toolCall, toolIdx) => (
-                                  <div key={`${toolCall.name}-${toolIdx}`} className="overflow-hidden rounded-2xl bg-gray-100/50">
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleToolCall(idx, toolIdx)}
-                                      className="flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-gray-500 hover:text-gray-700"
-                                    >
-                                      <div className="flex items-center gap-1.5">
-                                        {toolCall.status === 'start' || toolCall.status === 'running' ? (
-                                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
-                                        ) : toolCall.status === 'success' ? (
-                                          <Check className="h-3 w-3 text-emerald-500" />
-                                        ) : (
-                                          <X className="h-3 w-3 text-red-500" />
-                                        )}
-                                        <span>
-                                          {getToolDisplayName(toolCall.name)}
-                                          {toolCall.status === 'start' || toolCall.status === 'running' ? '中...' : ''}
-                                        </span>
-                                      </div>
-                                      {toolCall.result ? (
-                                        toolCall.collapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />
-                                      ) : null}
-                                    </button>
-                                    {toolCall.result && !toolCall.collapsed ? (
-                                      <div className="max-h-48 overflow-y-auto border-t border-gray-200/50 px-3 py-2 text-xs leading-6 text-gray-600">
-                                        {(() => {
-                                          try {
-                                            const parsed = JSON.parse(toolCall.result)
-                                            if (toolCall.name === 'web_search' && parsed.results) {
-                                              return (
-                                                <div className="space-y-3">
-                                                  {parsed.results.map((res: any, i: number) => (
-                                                    <div key={i} className="space-y-1">
-                                                      <a href={res.document_id} target="_blank" rel="noreferrer" className="font-medium text-orange-600 hover:underline">
-                                                        {res.title}
-                                                      </a>
-                                                      <div className="line-clamp-2 text-gray-500">{res.snippet}</div>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )
-                                            }
-                                            if (toolCall.name === 'knowledge_lookup' && Array.isArray(parsed.results)) {
-                                              return (
-                                                <div className="space-y-3">
-                                                  {parsed.query ? (
-                                                    <div className="text-[11px] text-gray-500">
-                                                      查询词：
-                                                      <span className="font-medium text-gray-700">{String(parsed.query)}</span>
-                                                    </div>
-                                                  ) : null}
-                                                  {parsed.results.length === 0 ? (
-                                                    <div className="text-gray-400">未命中家庭知识资料</div>
-                                                  ) : (
-                                                    parsed.results.map((res: any, i: number) => {
-                                                      const hitBadge = knowledgeHitBadge(res.source_kind)
-                                                      return (
-                                                      <div key={i} className="space-y-1 border-b border-gray-200/40 pb-2 last:border-0 last:pb-0">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                          <span
-                                                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${hitBadge.className}`}
-                                                          >
-                                                            {hitBadge.label}
-                                                          </span>
-                                                          <div className="min-w-0 font-medium text-gray-800">{res.title || '（无标题）'}</div>
-                                                        </div>
-                                                        {res.snippet ? <div className="line-clamp-4 text-gray-500">{res.snippet}</div> : null}
-                                                        {res.document_id && !String(res.document_id).startsWith('http') ? (
-                                                          <div className="text-[10px] text-gray-400">文档：{res.document_id}</div>
-                                                        ) : res.document_id ? (
-                                                          <a
-                                                            href={res.document_id}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-[11px] font-medium text-orange-600 hover:underline"
-                                                          >
-                                                            打开链接
-                                                          </a>
-                                                        ) : null}
-                                                      </div>
-                                                      )
-                                                    })
-                                                  )}
-                                                </div>
-                                              )
-                                            }
-                                            if (toolCall.name === 'recipe_query' && parsed.matches) {
-                                              return (
-                                                <div className="space-y-2">
-                                                  {parsed.matches.map((match: any, i: number) => (
-                                                    <div key={i} className="flex items-center gap-2 rounded-lg bg-white/50 p-2">
-                                                      <ChefHat className="h-4 w-4 text-orange-400" />
-                                                      <span className="font-medium text-gray-700">{match.title}</span>
-                                                    </div>
-                                                  ))}
-                                                  {parsed.matches.length === 0 && <div className="text-gray-400">未找到相关菜谱</div>}
-                                                </div>
-                                              )
-                                            }
-                                          } catch (e) {
-                                            // fallback to raw text
-                                          }
-                                          return <div className="whitespace-pre-wrap wrap-break-word">{toolCall.result}</div>
-                                        })()}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                ))}
-                              </div>
-                            )
-                          })()}
-                        </div>
-                      ) : null}
-
-                      {msg.workflow?.length ? (
-                        <div className="w-full space-y-2 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
-                          <div className="text-[11px] font-semibold tracking-wide text-gray-400">WORKFLOW</div>
-                          {msg.workflow.map((step) => (
-                            <div key={step.id} className="flex items-start justify-between gap-3 text-xs">
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-700">{step.title}</div>
-                                {step.detail ? (
-                                  <div className="mt-1 whitespace-pre-line text-gray-400">{step.detail}</div>
-                                ) : null}
-                              </div>
-                              <span
-                                className={`shrink-0 rounded-full px-2 py-1 ${
-                                  step.status === 'done'
-                                    ? 'bg-emerald-50 text-emerald-600'
-                                    : step.status === 'running'
-                                      ? 'bg-orange-50 text-orange-600'
-                                      : 'bg-gray-100 text-gray-500'
-                                }`}
-                              >
-                                {step.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {msg.approval?.options?.length || msg.approvalResolved ? (
-                        <div className="mt-1 w-full rounded-2xl border border-orange-100 bg-orange-50/60 p-3">
-                          <div className="mb-2 text-xs font-medium text-orange-700">
-                            {msg.approvalResolved?.prompt ||
-                              msg.approval?.prompt ||
-                              '请选择一个候选，我继续整理'}
-                          </div>
-                          {msg.approvalResolved ? (
-                            <div className="flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-2.5 text-sm text-emerald-900">
-                              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-                              <div>
-                                <span className="font-medium">已选择</span>
-                                <span className="text-emerald-800">：{msg.approvalResolved.title}</span>
-                                <span className="mt-1 block text-xs font-normal text-emerald-700/90">选择已确认，无法更改</span>
-                              </div>
-                            </div>
-                          ) : msg.approval?.options?.length ? (
-                            <div className="space-y-2">
-                              {msg.approval.options.map((option) => (
-                                <button
-                                  key={option.id}
-                                  type="button"
-                                  disabled={sendBusy}
-                                  onClick={() => void handleApprovalSelection(msg.approval!, option)}
-                                  className="w-full rounded-2xl border border-orange-100 bg-white px-3 py-3 text-left transition-colors hover:border-orange-200 hover:bg-orange-50 disabled:pointer-events-none disabled:opacity-50"
-                                >
-                                  <div className="text-sm font-semibold text-gray-900">{option.title}</div>
-                                  {option.summary ? <div className="mt-1 text-xs leading-5 text-gray-500">{option.summary}</div> : null}
-                                  {option.recipe_card?.time || option.recipe_card?.difficulty ? (
-                                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-gray-400">
-                                      {option.recipe_card?.time ? <span>{option.recipe_card.time}</span> : null}
-                                      {option.recipe_card?.difficulty ? <span>{option.recipe_card.difficulty}</span> : null}
-                                    </div>
-                                  ) : null}
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      {msg.attachments?.filter((item) => !(msg.role === 'user' && item.kind === 'audio')).length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {msg.attachments
-                            .filter((item) => !(msg.role === 'user' && item.kind === 'audio'))
-                            .map((item, attachmentIdx) =>
-                            item.kind === 'image' ? (
-                              <div key={`${item.name}-${attachmentIdx}`} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                                {item.previewUrl || item.url ? (
-                                  <img src={item.previewUrl ?? item.url} alt={item.name} className="h-20 w-20 object-cover" />
-                                ) : (
-                                  <div className="flex h-20 w-20 items-center justify-center bg-gray-100 text-gray-400">
-                                    <ImageIcon className="h-5 w-5" />
-                                  </div>
-                                )}
-                              </div>
-                            ) : item.kind === 'audio' ? (
-                              <div
-                                key={`${item.name}-${attachmentIdx}`}
-                                className="w-full max-w-xs"
-                              >
-                                <VoiceMessageBar
-                                  src={item.url}
-                                  label={item.name}
-                                  assetId={item.assetId}
-                                  fallbackText={msg.content}
-                                />
-                              </div>
-                            ) : (
-                              <div
-                                key={`${item.name}-${attachmentIdx}`}
-                                className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-3 py-2 text-xs text-gray-600 shadow-sm"
-                              >
-                                <FileText className="h-4 w-4 text-gray-400" />
-                                <span className="max-w-36 truncate">{item.name}</span>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      ) : null}
-
-                      {msg.type === 'recipe_card' && msg.recipeData && !savedRecipes.includes(msg.recipeData.recipeId ?? msg.recipeData.title) && (
-                        <div className="mt-1 w-full overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
-                          <div className="relative h-36 w-full overflow-hidden bg-orange-50">
-                            {msg.recipeData.coverImageUrl ? (
-                              <img
-                                src={msg.recipeData.coverImageUrl}
-                                alt={msg.recipeData.title}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-orange-50 via-amber-50 to-white text-orange-300">
-                                <ChefHat className="h-10 w-10" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-3 p-4">
-                            <h4 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                              <ChefHat className="h-5 w-5 text-orange-500" />
-                              {msg.recipeData.title}
-                            </h4>
-                            <div className="flex gap-4 rounded-lg bg-gray-50 p-2 text-xs font-medium text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" /> {msg.recipeData.time}
-                              </span>
-                              <span>难度 {msg.recipeData.difficulty}</span>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-xs font-bold text-gray-400">主要食材</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {msg.recipeData.ingredients.map((ing) => (
-                                  <span key={ing} className="rounded-md bg-orange-50 px-2 py-1 text-[10px] text-orange-700">
-                                    {ing}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-100 bg-gray-50 p-3">
-                            {msg.recipeData.isRecipe === false ? (
-                              <div className="rounded-xl bg-gray-200 py-2.5 text-center text-sm font-medium text-gray-500">
-                                {msg.recipeData.rejectReason || '该图片暂不适合生成菜谱'}
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => void handleSaveRecipe(idx, msg.recipeData)}
-                                disabled={
-                                  sendBusy
-                                  || savingRecipeKeys.includes(msg.recipeData.recipeId ?? msg.recipeData.title)
-                                }
-                                className="w-full rounded-xl bg-orange-500 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-orange-300"
-                              >
-                                {savingRecipeKeys.includes(msg.recipeData.recipeId ?? msg.recipeData.title)
-                                  ? '保存中...'
-                                  : msg.recipeData.recipeId && !msg.recipeData.draft
-                                    ? '查看这道现有菜谱'
-                                    : '存为自家的新菜谱'}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {msg.createdAt ? (
-                        <span className="mt-0.5 px-1 text-[10px] leading-none text-gray-400 tabular-nums">
-                          {formatMessageTime(msg.createdAt)}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                )})}
-                {historyBusy ? (
-                  <div className="text-center text-xs text-gray-400">历史加载中…</div>
-                ) : null}
-                <div ref={messageEndRef} />
-              </div>
-
-              <div className="relative z-30 shrink-0 border-t border-white/40 bg-white/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2 backdrop-blur-xl">
-                <div className="pointer-events-none absolute inset-x-0 -top-12 h-12 bg-linear-to-b from-white/5 to-white/35 backdrop-blur-md mask-[linear-gradient(to_bottom,transparent,black)]" />
-                <AnimatePresence>
-                  {isRecording && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute -top-14 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-xl"
-                    >
-                      <span className="flex gap-1">
-                        <motion.span
-                          animate={{ scaleY: [1, 2, 1] }}
-                          transition={{ repeat: Infinity, duration: 0.5 }}
-                          className="block h-3 w-1 rounded-full bg-orange-500"
-                        />
-                        <motion.span
-                          animate={{ scaleY: [1, 2.5, 1] }}
-                          transition={{ repeat: Infinity, duration: 0.5, delay: 0.1 }}
-                          className="block h-3 w-1 rounded-full bg-orange-500"
-                        />
-                        <motion.span
-                          animate={{ scaleY: [1, 1.5, 1] }}
-                          transition={{ repeat: Infinity, duration: 0.5, delay: 0.2 }}
-                          className="block h-3 w-1 rounded-full bg-orange-500"
-                        />
-                      </span>
-                      松开发送...
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {activeCooking.length > 0 ? (
-                  <div className="mb-3 px-1">
-                    <p className="mb-1.5 text-[11px] font-medium text-gray-400">继续做菜</p>
-                    <div className="flex flex-wrap gap-2">
-                      {activeCooking.map((c) => (
-                        <Link
-                          key={String(c.recipe_id)}
-                          to={`/cook/${c.recipe_id}`}
-                          onClick={closeAI}
-                          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-800 transition hover:bg-orange-100"
-                        >
-                          <ChefHat className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{c.title}</span>
-                          {c.total_steps > 0 ? (
-                            <span className="shrink-0 text-[10px] text-orange-600/90">
-                              {c.step_index + 1}/{c.total_steps}
-                            </span>
-                          ) : null}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="mb-2 flex items-center justify-between gap-2 px-1">
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setReasoningEnabled((current) => !current)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                        reasoningEnabled
-                          ? 'bg-orange-500 text-white'
-                          : 'border border-gray-200 bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      深度思考
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWebSearchEnabled((current) => !current)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                        webSearchEnabled
-                          ? 'bg-orange-500 text-white'
-                          : 'border border-gray-200 bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      联网
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageRecipeEnabled((current) => !current)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                        imageRecipeEnabled
-                          ? 'bg-orange-500 text-white'
-                          : 'border border-gray-200 bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      图文识别
-                    </button>
-                  </div>
-                </div>
-
-                {uploadStageLabel ? (
-                  <div className="mb-2 px-1 text-xs font-medium text-orange-600">{uploadStageLabel}</div>
-                ) : null}
-
-                {Object.keys(knowledgeIngestProgress).length > 0 ? (
-                  <div className="mb-2 space-y-1.5 px-1">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-900/90">资料库入库</div>
-                    {Object.entries(knowledgeIngestProgress).map(([assetId, label]) => (
-                      <div
-                        key={assetId}
-                        className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50/95 px-2.5 py-2 text-xs leading-snug text-amber-950"
-                      >
-                        <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
-                        <span>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                {pendingAttachments.length ? (
-                  <div className="mb-3 flex gap-2 overflow-x-auto px-1 hide-scrollbar">
-                    {pendingAttachments.map((item) => (
-                      <div
-                        key={item.id}
-                        className="relative shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50"
-                      >
-                        {item.type === 'image' ? (
-                          item.previewUrl ? (
-                            <img src={item.previewUrl} alt={item.name} className="h-20 w-20 object-cover" />
-                          ) : (
-                            <div className="flex h-20 w-20 items-center justify-center bg-gray-100 text-gray-400">
-                              <ImageIcon className="h-5 w-5" />
-                            </div>
-                          )
-                        ) : (
-                          <div className="flex h-20 w-32 flex-col justify-center gap-1 px-3 text-gray-600">
-                            <FileText className="h-5 w-5 text-gray-400" />
-                            <div className="line-clamp-2 text-xs font-medium">{item.name}</div>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removePendingAttachment(item.id)}
-                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                <motion.div
-                  layout
-                  transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex items-end gap-2 rounded-3xl border border-gray-200 bg-gray-50 p-1.5 transition-[border-color,box-shadow] duration-300 ease-out focus-within:border-gray-900 focus-within:ring-1 focus-within:ring-gray-900"
-                >
-                  {!inputValue.trim() ? (
-                    <button
-                      ref={micButtonRef}
-                      type="button"
-                      title={isRecording ? '点击结束录音' : '点击开始录音'}
-                      aria-label={isRecording ? '点击结束录音' : '点击开始录音'}
-                      aria-disabled={sendBusy || voiceBusy}
-                      className={`relative z-20 flex h-11 w-11 shrink-0 touch-manipulation select-none items-center justify-center rounded-full transition-all [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent] ${
-                        sendBusy || voiceBusy ? 'opacity-50' : ''
-                      } ${isRecording ? 'scale-110 bg-orange-500 text-white shadow-lg' : 'bg-gray-200 text-gray-600'}`}
-                      onContextMenu={(e) => e.preventDefault()}
-                      onKeyDown={(e) => {
-                        if (e.key !== ' ' && e.key !== 'Enter') return
-                        e.preventDefault()
-                        e.stopPropagation()
-                        if (pressTimer.current) {
-                          clearTimeout(pressTimer.current)
-                          pressTimer.current = null
-                        }
-                        runMicToggleFromGesture()
-                      }}
-                      onPointerDown={(e) => {
-                        if (e.pointerType === 'mouse' && e.button !== 0) return
-                        if (e.pointerType === 'mouse' && Date.now() - micLastRealTouchTs.current < 750) return
-                        if (e.pointerType === 'touch' || e.pointerType === 'pen') {
-                          micLastRealTouchTs.current = Date.now()
-                        }
-                        e.stopPropagation()
-                        if (pressTimer.current) {
-                          clearTimeout(pressTimer.current)
-                          pressTimer.current = null
-                        }
-                        runMicToggleFromGesture()
-                      }}
-                    >
-                      <Mic className="pointer-events-none h-5 w-5" aria-hidden />
-                    </button>
-                  ) : null}
-                  <textarea
-                    ref={composerTextareaRef}
-                    value={inputValue}
-                    onChange={(e) => {
-                      setInputValue(e.target.value)
-                      window.requestAnimationFrame(() => syncComposerTextareaSize())
-                    }}
-                    onPaste={handleInputPaste}
-                    placeholder={isRecording ? '录音中…' : '说点什么…'}
-                    className={`min-h-[44px] min-w-0 flex-1 resize-none overflow-hidden border-none bg-transparent px-3 py-3 text-[15px] leading-normal text-gray-900 outline-none ${
-                      sendBusy || voiceBusy ? 'opacity-50' : ''
-                    }`}
-                    rows={1}
-                    readOnly={sendBusy || voiceBusy}
-                    onPointerDown={() => {
-                      if (inputValue.trim() || sendBusy || voiceBusy) return
-                      if (pressTimer.current) {
-                        clearTimeout(pressTimer.current)
-                        pressTimer.current = null
-                      }
-                      pressTimer.current = window.setTimeout(() => {
-                        pressTimer.current = null
-                        void startRecording()
-                      }, VOICE_PRESS_MS_TEXTAREA)
-                    }}
-                    onPointerUp={() => {
-                      if (pressTimer.current) {
-                        clearTimeout(pressTimer.current)
-                        pressTimer.current = null
-                      }
-                      if (isRecording) void finishRecording()
-                    }}
-                    onPointerLeave={() => {
-                      if (pressTimer.current) {
-                        clearTimeout(pressTimer.current)
-                        pressTimer.current = null
-                      }
-                      if (isRecording) void finishRecording()
-                    }}
-                    onPointerCancel={() => {
-                      if (pressTimer.current) {
-                        clearTimeout(pressTimer.current)
-                        pressTimer.current = null
-                      }
-                      if (isRecording) void finishRecording()
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        void handleSend()
-                      }
-                    }}
-                  />
-
-                  {inputValue.trim() || pendingAttachments.length ? (
-                    <button
-                      type="button"
-                      disabled={sendBusy}
-                      onClick={() => void handleSend()}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white shadow-sm transition-colors disabled:opacity-50"
-                    >
-                      <Send className="ml-0.5 h-5 w-5" />
-                    </button>
-                  ) : (
-                    <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                      <DrawerTrigger asChild>
-                        <button
-                          type="button"
-                          disabled={sendBusy || voiceBusy}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all disabled:opacity-50 ${
-                            isRecording ? 'scale-110 bg-orange-500 text-white shadow-lg' : 'bg-gray-200 text-gray-600'
-                          }`}
-                        >
-                          <Plus className="h-6 w-6" />
-                        </button>
-                      </DrawerTrigger>
-                      <DrawerContent className="rounded-t-3xl bg-white">
-                        <DrawerHeader>
-                          <DrawerTitle>添加内容</DrawerTitle>
-                          <DrawerDescription>相机、相册、文件上传和界面截图都放在这里。</DrawerDescription>
-                        </DrawerHeader>
-                        <div className="grid grid-cols-2 gap-3 px-4 pb-6">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDrawerOpen(false)
-                              cameraInputRef.current?.click()
-                            }}
-                            className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 text-left"
-                          >
-                            <Camera className="h-5 w-5 text-orange-500" />
-                            <span className="text-sm font-medium text-gray-700">相机</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDrawerOpen(false)
-                              imageInputRef.current?.click()
-                            }}
-                            className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 text-left"
-                          >
-                            <ImageIcon className="h-5 w-5 text-orange-500" />
-                            <span className="text-sm font-medium text-gray-700">相册</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDrawerOpen(false)
-                              fileInputRef.current?.click()
-                            }}
-                            className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 text-left"
-                          >
-                            <Paperclip className="h-5 w-5 text-orange-500" />
-                            <span className="text-sm font-medium text-gray-700">文件上传</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDrawerOpen(false)
-                              void handleScreenshot()
-                            }}
-                            className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 text-left"
-                          >
-                            <Camera className="h-5 w-5 text-orange-500" />
-                            <span className="text-sm font-medium text-gray-700">界面截图</span>
-                          </button>
-                        </div>
-                      </DrawerContent>
-                    </Drawer>
-                  )}
-                </motion.div>
-                <div className="mt-2 text-center text-[10px] text-gray-400">
-                  {inputValue.trim() || pendingAttachments.length
-                    ? '按回车发送，可携带上方附件一起发出'
-                    : isRecording || voiceBusy
-                      ? voiceHint
-                      : messages.some((m) => m.role === 'user')
-                        ? 'AI 生成的内容可能不准确，请谨慎参考'
-                        : '左侧话筒点击开始/结束；空白输入框长按说话（稍长按时粘贴菜单易先出）'}
-                </div>
-              </div>
+              <AIChatComposer
+                inputValue={inputValue}
+                setInputValue={setInputValue}
+                sendBusy={sendBusy}
+                voiceBusy={voiceBusy}
+                isRecording={isRecording}
+                voiceHint={voiceHint}
+                pendingAttachments={pendingAttachments}
+                removePendingAttachment={removePendingAttachment}
+                onSend={handleSend}
+                onPaste={handleInputPaste}
+                micButtonRef={micButtonRef}
+                runMicToggleFromGesture={runMicToggleFromGesture}
+                micLastRealTouchTs={micLastRealTouchTs}
+                startRecording={startRecording}
+                finishRecording={finishRecording}
+                reasoningEnabled={reasoningEnabled}
+                setReasoningEnabled={setReasoningEnabled}
+                webSearchEnabled={webSearchEnabled}
+                setWebSearchEnabled={setWebSearchEnabled}
+                imageRecipeEnabled={imageRecipeEnabled}
+                setImageRecipeEnabled={setImageRecipeEnabled}
+                uploadStageLabel={uploadStageLabel}
+                knowledgeIngestProgress={knowledgeIngestProgress}
+                activeCooking={activeCooking}
+                closeAI={closeAI}
+                drawerOpen={drawerOpen}
+                setDrawerOpen={setDrawerOpen}
+                cameraInputRef={cameraInputRef}
+                imageInputRef={imageInputRef}
+                fileInputRef={fileInputRef}
+                onImagePicked={onImagePicked}
+                onFilePicked={onFilePicked}
+                onScreenshot={handleScreenshot}
+                messagesHasUser={messages.some((m) => m.role === "user")}
+              />
             </motion.div>
           </>
         )}

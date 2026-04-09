@@ -380,8 +380,8 @@ function RecipeRowCard({ recipe, onRefresh }: { recipe: UiRecipe; onRefresh: () 
             <span>⭐ {recipe.difficulty}</span>
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
-            {[recipe.category, ...recipe.secondaryKitchenTags].filter(Boolean).slice(0, 3).map((tag) => (
-              <span key={tag} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+            {[recipe.category, ...recipe.secondaryKitchenTags].filter(Boolean).slice(0, 3).map((tag, idx) => (
+              <span key={`${recipe.id}-${tag}-${idx}`} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
                 {tag}
               </span>
             ))}

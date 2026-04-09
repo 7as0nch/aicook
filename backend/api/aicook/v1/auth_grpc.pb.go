@@ -22,6 +22,7 @@ const (
 	AuthService_Register_FullMethodName         = "/aicook.v1.AuthService/Register"
 	AuthService_Login_FullMethodName            = "/aicook.v1.AuthService/Login"
 	AuthService_GetMe_FullMethodName            = "/aicook.v1.AuthService/GetMe"
+	AuthService_UpdateProfile_FullMethodName    = "/aicook.v1.AuthService/UpdateProfile"
 	AuthService_ListMyHouseholds_FullMethodName = "/aicook.v1.AuthService/ListMyHouseholds"
 	AuthService_SwitchHousehold_FullMethodName  = "/aicook.v1.AuthService/SwitchHousehold"
 )
@@ -33,6 +34,7 @@ type AuthServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthReply, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthReply, error)
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*GetMeReply, error)
+	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*GetMeReply, error)
 	ListMyHouseholds(ctx context.Context, in *ListMyHouseholdsRequest, opts ...grpc.CallOption) (*ListMyHouseholdsReply, error)
 	SwitchHousehold(ctx context.Context, in *SwitchHouseholdRequest, opts ...grpc.CallOption) (*AuthReply, error)
 }
@@ -75,6 +77,16 @@ func (c *authServiceClient) GetMe(ctx context.Context, in *GetMeRequest, opts ..
 	return out, nil
 }
 
+func (c *authServiceClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*GetMeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMeReply)
+	err := c.cc.Invoke(ctx, AuthService_UpdateProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) ListMyHouseholds(ctx context.Context, in *ListMyHouseholdsRequest, opts ...grpc.CallOption) (*ListMyHouseholdsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListMyHouseholdsReply)
@@ -102,6 +114,7 @@ type AuthServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*AuthReply, error)
 	Login(context.Context, *LoginRequest) (*AuthReply, error)
 	GetMe(context.Context, *GetMeRequest) (*GetMeReply, error)
+	UpdateProfile(context.Context, *UpdateProfileRequest) (*GetMeReply, error)
 	ListMyHouseholds(context.Context, *ListMyHouseholdsRequest) (*ListMyHouseholdsReply, error)
 	SwitchHousehold(context.Context, *SwitchHouseholdRequest) (*AuthReply, error)
 }
@@ -121,6 +134,9 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Au
 }
 func (UnimplementedAuthServiceServer) GetMe(context.Context, *GetMeRequest) (*GetMeReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMe not implemented")
+}
+func (UnimplementedAuthServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*GetMeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateProfile not implemented")
 }
 func (UnimplementedAuthServiceServer) ListMyHouseholds(context.Context, *ListMyHouseholdsRequest) (*ListMyHouseholdsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMyHouseholds not implemented")
@@ -202,6 +218,24 @@ func _AuthService_GetMe_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).UpdateProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_UpdateProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).UpdateProfile(ctx, req.(*UpdateProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_ListMyHouseholds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListMyHouseholdsRequest)
 	if err := dec(in); err != nil {
@@ -256,6 +290,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMe",
 			Handler:    _AuthService_GetMe_Handler,
+		},
+		{
+			MethodName: "UpdateProfile",
+			Handler:    _AuthService_UpdateProfile_Handler,
 		},
 		{
 			MethodName: "ListMyHouseholds",

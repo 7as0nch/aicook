@@ -64,6 +64,8 @@ message UserProfile {
   string status = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
+  // 头像展示 URL（私有桶时为短期预签名 GET）。
+  string avatar_url = 10;
 }
 
 message HouseholdMember {
@@ -188,6 +190,8 @@ message KnowledgeDocument {
   google.protobuf.Struct metadata = 12;
   google.protobuf.Timestamp created_at = 13;
   google.protobuf.Timestamp updated_at = 14;
+  string processing_stage = 15;
+  int32 chunk_count = 16;
 }
 
 message AIMessage {
