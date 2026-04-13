@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
   content TEXT NOT NULL,
   source_snippet TEXT NOT NULL DEFAULT '',
   token_size INT NOT NULL DEFAULT 0,
-  embedding VECTOR(1536),
+  embedding VECTOR,
   metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

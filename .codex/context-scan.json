@@ -1,45 +1,47 @@
 {
+  "date": "2026-04-10",
+  "executor": "Codex",
   "affected_areas": [
-    "backend/internal/platform/airuntime/adk_runtime.go",
-    "backend/internal/platform/airuntime/chat.go",
-    "backend/internal/platform/airuntime/deep_tools.go",
-    "backend/internal/platform/airuntime/graph/localize.go",
-    "backend/internal/platform/airuntime/graph/web_search.go",
-    "backend/internal/platform/airuntime/graph_runtime.go",
-    "backend/internal/platform/airuntime/tool/search_tools.go",
-    "backend/internal/platform/airuntime/websearch.go",
-    "frontend/src/app/components/AIAssistant.tsx",
-    "frontend/src/app/components/ai-assistant/AIChatMessages.tsx",
-    "frontend/src/lib/api/client.ts"
+    "backend/internal/biz/knowledge.go",
+    "backend/internal/biz/media.go",
+    "backend/internal/platform/airuntime",
+    "backend/internal/platform/airuntime/graph",
+    "backend/internal/platform/airuntime/rag",
+    "backend/internal/platform/embeddings/client.go",
+    "backend/internal/data/knowledge.go",
+    "frontend/src/lib/api/client.ts",
+    "frontend/src/app/pages/KnowledgeBase.tsx",
+    "frontend/src/features/knowledge/KnowledgePage.tsx"
   ],
   "current_behavior": {
-    "backend": "网页搜索已收敛成显式的 web_search graph，先检查开关，再执行搜索，最后把结果继续串回现有知识库、菜谱查询和生成流程。",
-    "search_execution": "MiMo 原生联网保留为 web_search graph 内部执行器；非 MiMo 或原生能力不可用时，DuckDuckGo 继续作为 fallback。",
-    "tooling": "deep planner 重新暴露了 web_search 工具，但它现在只负责触发统一 graph，而不是各处直接零散搜索。",
-    "frontend": "前端在流式 onToolCall(web_search) 阶段即可实时接住搜索结果，并继续在 done/history 阶段用 search_results 回放与补齐。"
+    "rag_ingest": "知识库文档入库目前由 biz 层调度，但抽取、切分、向量化已下沉到 airuntime/rag。",
+    "storage": "knowledge_document 上传已切到 knowledge_bucket。",
+    "splitting": "文本切分改为按自然边界优先并保留 overlap，不再按 rune 硬切。",
+    "embedding": "embedding 失败会显式标记为 embed_failed，不再静默假成功。",
+    "agent_runtime": "图片菜谱链路去掉了自定义通用 runner，直接使用 Eino compose.Graph。"
   },
   "similar_cases": [
-    "backend/internal/platform/airuntime/graph/text_recipe.go 已经采用 graph 节点串联搜索、知识整合、生成与校验，适合作为 web_search graph 的接入风格参考。",
-    "backend/internal/platform/airuntime/deep_tools.go 已承担工具调用后的 bridge 回写职责，适合继续承接 search_results/search_error 的统一落库。",
-    "frontend/src/app/components/AIAssistant.tsx 已具备 workflow/tool_call/message 三层状态合并逻辑，适合继续复用而不是另起一套页面状态。"
+    "backend/internal/platform/airuntime/graph/text_recipe.go 已使用 Eino compose.Graph 组织多步骤状态流。",
+    "backend/internal/platform/airuntime/graph/web_search.go 已把带状态的联网流程收敛到显式 graph。",
+    "backend/internal/platform/airuntime/tool/*.go 已统一使用 toolutils.InferTool 封装工具。"
   ],
   "stack": {
-    "backend": "Go, Kratos, CloudWeGo Eino ADK, Eino Graph, Xiaomi MiMo OpenAI 兼容接口",
-    "frontend": "React, TypeScript, Ant Design X, SSE 流式消息"
+    "backend": "Go, Kratos, GORM, pgvector, CloudWeGo Eino/ADK, MinIO",
+    "frontend": "React, TypeScript"
   },
   "tests": {
     "available": [
-      "$env:GOCACHE='D:\\workspace\\goproject\\my\\aicook\\backend\\.gocache'; go test ./internal/platform/airuntime/... ./internal/server/..."
+      "$env:GOCACHE='D:\\workspace\\goproject\\my\\aicook\\.cache\\gobuild'; go test ./internal/biz ./internal/platform/airuntime/... ./internal/service",
+      "$env:GOCACHE='D:\\workspace\\goproject\\my\\aicook\\.cache\\gobuild'; go test ./internal/platform/airuntime/rag ./internal/biz"
     ],
     "environment_gaps": [
-      "当前环境无法直接对外联调真实 MiMo API，只能做本地编译与流程代码验证。",
-      "前端仓库存在历史 TypeScript/依赖问题，无法用全量 tsc 作为本轮唯一验收依据。",
-      "当前环境缺少 gofmt 可执行文件，无法直接运行 go fmt。"
+      "全量 go test 目前会被仓库既有的 internal/auth/test TestToken 失败干扰。",
+      "前端 tsc 目前也受仓库既有依赖与旧页面问题影响，无法作为本轮唯一验收标准。"
     ]
   },
   "observations": [
-    "如果让 MiMo 原生联网直接挂在普通模型调用上，会绕过 ADK/tool/workflow 事件，导致前端执行过程缺少统一可视化。",
-    "把搜索收敛为显式 graph 后，可以同时满足三件事：未开启时有统一提示、流式阶段有搜索过程、搜索完成后还能把结果继续喂给知识库/菜谱生成流程。",
-    "reply_sources 与 search_results 必须继续分开：前者服务 citation 弹窗，后者服务执行过程搜索列表，否则正文引用编号和流程搜索结果会混淆。"
+    "前端部分入口曾允许 .doc/.ppt/.xls 等格式，但后端并不支持，已收敛为实际可处理的类型。",
+    "backend/internal/platform/airuntime/rag 目录已承接新的 RAG 实现。",
+    "graph/document_knowledge.go 现已替换原 typo 文件名。"
   ]
 }

@@ -44,3 +44,25 @@
   - 命令: `$env:GOCACHE='D:\workspace\goproject\my\aicook\backend\.gocache'; go test ./internal/platform/airuntime/... ./internal/server/...`
   - 结果: 通过
   - 覆盖点: `web_search graph`、未开启搜索统一提示、MiMo 原生联网执行器、搜索结果串回知识库/菜谱流程、前端实时消费 `tool_call(web_search)`
+
+## 2026-04-10 RAG / AIRuntime 重构补充验证
+
+- RAG 定向回归
+  - 命令: `$env:GOCACHE='D:\workspace\goproject\my\aicook\backend\.gocache'; go test ./internal/platform/airuntime/rag ./internal/biz ./internal/platform/airuntime/... ./internal/service`
+  - 结果: 通过
+  - 覆盖点: `docx` 抽取、`.doc` 不支持、Eino `recursive splitter` 切分、knowledge bucket 选择、image recipe graph 去自定义 Runner 后编译通过
+
+- backend 全量回归
+  - 命令: `$env:GOCACHE='D:\workspace\goproject\my\aicook\backend\.gocache'; go test ./...`
+  - 结果: 未全绿
+  - 说明: 仍然只剩仓库既有失败 `internal/auth/test.TestToken`，panic 位置 `backend/internal/auth/authRepo.go:48`，与本轮 RAG / airuntime 改动无直接关联
+
+- frontend 静态检查
+  - 命令: `pnpm exec tsc --noEmit`
+  - 结果: 未通过
+  - 说明: 失败项仍为仓库既有问题，如 `Home.tsx/Recipes.tsx` 导出不匹配、`react-router-dom` 与 `framer-motion` 缺失、多个页面存在隐式 `any`
+
+- 依赖与格式收敛
+  - 命令: `go get github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive`、`go mod tidy`
+  - 结果: 通过
+  - 说明: RAG 切分已从手写逻辑切到 Eino 官方 `recursive splitter`

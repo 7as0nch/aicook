@@ -30,13 +30,13 @@ const (
 )
 
 type Source struct {
-	Title      string `json:"title"`
-	DocumentID string `json:"document_id"`
-	Snippet    string `json:"snippet"`
-	SourceKind string `json:"source_kind,omitempty"`
-	SiteName   string `json:"site_name,omitempty"`
+	Title       string `json:"title"`
+	DocumentID  string `json:"document_id"`
+	Snippet     string `json:"snippet"`
+	SourceKind  string `json:"source_kind,omitempty"`
+	SiteName    string `json:"site_name,omitempty"`
 	PublishTime string `json:"publish_time,omitempty"`
-	LogoURL    string `json:"logo_url,omitempty"`
+	LogoURL     string `json:"logo_url,omitempty"`
 }
 
 type HistoryMessage struct {
@@ -55,20 +55,20 @@ type ActiveCookingSummary struct {
 }
 
 type ReplyRequest struct {
-	ConversationID     string           `json:"conversation_id,omitempty"`
-	HouseholdID        int64            `json:"household_id"`
-	UserID             int64            `json:"user_id"`
-	Scene              string           `json:"scene"`
-	Text               string           `json:"text"`
-	Attachments        []Attachment     `json:"attachments"`
-	QuoteContext       QuoteContext     `json:"quote_context"`
-	Sources            []Source         `json:"sources"`
-	History            []HistoryMessage `json:"history"`
-	ReasoningEnabled   bool             `json:"reasoning_enabled"`
-	WebSearchEnabled   bool             `json:"web_search_enabled"`
-	ImageRecipeEnabled bool             `json:"image_recipe_enabled"`
-	InputSource        string           `json:"input_source"`
-	ApprovalResponse   *ApprovalResponse `json:"approval_response,omitempty"`
+	ConversationID     string                 `json:"conversation_id,omitempty"`
+	HouseholdID        int64                  `json:"household_id"`
+	UserID             int64                  `json:"user_id"`
+	Scene              string                 `json:"scene"`
+	Text               string                 `json:"text"`
+	Attachments        []Attachment           `json:"attachments"`
+	QuoteContext       QuoteContext           `json:"quote_context"`
+	Sources            []Source               `json:"sources"`
+	History            []HistoryMessage       `json:"history"`
+	ReasoningEnabled   bool                   `json:"reasoning_enabled"`
+	WebSearchEnabled   bool                   `json:"web_search_enabled"`
+	ImageRecipeEnabled bool                   `json:"image_recipe_enabled"`
+	InputSource        string                 `json:"input_source"`
+	ApprovalResponse   *ApprovalResponse      `json:"approval_response,omitempty"`
 	ActiveCooking      []ActiveCookingSummary `json:"active_cooking,omitempty"`
 }
 
@@ -108,11 +108,11 @@ type StreamEvent struct {
 type Intent string
 
 const (
-	IntentChat        Intent = "chat"
-	IntentToolChat    Intent = "tool_chat"
-	IntentImageRecipe Intent = "image_recipe"
-	IntentKnowledge   Intent = "knowledge"
-	IntentRecipeQuery Intent = "recipe_query"
+	IntentChat            Intent = "chat"
+	IntentToolChat        Intent = "tool_chat"
+	IntentImageRecipe     Intent = "image_recipe"
+	IntentKnowledge       Intent = "knowledge"
+	IntentRecipeQuery     Intent = "recipe_query"
 	IntentRecipeRecommend Intent = "recipe_recommend"
 	IntentRecipeCreate    Intent = "recipe_create"
 )
@@ -140,18 +140,18 @@ type ToolCallRecord struct {
 }
 
 type RecipeCard struct {
-	RecipeID     string   `json:"recipe_id,omitempty"`
-	Title        string   `json:"title"`
-	Summary      string   `json:"summary"`
-	CoverImageURL string  `json:"cover_image_url,omitempty"`
-	Ingredients  []string `json:"ingredients,omitempty"`
-	Time         string   `json:"time,omitempty"`
-	Difficulty   string   `json:"difficulty,omitempty"`
-	Status       string   `json:"status,omitempty"`
-	Source       string   `json:"source,omitempty"`
-	IsRecipe     bool     `json:"is_recipe"`
-	RejectReason string   `json:"reject_reason,omitempty"`
-	Draft        *TextRecipeDraft `json:"draft,omitempty"`
+	RecipeID      string           `json:"recipe_id,omitempty"`
+	Title         string           `json:"title"`
+	Summary       string           `json:"summary"`
+	CoverImageURL string           `json:"cover_image_url,omitempty"`
+	Ingredients   []string         `json:"ingredients,omitempty"`
+	Time          string           `json:"time,omitempty"`
+	Difficulty    string           `json:"difficulty,omitempty"`
+	Status        string           `json:"status,omitempty"`
+	Source        string           `json:"source,omitempty"`
+	IsRecipe      bool             `json:"is_recipe"`
+	RejectReason  string           `json:"reject_reason,omitempty"`
+	Draft         *TextRecipeDraft `json:"draft,omitempty"`
 }
 
 type ApprovalOption struct {
@@ -177,11 +177,11 @@ type PendingApproval struct {
 }
 
 type ApprovalResponse struct {
-	ApprovalID string           `json:"approval_id"`
-	OptionID   string           `json:"option_id"`
-	OptionIDs  []string         `json:"option_ids,omitempty"`
-	Confirmed  bool             `json:"confirmed"`
-	Selection  *ApprovalOption  `json:"selection,omitempty"`
+	ApprovalID string          `json:"approval_id"`
+	OptionID   string          `json:"option_id"`
+	OptionIDs  []string        `json:"option_ids,omitempty"`
+	Confirmed  bool            `json:"confirmed"`
+	Selection  *ApprovalOption `json:"selection,omitempty"`
 }
 
 type TimelineEvent struct {
@@ -195,16 +195,39 @@ type TimelineEvent struct {
 }
 
 type ReplyMetadata struct {
-	Intent           string           `json:"intent,omitempty"`
-	ReasoningContent string           `json:"reasoning_content,omitempty"`
-	AgentTrace       []AgentTrace     `json:"agent_trace,omitempty"`
-	Workflow         []WorkflowStep   `json:"workflow,omitempty"`
-	ToolCalls        []ToolCallRecord `json:"tool_calls,omitempty"`
-	SearchResults    []Source         `json:"search_results,omitempty"`
-	SearchError      string           `json:"search_error,omitempty"`
-	RecipeCard       *RecipeCard      `json:"recipe_card,omitempty"`
-	PendingApproval  *PendingApproval `json:"pending_approval,omitempty"`
-	Timeline         []TimelineEvent  `json:"timeline,omitempty"`
+	Intent               string                 `json:"intent,omitempty"`
+	ReasoningContent     string                 `json:"reasoning_content,omitempty"`
+	AgentTrace           []AgentTrace           `json:"agent_trace,omitempty"`
+	Workflow             []WorkflowStep         `json:"workflow,omitempty"`
+	ToolCalls            []ToolCallRecord       `json:"tool_calls,omitempty"`
+	SearchResults        []Source               `json:"search_results,omitempty"`
+	SearchError          string                 `json:"search_error,omitempty"`
+	RecipeCard           *RecipeCard            `json:"recipe_card,omitempty"`
+	PendingApproval      *PendingApproval       `json:"pending_approval,omitempty"`
+	Timeline             []TimelineEvent        `json:"timeline,omitempty"`
+	KnowledgeIngestWatch []KnowledgeIngestWatch `json:"knowledge_ingest_watch,omitempty"`
+}
+
+type KnowledgeIngestWatch struct {
+	AssetID string `json:"asset_id"`
+	Name    string `json:"name,omitempty"`
+}
+
+type KnowledgeIngestActionResult struct {
+	Action          string                `json:"action"`
+	DocumentID      string                `json:"document_id,omitempty"`
+	MediaAssetID    string                `json:"media_asset_id,omitempty"`
+	Title           string                `json:"title,omitempty"`
+	Status          string                `json:"status,omitempty"`
+	ProcessingStage string                `json:"processing_stage,omitempty"`
+	StageLabel      string                `json:"stage_label,omitempty"`
+	Retryable       bool                  `json:"retryable,omitempty"`
+	Partial         bool                  `json:"partial,omitempty"`
+	Settled         bool                  `json:"settled,omitempty"`
+	Summary         string                `json:"summary,omitempty"`
+	FailureReason   string                `json:"failure_reason,omitempty"`
+	Message         string                `json:"message,omitempty"`
+	Watch           *KnowledgeIngestWatch `json:"watch,omitempty"`
 }
 
 type DraftIngredient struct {
@@ -244,23 +267,23 @@ type ImageRecipeDraft struct {
 }
 
 type TextRecipeDraft struct {
-	Title        string            `json:"title"`
-	Summary      string            `json:"summary"`
-	Category     string            `json:"category"`
-	CoverImageURL string           `json:"cover_image_url,omitempty"`
-	TotalMinutes int               `json:"total_minutes"`
-	Difficulty   int               `json:"difficulty"`
-	Tools        []string          `json:"tools,omitempty"`
-	ScenarioTags []string          `json:"scenario_tags,omitempty"`
-	FlavorTags   []string          `json:"flavor_tags,omitempty"`
-	Ingredients  []DraftIngredient `json:"ingredients"`
-	Steps        []DraftStep       `json:"steps"`
+	Title         string            `json:"title"`
+	Summary       string            `json:"summary"`
+	Category      string            `json:"category"`
+	CoverImageURL string            `json:"cover_image_url,omitempty"`
+	TotalMinutes  int               `json:"total_minutes"`
+	Difficulty    int               `json:"difficulty"`
+	Tools         []string          `json:"tools,omitempty"`
+	ScenarioTags  []string          `json:"scenario_tags,omitempty"`
+	FlavorTags    []string          `json:"flavor_tags,omitempty"`
+	Ingredients   []DraftIngredient `json:"ingredients"`
+	Steps         []DraftStep       `json:"steps"`
 }
 
 type TextRecipePreferences struct {
-	Flavor     string `json:"flavor,omitempty"`
-	Duration   string `json:"duration,omitempty"`
-	Difficulty string `json:"difficulty,omitempty"`
-	Style      string `json:"style,omitempty"`
+	Flavor      string   `json:"flavor,omitempty"`
+	Duration    string   `json:"duration,omitempty"`
+	Difficulty  string   `json:"difficulty,omitempty"`
+	Style       string   `json:"style,omitempty"`
 	Constraints []string `json:"constraints,omitempty"`
 }

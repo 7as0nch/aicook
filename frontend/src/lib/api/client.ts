@@ -302,6 +302,12 @@ export interface AIResponseMeta {
   timeline?: AIStreamEvent[]
   /** 厨艺 AI 入库完成等系统通知（见后端 metadata.kind） */
   kind?: string
+  document_id?: ID
+  media_asset_id?: ID
+  retryable?: boolean
+  partial?: boolean
+  failure_reason?: string
+  summary?: string
 }
 
 export interface SpeechSegment {
@@ -332,6 +338,9 @@ export interface KnowledgeDocument {
   chunk_count?: number
   summary: string
   text_content?: string
+  retryable?: boolean
+  partial?: boolean
+  failure_reason?: string
 }
 
 export interface HouseholdAIMemory {
@@ -721,6 +730,12 @@ function normalizeAiResponseMeta(raw: any): AIResponseMeta | undefined {
   const approvalResolved = normalizeApprovalResolved(raw.approval_resolved ?? raw.approvalResolved)
   return {
     kind: raw.kind ?? undefined,
+    document_id: raw.document_id ?? raw.documentId ? normalizeId(raw.document_id ?? raw.documentId) : undefined,
+    media_asset_id: raw.media_asset_id ?? raw.mediaAssetId ? normalizeId(raw.media_asset_id ?? raw.mediaAssetId) : undefined,
+    retryable: raw.retryable != null ? Boolean(raw.retryable) : undefined,
+    partial: raw.partial != null ? Boolean(raw.partial) : undefined,
+    failure_reason: raw.failure_reason ?? raw.failureReason ?? undefined,
+    summary: raw.summary ?? undefined,
     intent: raw.intent ?? undefined,
     reasoning_content: raw.reasoning_content ?? raw.reasoningContent ?? undefined,
     agent_trace: Array.isArray(raw.agent_trace ?? raw.agentTrace)
@@ -1574,11 +1589,18 @@ export interface ChatKnowledgeIngestStatus {
   pending: boolean
   settled: boolean
   document_id?: ID
+  media_asset_id?: ID
   title: string
   processing_stage: string
   status: string
   chunk_count: number
   stage_label: string
+  retryable: boolean
+  partial: boolean
+  failure_reason?: string
+  summary?: string
+  last_error_kind?: string
+  last_error_detail?: string
 }
 
 export async function fetchChatKnowledgeIngestStatus(assetId: ID): Promise<ChatKnowledgeIngestStatus> {
@@ -1587,10 +1609,36 @@ export async function fetchChatKnowledgeIngestStatus(assetId: ID): Promise<ChatK
     pending: Boolean(payload.pending),
     settled: Boolean(payload.settled),
     document_id: payload.document_id != null ? normalizeId(payload.document_id) : undefined,
+    media_asset_id: payload.media_asset_id != null ? normalizeId(payload.media_asset_id) : undefined,
     title: payload.title ?? '',
     processing_stage: payload.processing_stage ?? '',
     status: payload.status ?? '',
     chunk_count: Number(payload.chunk_count ?? 0),
+    stage_label: payload.stage_label ?? '',
+    retryable: Boolean(payload.retryable),
+    partial: Boolean(payload.partial),
+    failure_reason: payload.failure_reason ?? undefined,
+    summary: payload.summary ?? undefined,
+    last_error_kind: payload.last_error_kind ?? undefined,
+    last_error_detail: payload.last_error_detail ?? undefined,
+  }
+}
+
+export async function retryChatKnowledgeIngest(documentId: ID, sessionId?: ID) {
+  const payload = await request<any>('/chat/knowledge-ingest/retry', {
+    method: 'POST',
+    body: JSON.stringify({
+      document_id: String(documentId),
+      ...(sessionId ? { session_id: String(sessionId) } : {}),
+    }),
+  })
+  return {
+    accepted: Boolean(payload.accepted),
+    document_id: payload.document_id != null ? normalizeId(payload.document_id) : undefined,
+    media_asset_id: payload.media_asset_id != null ? normalizeId(payload.media_asset_id) : undefined,
+    title: payload.title ?? '',
+    processing_stage: payload.processing_stage ?? '',
+    status: payload.status ?? '',
     stage_label: payload.stage_label ?? '',
   }
 }
@@ -1876,6 +1924,22 @@ function mapKnowledgeDocument(doc: any, fallbackFile?: File): KnowledgeDocument 
     chunk_count: Number(doc.chunk_count ?? doc.chunkCount ?? 0),
     summary: doc.summary ?? '',
     text_content: doc.text_content ?? doc.textContent ?? '',
+    retryable: doc.retryable != null ? Boolean(doc.retryable) : undefined,
+    partial: doc.partial != null ? Boolean(doc.partial) : undefined,
+    failure_reason: doc.failure_reason ?? doc.failureReason ?? undefined,
+  }
+}
+
+export function knowledgeDocumentRetryable(doc: Pick<KnowledgeDocument, 'processing_stage' | 'retryable'>): boolean {
+  if (typeof doc.retryable === 'boolean') return doc.retryable
+  switch ((doc.processing_stage || '').trim().toLowerCase()) {
+    case 'extract_partial':
+    case 'extract_timeout':
+    case 'embed_failed':
+    case 'error':
+      return true
+    default:
+      return false
   }
 }
 
@@ -1897,12 +1961,24 @@ export function knowledgeDocStageLabel(stage: string | undefined, status: string
       return '拉取文件…'
     case 'extract':
       return '解析文本…'
+    case 'split':
+      return '切分文本…'
+    case 'embed':
+      return '生成向量…'
+    case 'store':
+      return '写入知识库…'
     case 'chunk_embed':
       return '切块与索引…'
     case 'done':
       return '已完成'
+    case 'extract_partial':
+      return '部分解析完成'
     case 'extract_empty':
       return '无文本可索引'
+    case 'unsupported_type':
+      return '文件类型暂不支持'
+    case 'embed_failed':
+      return '向量生成失败'
   }
   if (status === 'failed' || s === 'error') return '处理失败'
   if (status === 'processing') return '处理中…'
@@ -1924,11 +2000,14 @@ export async function pollKnowledgeDocumentUntilSettled(
     onProgress?.(knowledgeDocStageLabel(d.processing_stage, d.status))
     if (
       d.processing_stage === 'done' ||
+      d.processing_stage === 'extract_partial' ||
       d.status === 'failed' ||
       d.processing_stage === 'error' ||
       d.processing_stage === 'extract_timeout' ||
       d.processing_stage === 'extract_skipped_large' ||
       d.processing_stage === 'extract_empty' ||
+      d.processing_stage === 'unsupported_type' ||
+      d.processing_stage === 'embed_failed' ||
       (d.status !== 'processing' && (d.processing_stage === '' || !d.processing_stage))
     ) {
       return d

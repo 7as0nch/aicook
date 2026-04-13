@@ -125,7 +125,7 @@ func (r *Runtime) buildCurrentUserMessage(ctx context.Context, req ReplyRequest)
 	if docNotes.Len() > 0 {
 		// Aligns with biz: document attachments trigger IngestMediaAssetAsDocument → 「厨艺AI资料库」
 		fullText = basePrompt + docNotes.String() + `
-【系统说明·文档附件】上述 PDF/文档类附件已由服务端自动入库到家庭知识库「厨艺AI资料库」（切块、向量与知识图谱在后台异步处理）。若用户表达「保存/存储/帮我记下这份资料」等意图，请直接确认已开始入库，并说明稍后可提问或让用户说出菜名/食材，你会通过知识库检索帮他查；不要臆测内部规则、不要要求用户必须再去 App「家庭知识库」页重新上传同一份文件。不要为 PDF/文档调用图片菜谱识别的多模态子 agent。若用户要立即引用正文而索引尚未完成，可如实说明需等待片刻后再试 knowledge_lookup。`
+【系统说明·文档附件】上述 PDF/文档类附件已由服务端自动入库到家庭知识库「厨艺AI资料库」（切块、向量与知识图谱在后台异步处理）。若用户表达「保存/存储/帮我记下这份资料」等意图，请直接确认已开始入库，并说明稍后可提问或让用户说出菜名/食材，你会通过知识库检索帮他查；不要臆测内部规则、不要要求用户必须再去 App「家庭知识库」页重新上传同一份文件。若用户追问这份文件是否成功、当前进度如何、或者要求直接重试，优先调用工具 knowledge_ingest_manage。不要为 PDF/文档调用图片菜谱识别的多模态子 agent。若用户要立即引用正文而索引尚未完成，可如实说明需等待片刻后再试 knowledge_lookup。`
 	}
 
 	parts := []schema.MessageInputPart{

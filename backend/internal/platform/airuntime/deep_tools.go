@@ -3,6 +3,7 @@ package airuntime
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	einoadk "github.com/cloudwego/eino/adk"
@@ -74,6 +75,51 @@ func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 		tools = append(tools, knowledgeTool)
 	}
 
+	if r.knowledgeIngestManager != nil {
+		ingestTool, err := airtool.NewKnowledgeIngestManageTool(func(ctx context.Context, action, hint string) (*airtool.KnowledgeIngestManageResult, error) {
+			req, err := replyRequestFromContext(ctx)
+			if err != nil {
+				return nil, err
+			}
+			sessionID, _ := strconv.ParseInt(strings.TrimSpace(req.ConversationID), 10, 64)
+			result, err := r.knowledgeIngestManager.ManageKnowledgeIngest(ctx, req.HouseholdID, req.UserID, sessionID, action, hint)
+			if err != nil {
+				return nil, err
+			}
+			if result == nil {
+				return &airtool.KnowledgeIngestManageResult{Action: action}, nil
+			}
+			return &airtool.KnowledgeIngestManageResult{
+				Action:          result.Action,
+				DocumentID:      result.DocumentID,
+				MediaAssetID:    result.MediaAssetID,
+				Title:           result.Title,
+				Status:          result.Status,
+				ProcessingStage: result.ProcessingStage,
+				StageLabel:      result.StageLabel,
+				Retryable:       result.Retryable,
+				Partial:         result.Partial,
+				Settled:         result.Settled,
+				Summary:         result.Summary,
+				FailureReason:   result.FailureReason,
+				Message:         result.Message,
+				Watch: func() *airtool.KnowledgeIngestWatch {
+					if result.Watch == nil || strings.TrimSpace(result.Watch.AssetID) == "" {
+						return nil
+					}
+					return &airtool.KnowledgeIngestWatch{
+						AssetID: strings.TrimSpace(result.Watch.AssetID),
+						Name:    strings.TrimSpace(result.Watch.Name),
+					}
+				}(),
+			}, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, ingestTool)
+	}
+
 	if r.recipeLookup != nil {
 		recipeTool, err := airtool.NewRecipeQueryTool(func(ctx context.Context, query string, limit int) ([]airtool.RecipeCard, error) {
 			req, err := replyRequestFromContext(ctx)
@@ -130,10 +176,10 @@ func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 			}
 			bridge, _ := streamBridgeFromContext(ctx)
 			output, err := r.runTextRecipeGraph(ctx, req, query, TextRecipePreferences{
-				Flavor:     preferences.Flavor,
-				Duration:   preferences.Duration,
-				Difficulty: preferences.Difficulty,
-				Style:      preferences.Style,
+				Flavor:      preferences.Flavor,
+				Duration:    preferences.Duration,
+				Difficulty:  preferences.Difficulty,
+				Style:       preferences.Style,
 				Constraints: append([]string(nil), preferences.Constraints...),
 			}, coverImageURL, bridge)
 			if err != nil {
@@ -307,6 +353,20 @@ func (r *Runtime) applyToolResult(bridge *streamBridge, name, result string) {
 				bridge.reply.Content = strings.TrimSpace(payload.Summary)
 			}
 		}
+	case "knowledge_ingest_manage":
+		bridge.reply.Metadata.Intent = string(IntentKnowledge)
+		var payload airtool.KnowledgeIngestManageResult
+		if err := json.Unmarshal([]byte(result), &payload); err == nil {
+			if payload.Watch != nil && strings.TrimSpace(payload.Watch.AssetID) != "" {
+				bridge.addKnowledgeIngestWatch([]KnowledgeIngestWatch{{
+					AssetID: strings.TrimSpace(payload.Watch.AssetID),
+					Name:    strings.TrimSpace(payload.Watch.Name),
+				}})
+			}
+			if strings.TrimSpace(payload.Message) != "" && strings.TrimSpace(bridge.reply.Content) == "" {
+				bridge.reply.Content = strings.TrimSpace(payload.Message)
+			}
+		}
 	}
 }
 
@@ -314,13 +374,13 @@ func toToolSources(items []Source) []airtool.Source {
 	results := make([]airtool.Source, 0, len(items))
 	for _, item := range items {
 		results = append(results, airtool.Source{
-			Title:      item.Title,
-			DocumentID: item.DocumentID,
-			Snippet:    item.Snippet,
-			SourceKind: item.SourceKind,
-			SiteName:   item.SiteName,
+			Title:       item.Title,
+			DocumentID:  item.DocumentID,
+			Snippet:     item.Snippet,
+			SourceKind:  item.SourceKind,
+			SiteName:    item.SiteName,
 			PublishTime: item.PublishTime,
-			LogoURL:    item.LogoURL,
+			LogoURL:     item.LogoURL,
 		})
 	}
 	return results
@@ -330,13 +390,13 @@ func fromToolSources(items []airtool.Source) []Source {
 	results := make([]Source, 0, len(items))
 	for _, item := range items {
 		results = append(results, Source{
-			Title:      item.Title,
-			DocumentID: item.DocumentID,
-			Snippet:    item.Snippet,
-			SourceKind: item.SourceKind,
-			SiteName:   item.SiteName,
+			Title:       item.Title,
+			DocumentID:  item.DocumentID,
+			Snippet:     item.Snippet,
+			SourceKind:  item.SourceKind,
+			SiteName:    item.SiteName,
 			PublishTime: item.PublishTime,
-			LogoURL:    item.LogoURL,
+			LogoURL:     item.LogoURL,
 		})
 	}
 	return results
@@ -355,18 +415,18 @@ func toToolRecipeCard(item *RecipeCard) *airtool.RecipeCard {
 		return nil
 	}
 	return &airtool.RecipeCard{
-		RecipeID:     item.RecipeID,
-		Title:        item.Title,
-		Summary:      item.Summary,
+		RecipeID:      item.RecipeID,
+		Title:         item.Title,
+		Summary:       item.Summary,
 		CoverImageURL: item.CoverImageURL,
-		Ingredients:  append([]string(nil), item.Ingredients...),
-		Time:         item.Time,
-		Difficulty:   item.Difficulty,
-		Status:       item.Status,
-		Source:       item.Source,
-		IsRecipe:     item.IsRecipe,
-		RejectReason: item.RejectReason,
-		Draft:        toToolTextRecipeDraft(item.Draft),
+		Ingredients:   append([]string(nil), item.Ingredients...),
+		Time:          item.Time,
+		Difficulty:    item.Difficulty,
+		Status:        item.Status,
+		Source:        item.Source,
+		IsRecipe:      item.IsRecipe,
+		RejectReason:  item.RejectReason,
+		Draft:         toToolTextRecipeDraft(item.Draft),
 	}
 }
 
@@ -375,18 +435,18 @@ func fromToolRecipeCard(item *airtool.RecipeCard) *RecipeCard {
 		return nil
 	}
 	return &RecipeCard{
-		RecipeID:     item.RecipeID,
-		Title:        item.Title,
-		Summary:      item.Summary,
+		RecipeID:      item.RecipeID,
+		Title:         item.Title,
+		Summary:       item.Summary,
 		CoverImageURL: item.CoverImageURL,
-		Ingredients:  append([]string(nil), item.Ingredients...),
-		Time:         item.Time,
-		Difficulty:   item.Difficulty,
-		Status:       item.Status,
-		Source:       item.Source,
-		IsRecipe:     item.IsRecipe,
-		RejectReason: item.RejectReason,
-		Draft:        fromToolTextRecipeDraft(item.Draft),
+		Ingredients:   append([]string(nil), item.Ingredients...),
+		Time:          item.Time,
+		Difficulty:    item.Difficulty,
+		Status:        item.Status,
+		Source:        item.Source,
+		IsRecipe:      item.IsRecipe,
+		RejectReason:  item.RejectReason,
+		Draft:         fromToolTextRecipeDraft(item.Draft),
 	}
 }
 

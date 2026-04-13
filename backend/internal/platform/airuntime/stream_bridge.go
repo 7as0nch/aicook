@@ -197,6 +197,35 @@ func (b *streamBridge) addSearchResults(items []Source) {
 	b.reply.Metadata.SearchResults = dedupeSources(append(b.reply.Metadata.SearchResults, items...))
 }
 
+func (b *streamBridge) addKnowledgeIngestWatch(items []KnowledgeIngestWatch) {
+	if len(items) == 0 {
+		return
+	}
+	existing := make(map[string]KnowledgeIngestWatch, len(b.reply.Metadata.KnowledgeIngestWatch))
+	for _, item := range b.reply.Metadata.KnowledgeIngestWatch {
+		assetID := strings.TrimSpace(item.AssetID)
+		if assetID == "" {
+			continue
+		}
+		existing[assetID] = item
+	}
+	for _, item := range items {
+		assetID := strings.TrimSpace(item.AssetID)
+		if assetID == "" {
+			continue
+		}
+		existing[assetID] = KnowledgeIngestWatch{
+			AssetID: assetID,
+			Name:    strings.TrimSpace(item.Name),
+		}
+	}
+	merged := make([]KnowledgeIngestWatch, 0, len(existing))
+	for _, item := range existing {
+		merged = append(merged, item)
+	}
+	b.reply.Metadata.KnowledgeIngestWatch = merged
+}
+
 func (b *streamBridge) setModeAndModel(mode Mode, model string) {
 	b.reply.Mode = mode
 	b.reply.Model = strings.TrimSpace(model)

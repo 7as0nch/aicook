@@ -14,10 +14,10 @@ var ErrPipelineSkipped = errors.New("knowledge pipeline skipped")
 // DocumentKnowledgeInput 文档入库后图谱流水线输入（向量阶段通常已在业务层完成）。
 type DocumentKnowledgeInput struct {
 	HouseholdID int64
-	BaseID        int64
+	BaseID      int64
 	DocumentID  int64
-	Title         string
-	TextContent   string
+	Title       string
+	TextContent string
 }
 
 // DocumentKnowledgeCallbacks 由 biz 层注入，避免本包依赖 biz。

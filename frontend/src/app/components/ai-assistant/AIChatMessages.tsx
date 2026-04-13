@@ -136,6 +136,7 @@ export type AIChatMessagesProps = {
   toggleSearchResults: (index: number) => void
   toggleToolCall: (index: number, toolIndex: number) => void
   onApprovalSelect: (approval: AIPendingApproval, option: AIApprovalOption | AIApprovalOption[]) => void | Promise<void>
+  onRetryKnowledgeIngest: (messageIndex: number, documentId?: string) => void | Promise<void>
   onSaveRecipe: (msgIndex: number, recipe?: Message['recipeData']) => void | Promise<void>
   savedRecipes: string[]
   savingRecipeKeys: string[]
@@ -150,6 +151,7 @@ function renderAssistantBody(
   streamingContentRef: React.RefObject<HTMLDivElement>,
   toggleContentCollapsed: (i: number) => void,
   setDetailMessage: AIChatMessagesProps['setDetailMessage'],
+  onRetryKnowledgeIngest: AIChatMessagesProps['onRetryKnowledgeIngest'],
   onCitationClick: (citationIndex: number) => void,
 ) {
   const hasContent = msg.content.trim().length > 0
@@ -173,6 +175,14 @@ function renderAssistantBody(
       >
         <MarkdownBlock content={msg.content} streaming={useStreamingWindow} onCitationClick={onCitationClick} />
       </div>
+      {isIngestNotice && msg.ingestNotice?.retryable && msg.ingestNotice.documentId ? (
+        <div className="mt-2 flex items-center gap-2">
+          <Button size="small" type="primary" onClick={() => void onRetryKnowledgeIngest(idx, msg.ingestNotice?.documentId)}>
+            直接重试
+          </Button>
+          <span className="text-[11px] text-amber-800/80">无需重新上传原文件</span>
+        </div>
+      ) : null}
       {useCollapsedWindow && msg.contentCollapsed ? (
         <div className="-mt-12 h-12 rounded-b-2xl bg-linear-to-t from-white via-white/95 to-transparent" />
       ) : null}
@@ -244,6 +254,7 @@ export function AIChatMessages({
   toggleSearchResults,
   toggleToolCall,
   onApprovalSelect,
+  onRetryKnowledgeIngest,
   onSaveRecipe,
   savedRecipes,
   savingRecipeKeys,
@@ -394,6 +405,7 @@ export function AIChatMessages({
             streamingContentRef,
             toggleContentCollapsed,
             setDetailMessage,
+            onRetryKnowledgeIngest,
             (citationRaw) => {
               const source = resolveCitationSource(msg, citationRaw)
               if (source) setCitationDetail({ index: citationRaw, source })

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	einoadk "github.com/cloudwego/eino/adk"
 	einoopenai "github.com/cloudwego/eino-ext/components/model/openai"
+	einoadk "github.com/cloudwego/eino/adk"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime/audioinput"
@@ -15,19 +15,20 @@ import (
 )
 
 type Runtime struct {
-	mode                Mode
-	provider            *conf.AI
-	mediaHostAllowlist  map[string]struct{}
-	textModelName       string
-	multimodalModelName string
-	textModel           *einoopenai.ChatModel
-	multimodalModel     *einoopenai.ChatModel
-	textModelErr        error
-	multimodalModelErr  error
-	knowledgeLookup     KnowledgeLookup
-	memoryWriter        MemoryWriter
-	recipeLookup        RecipeLookup
-	imageRecipeCreator  ImageRecipeCreator
+	mode                   Mode
+	provider               *conf.AI
+	mediaHostAllowlist     map[string]struct{}
+	textModelName          string
+	multimodalModelName    string
+	textModel              *einoopenai.ChatModel
+	multimodalModel        *einoopenai.ChatModel
+	textModelErr           error
+	multimodalModelErr     error
+	knowledgeLookup        KnowledgeLookup
+	knowledgeIngestManager KnowledgeIngestManager
+	memoryWriter           MemoryWriter
+	recipeLookup           RecipeLookup
+	imageRecipeCreator     ImageRecipeCreator
 
 	deepRootAgent       einoadk.ResumableAgent
 	deepRunner          *einoadk.Runner

@@ -24,6 +24,7 @@ import {
   listActiveCooking,
   listAiMessages,
   listAiSessions,
+  retryChatKnowledgeIngest,
   streamAiMessage,
   subscribeAuthSession,
   uploadMedia,
@@ -602,6 +603,17 @@ export default function AIAssistant() {
       recipeData: item.response_meta?.recipe_card ? toRecipeData(item.response_meta.recipe_card) : undefined,
       createdAt: item.created_at,
       kind: item.response_meta?.kind,
+      ingestNotice:
+        item.response_meta?.kind === 'knowledge_ingest_notice'
+          ? {
+              documentId: item.response_meta.document_id,
+              mediaAssetId: item.response_meta.media_asset_id,
+              retryable: item.response_meta.retryable,
+              partial: item.response_meta.partial,
+              failureReason: item.response_meta.failure_reason,
+              summary: item.response_meta.summary,
+            }
+          : undefined,
     }
   }
 
@@ -870,6 +882,18 @@ export default function AIAssistant() {
       approval: reply.reply_metadata?.pending_approval ?? last.approval,
       type: reply.reply_metadata?.recipe_card ? 'recipe_card' : last.type,
       recipeData: reply.reply_metadata?.recipe_card ? toRecipeData(reply.reply_metadata.recipe_card) : last.recipeData,
+      kind: reply.reply_metadata?.kind ?? last.kind,
+      ingestNotice:
+        reply.reply_metadata?.kind === 'knowledge_ingest_notice'
+          ? {
+              documentId: reply.reply_metadata.document_id,
+              mediaAssetId: reply.reply_metadata.media_asset_id,
+              retryable: reply.reply_metadata.retryable,
+              partial: reply.reply_metadata.partial,
+              failureReason: reply.reply_metadata.failure_reason,
+              summary: reply.reply_metadata.summary,
+            }
+          : last.ingestNotice,
     }))
     if (reply.session_id) {
       sessionIdRef.current = reply.session_id
@@ -880,38 +904,55 @@ export default function AIAssistant() {
     const watch = reply.knowledge_ingest_watch
     const sid = reply.session_id
     if (watch && watch.length > 0 && sid) {
-      const assetIds = watch.map((w) => w.asset_id).filter(Boolean)
-      const nameByAsset = Object.fromEntries(watch.map((w) => [w.asset_id, w.name || '']))
-      void (async () => {
-        const maxTicks = 90
-        const intervalMs = 2000
-        for (let tick = 0; tick < maxTicks; tick++) {
-          const statuses = await Promise.all(assetIds.map((id) => fetchChatKnowledgeIngestStatus(id)))
-          const next: Record<string, string> = {}
-          for (let i = 0; i < assetIds.length; i++) {
+      void watchKnowledgeIngestProgress(watch, sid)
+    }
+  }
+
+  async function watchKnowledgeIngestProgress(
+    watch: Array<{ asset_id: string; name?: string }>,
+    sid?: string | null,
+  ) {
+    const assetIds = watch.map((w) => String(w.asset_id || '')).filter(Boolean)
+    if (assetIds.length === 0 || !sid) return
+    const nameByAsset = Object.fromEntries(watch.map((w) => [w.asset_id, w.name || '']))
+    const maxTicks = 90
+    const intervalMs = 2000
+    try {
+      for (let tick = 0; tick < maxTicks; tick++) {
+        const statuses = await Promise.all(assetIds.map((id) => fetchChatKnowledgeIngestStatus(id)))
+        setKnowledgeIngestProgress((prev) => {
+          const next = { ...prev }
+          for (let i = 0; i < assetIds.length; i += 1) {
             const id = assetIds[i]
             const st = statuses[i]
             const label = nameByAsset[id] ? `${nameByAsset[id]}: ${st.stage_label}` : st.stage_label
             next[id] = label
           }
-          setKnowledgeIngestProgress(next)
-          if (statuses.every((s) => s.settled)) break
-          await new Promise((r) => setTimeout(r, intervalMs))
+          return next
+        })
+        if (statuses.every((s) => s.settled)) break
+        await new Promise((r) => setTimeout(r, intervalMs))
+      }
+    } finally {
+      setKnowledgeIngestProgress((prev) => {
+        const next = { ...prev }
+        for (const id of assetIds) {
+          delete next[id]
         }
-        setKnowledgeIngestProgress({})
-        try {
-          const { messages: fresh } = await listAiMessages(sid, { limit: 30 })
-          setMessages((prev) => {
-            const prevIds = new Set(prev.map((m) => m.id).filter((id): id is string => Boolean(id)))
-            const additions = fresh.filter((m) => m.id && !prevIds.has(m.id)).map(mapHistoryMessage)
-            if (additions.length === 0) return prev
-            shouldAutoScrollRef.current = true
-            return [...prev, ...additions]
-          })
-        } catch {
-          // ignore
-        }
-      })()
+        return next
+      })
+    }
+    try {
+      const { messages: fresh } = await listAiMessages(sid, { limit: 30 })
+      setMessages((prev) => {
+        const prevIds = new Set(prev.map((m) => m.id).filter((id): id is string => Boolean(id)))
+        const additions = fresh.filter((m) => m.id && !prevIds.has(m.id)).map(mapHistoryMessage)
+        if (additions.length === 0) return prev
+        shouldAutoScrollRef.current = true
+        return [...prev, ...additions]
+      })
+    } catch {
+      // ignore
     }
   }
 
@@ -1246,6 +1287,27 @@ export default function AIAssistant() {
     }
   }
 
+  async function handleRetryKnowledgeIngest(_messageIndex: number, documentId?: string) {
+    if (!documentId || sendBusy) return
+    setSendBusy(true)
+    try {
+      const result = await retryChatKnowledgeIngest(documentId, activeSessionId ?? undefined)
+      upsertAssistantMessage(`已开始重试这份资料，无需重新上传。处理完成后我会继续通知你。`)
+      if (result.media_asset_id) {
+        const watch = [{ asset_id: result.media_asset_id, name: result.title || undefined }]
+        setKnowledgeIngestProgress((prev) => ({
+          ...prev,
+          [result.media_asset_id!]: result.title ? `${result.title}: ${result.stage_label || '准备重试…'}` : (result.stage_label || '准备重试…'),
+        }))
+        void watchKnowledgeIngestProgress(watch, activeSessionId ?? sessionIdRef.current ?? undefined)
+      }
+    } catch (error) {
+      upsertAssistantMessage(error instanceof Error ? `重试入库失败：${error.message}` : '重试入库失败')
+    } finally {
+      setSendBusy(false)
+    }
+  }
+
   async function onImagePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
@@ -1315,7 +1377,7 @@ export default function AIAssistant() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,.txt,.md,.json,.csv,.ppt,.pptx,.xls,.xlsx"
+        accept=".pdf,.txt,.md,.markdown,.json,.xml,.csv,.docx"
         className="hidden"
         onChange={(e) => void onFilePicked(e)}
         multiple
@@ -1424,13 +1486,14 @@ export default function AIAssistant() {
                 toggleReasoning={toggleReasoning}
                 toggleContentCollapsed={toggleContentCollapsed}
                 toggleToolList={toggleToolList}
-                toggleSearchResults={toggleSearchResults}
-                toggleToolCall={toggleToolCall}
-                onApprovalSelect={handleApprovalSelection}
-                onSaveRecipe={handleSaveRecipe}
-                savedRecipes={savedRecipes}
-                savingRecipeKeys={savingRecipeKeys}
-                formatSessionTime={formatSessionTime}
+                  toggleSearchResults={toggleSearchResults}
+                  toggleToolCall={toggleToolCall}
+                  onApprovalSelect={handleApprovalSelection}
+                  onRetryKnowledgeIngest={handleRetryKnowledgeIngest}
+                  onSaveRecipe={handleSaveRecipe}
+                  savedRecipes={savedRecipes}
+                  savingRecipeKeys={savingRecipeKeys}
+                  formatSessionTime={formatSessionTime}
                 getVisibleAgentTrace={getVisibleAgentTrace}
               />
 

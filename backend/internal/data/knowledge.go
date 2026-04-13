@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -9,8 +10,6 @@ import (
 	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
-	"github.com/chengjiang/aicook/backend/internal/platform/embeddings"
 )
 
 type KnowledgeRepo struct {
@@ -64,6 +63,27 @@ func (r *KnowledgeRepo) GetLatestDocumentByMediaAssetID(ctx context.Context, hou
 		Order("knowledge_documents.id DESC").
 		First(&doc).Error
 	if err != nil {
+		return nil, err
+	}
+	var n int64
+	_ = r.db.WithContext(ctx).Model(&KnowledgeChunk{}).Where("document_id = ?", doc.ID).Count(&n).Error
+	doc.ChunkCount = int(n)
+	return &doc, nil
+}
+
+// FindLatestDocumentForHousehold 返回家庭下最近一条与提示词匹配的知识文档；hint 为空时直接取最新一条。
+func (r *KnowledgeRepo) FindLatestDocumentForHousehold(ctx context.Context, householdID int64, hint string) (*KnowledgeDocument, error) {
+	var doc KnowledgeDocument
+	query := r.db.WithContext(ctx).
+		Model(&KnowledgeDocument{}).
+		Joins("JOIN knowledge_bases ON knowledge_bases.id = knowledge_documents.knowledge_base_id").
+		Where("knowledge_bases.household_id = ?", householdID)
+	hint = strings.TrimSpace(hint)
+	if hint != "" {
+		like := "%" + hint + "%"
+		query = query.Where("knowledge_documents.title ILIKE ? OR knowledge_documents.file_name ILIKE ? OR knowledge_documents.summary ILIKE ?", like, like, like)
+	}
+	if err := query.Order("knowledge_documents.updated_at DESC, knowledge_documents.id DESC").First(&doc).Error; err != nil {
 		return nil, err
 	}
 	var n int64
@@ -127,16 +147,18 @@ func (r *KnowledgeRepo) ReplaceChunks(ctx context.Context, documentID int64, chu
 	})
 }
 
-// SearchChunks 优先向量（queryVec 为 1536 维且库中存在 embedding），否则 to_tsvector 全文排序，再退回 ILIKE。
+// SearchChunks 优先向量（queryVec 非空且库中存在同维度 embedding），否则 to_tsvector 全文排序，再退回 ILIKE。
 func (r *KnowledgeRepo) SearchChunks(ctx context.Context, baseID int64, query string, queryVec []float32, limit int) ([]*KnowledgeChunk, error) {
 	if limit <= 0 {
 		limit = 4
 	}
 	query = strings.TrimSpace(query)
+	queryVecDim := len(queryVec)
 
-	if len(queryVec) == embeddings.Dimensions {
+	if queryVecDim > 0 {
 		var chunks []*KnowledgeChunk
 		q := r.db.WithContext(ctx).Where("knowledge_base_id = ? AND embedding IS NOT NULL", baseID)
+		q = q.Where("COALESCE((metadata_json->>'embedding_dim')::int, 0) = ?", queryVecDim)
 		q = q.Clauses(clause.OrderBy{
 			Expression: clause.Expr{SQL: "embedding <=> ?::vector", Vars: []any{pgvector.NewVector(queryVec)}},
 		})
@@ -144,6 +166,13 @@ func (r *KnowledgeRepo) SearchChunks(ctx context.Context, baseID int64, query st
 			return nil, err
 		}
 		if len(chunks) > 0 {
+			slog.Info("knowledge chunk search resolved",
+				"knowledge_base_id", baseID,
+				"search_mode", "vector",
+				"query", query,
+				"query_vec_dim", queryVecDim,
+				"result_count", len(chunks),
+			)
 			return chunks, nil
 		}
 	}
@@ -153,7 +182,22 @@ func (r *KnowledgeRepo) SearchChunks(ctx context.Context, baseID int64, query st
 		tx := r.db.WithContext(ctx).Model(&KnowledgeChunk{}).Where("knowledge_base_id = ?", baseID)
 		tx = tx.Where("to_tsvector('simple', content) @@ plainto_tsquery('simple', ?)", query)
 		tx = tx.Order(gorm.Expr("ts_rank_cd(to_tsvector('simple', content), plainto_tsquery('simple', ?)) DESC", query))
-		if err := tx.Limit(limit).Find(&chunks).Error; err == nil && len(chunks) > 0 {
+		if err := tx.Limit(limit).Find(&chunks).Error; err != nil {
+			slog.Warn("knowledge chunk search fulltext failed",
+				"knowledge_base_id", baseID,
+				"query", query,
+				"query_vec_dim", queryVecDim,
+				"error", err,
+			)
+		} else if len(chunks) > 0 {
+			slog.Info("knowledge chunk search resolved",
+				"knowledge_base_id", baseID,
+				"search_mode", "fulltext",
+				"query", query,
+				"query_vec_dim", queryVecDim,
+				"result_count", len(chunks),
+				"vector_attempted", queryVecDim > 0,
+			)
 			return chunks, nil
 		}
 		var fallback []*KnowledgeChunk
@@ -162,11 +206,30 @@ func (r *KnowledgeRepo) SearchChunks(ctx context.Context, baseID int64, query st
 			Order("created_at DESC").
 			Limit(limit).
 			Find(&fallback).Error
+		if err == nil {
+			slog.Info("knowledge chunk search resolved",
+				"knowledge_base_id", baseID,
+				"search_mode", "ilike",
+				"query", query,
+				"query_vec_dim", queryVecDim,
+				"result_count", len(fallback),
+				"vector_attempted", queryVecDim > 0,
+			)
+		}
 		return fallback, err
 	}
 
 	var chunks []*KnowledgeChunk
 	err := r.db.WithContext(ctx).Where("knowledge_base_id = ?", baseID).Order("created_at DESC").Limit(limit).Find(&chunks).Error
+	if err == nil {
+		slog.Info("knowledge chunk search resolved",
+			"knowledge_base_id", baseID,
+			"search_mode", "latest",
+			"query", query,
+			"query_vec_dim", queryVecDim,
+			"result_count", len(chunks),
+		)
+	}
 	return chunks, err
 }
 

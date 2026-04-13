@@ -105,3 +105,37 @@
 - Params: ackend/internal/platform/airuntime/{adk_runtime.go,chat.go,deep_tools.go,graph_runtime.go,websearch.go}、ackend/internal/platform/airuntime/graph/{web_search.go,localize.go}、ackend/internal/platform/airuntime/tool/search_tools.go、rontend/src/app/components/{AIAssistant.tsx,ai-assistant/AIChatMessages.tsx}
 - Result: 普通模型调用不再自动挂原生联网；deep planner 通过 web_search 工具统一触发 graph；未开启搜索时返回统一提示；开启后先展示搜索 workflow/tool_call，再将结果串回现有知识库、菜谱库和生成链路
 - Decision: 保留 MiMo 原生联网作为 graph 内部执行器，eply_sources 与 search_results 继续拆分，避免 citation 与流程搜索列表混淆
+## 2026-04-10 11:45 CST
+- Tool: shell_command
+- Purpose: 扫描本次 RAG 与 airuntime 重构所需上下文
+- Params: `rg -n "rag|embedding|chunk|knowledge|approval|Runner|compose.NewGraph" backend frontend`，`Get-Content backend/internal/biz/knowledge.go` 等
+- Result: 确认知识库入库主逻辑仍在 `biz/knowledge.go`，`airuntime/rag` 目录为空，`graph/pdf_knowladge.go` 只做图谱后处理，knowledge 上传仍走 `media_bucket`
+- Decision: 先把真实 RAG ingestion 下沉到 `airuntime/rag`，再收敛 runtime 的重复实现
+
+## 2026-04-10 12:05 CST
+- Tool: shell_command
+- Purpose: 创建新的 RAG 组件并切换知识库入库主链路
+- Params: `Set-Content backend/internal/platform/airuntime/rag/*.go`，`python` 修改 `backend/internal/biz/knowledge.go`
+- Result: 新增文档抽取、递归边界切分、批量向量化模块；知识库入库改为显式 `extract/split/embed/store/done` 阶段，并区分 `unsupported_type`、`embed_failed`
+- Decision: 继续修正用户可见层与上传桶选择，确保链路闭环
+
+## 2026-04-10 12:20 CST
+- Tool: shell_command
+- Purpose: 修正 knowledge 上传桶、前端支持类型和 AI 提示文案
+- Params: `python` 修改 `backend/internal/biz/{media.go,ai.go}`，`frontend/src/lib/api/client.ts`，`frontend/src/app/pages/KnowledgeBase.tsx`，`frontend/src/features/knowledge/KnowledgePage.tsx`，`frontend/src/app/components/AIAssistant.tsx`
+- Result: knowledge 文档改走 `knowledge_bucket`；前端上传类型与后端真实支持对齐；阶段文案补齐 `split/embed/store/unsupported_type/embed_failed`
+- Decision: 继续清理图片菜谱链路中的手撸通用 runner
+
+## 2026-04-10 12:35 CST
+- Tool: shell_command
+- Purpose: 收敛 image recipe graph 到 Eino 原生编排
+- Params: `Set-Content backend/internal/platform/airuntime/graph/{types.go,runner.go,image_recipe.go}`，`Move-Item pdf_knowladge.go document_knowledge.go`
+- Result: 删除自定义通用 Runner 实现，图片菜谱直接使用 `compose.Graph`；文档图谱文件名更正
+- Decision: 运行定向测试和全量回归，记录已知仓库外部失败
+
+## 2026-04-10 13:10 CST
+- Tool: shell_command / go get / go mod tidy / go test
+- Purpose: 将 RAG 切分从手写实现切换到 Eino 官方 recursive splitter，并完成收尾验证
+- Params: `go get github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive`、修改 `backend/internal/platform/airuntime/rag/splitter.go` / `backend/internal/biz/knowledge.go` / `backend/internal/platform/airuntime/rag/rag_test.go`、`go mod tidy`、`go test ./internal/platform/airuntime/rag ./internal/biz ./internal/platform/airuntime/... ./internal/service`、`go test ./...`
+- Result: RAG 切分已切换到 Eino 官方 recursive splitter；定向回归通过；backend 全量测试仍只剩仓库既有 `internal/auth/test.TestToken` 失败
+- Decision: 保持 PG chunk 存储模型不变，以最小破坏完成 Eino 化重构；前端历史 TS 错误本轮仅记录不扩散处理

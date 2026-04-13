@@ -42,3 +42,32 @@
 - `backend/internal/platform/airuntime/graph_runtime.go` 中的文本菜谱 graph 已复用统一网页搜索 graph，因此搜索完成后会继续串回现有知识库、菜谱查询和生成流程，而不是停在单纯搜索摘要。
 - `frontend/src/app/components/AIAssistant.tsx` 现在会在流式 `tool_call(web_search)` 到达时立刻同步 `searchResults/searchError`，不必等 `done` 才展示执行过程搜索列表。
 - `frontend/src/app/components/ai-assistant/AIChatMessages.tsx` 会用 `searchResults` 渲染“联网搜索结果 N 条”、logo 横排、展开列表；正文和思考里的数字引用继续从 `sources` 解析并弹窗展示。
+
+## 2026-04-10 RAG / AIRuntime 重构补充
+
+### 已验证
+
+- `backend/internal/platform/airuntime/rag/extractor.go` 已支持 `pdf/txt/md/markdown/json/xml/docx` 文本抽取，并对旧 `.doc` 返回明确不支持原因。
+- `backend/internal/platform/airuntime/rag/splitter.go` 已切换为 Eino 官方 `github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive`，默认按 `ChunkSize + OverlapSize` 执行切分。
+- `backend/internal/biz/knowledge.go` 现在会显式推进 `split -> embed -> store` 阶段；embedding 失败会落为 `embed_failed`，不再误标成功。
+- `backend/internal/biz/media.go` 的知识文档上传已改用 `knowledge_bucket`。
+- `backend/internal/platform/airuntime/graph/image_recipe.go` 已改为直接使用 Eino `compose.Graph`，不再依赖自定义通用 Runner。
+- `backend/internal/platform/airuntime/graph/document_knowledge.go` 已替代旧的 typo 文件名 `pdf_knowladge.go`。
+
+### 本地命令
+
+- 定向回归通过：
+  - `$env:GOCACHE='D:\workspace\goproject\my\aicook\backend\.gocache'; go test ./internal/platform/airuntime/rag ./internal/biz ./internal/platform/airuntime/... ./internal/service`
+- backend 全量回归仍有仓库既有失败：
+  - `$env:GOCACHE='D:\workspace\goproject\my\aicook\backend\.gocache'; go test ./...`
+  - 失败项：`github.com/chengjiang/aicook/backend/internal/auth/test.TestToken`
+  - 失败位置：`backend/internal/auth/authRepo.go:48`
+  - 失败现象：`index out of range [1] with length 1` panic
+- frontend 静态检查未通过：
+  - `pnpm exec tsc --noEmit`
+  - 失败项为仓库既有依赖和页面错误，如 `react-router-dom` / `framer-motion` 缺失、`Home.tsx` / `Recipes.tsx` 导出不匹配
+
+### 剩余风险
+
+- 当前 RAG 写路径已经贴近 Eino 规范，但底层存储仍保留项目现有 PG chunk 表设计；如果后续要进一步 Eino 化，可以继续把写路径抽象成 Eino Indexer 适配器。
+- 本轮没有改动仓库既有 `internal/auth` 测试问题，因此全量 Go 测试依然不是全绿。

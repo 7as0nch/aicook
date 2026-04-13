@@ -1,39 +1,18 @@
 {
-  "task": "将网页搜索收敛为统一 workflow graph：未开启时返回统一提示，开启后先搜索并把结果流式展示给前端，再继续串回知识库、家庭菜谱库和菜谱生成等既有流程。",
+  "date": "2026-04-10",
+  "executor": "Codex",
+  "request": "重构 backend/airuntime 相关 Eino 实现，修复 RAG 上传后未正确切分、向量化并写入 PG 的问题，同时优化 agent/runtime 中手撸过重的实现，尽量收敛到 Eino 组件能力。",
   "deliverables": [
-    "新增 web_search graph，并统一其输入输出结构",
-    "将 MiMo 原生联网降级为 graph 内部执行器，DuckDuckGo 仅作 fallback",
-    "让 deep planner 的 web_search 工具触发 graph，而不是各处零散执行搜索",
-    "前端执行过程实时展示搜索结果，done/history 继续支持回放",
-    "更新 .codex 记录、testing.md 与 verification.md"
+    "可用的 airuntime/rag 入库实现",
+    "biz/knowledge.go 接入新 pipeline",
+    "knowledge_bucket 上传修复",
+    "前端文件类型与阶段文案对齐",
+    "airuntime 内部重复/误导代码精简",
+    "本地验证记录"
   ],
   "constraints": [
-    "保持现有 citation 弹窗和数字引用交互不变。",
-    "reply_sources 只服务 citation，search_results 只服务执行过程搜索列表。",
-    "未开启网页搜索时必须返回统一提示，避免页面和后端语义不一致。",
-    "新增代码和注释使用 UTF-8，注释简洁中文，不过度封装。"
-  ],
-  "assumptions": [
-    "只有在用户明确要求联网搜索，或当前任务确实依赖网页信息时，deep planner 才会优先调用 web_search。",
-    "MiMo OpenAI 兼容接口仍可通过 annotations / error_message 返回网页搜索相关结果。",
-    "本轮以本地后端定向 go test 通过作为主要验收标准。"
-  ],
-  "acceptance_contract": {
-    "inputs": [
-      "用户明确要求联网搜索的普通问答",
-      "开启网页搜索的菜谱生成请求",
-      "未开启网页搜索但用户要求搜索的请求",
-      "历史消息回放与 SSE 流式过程展示"
-    ],
-    "outputs": [
-      "web_search graph 在未开启时返回统一的 unsupported 提示。",
-      "开启后先出现搜索 workflow/tool_call，再继续进入知识库、菜谱库或生成流程。",
-      "前端执行过程可以实时显示搜索结果列表与 logo 横排，正文和思考中的 citation 数字弹窗继续可用。"
-    ],
-    "validation_targets": [
-      "后端代码编译通过。",
-      "网页搜索 graph 不破坏现有知识库/菜谱链路。",
-      "搜索结果在流式阶段和历史回放阶段都可展示。"
-    ]
-  }
+    "采用 UTF-8 编码",
+    "代码注释使用中文且不过度封装",
+    "保持现有接口与主要功能不被破坏"
+  ]
 }

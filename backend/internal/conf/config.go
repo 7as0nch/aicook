@@ -2,9 +2,11 @@ package conf
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
+	"gopkg.in/yaml.v3"
 )
 
 func LoadBootstrap(path string) (*Bootstrap, error) {
@@ -17,6 +19,9 @@ func LoadBootstrap(path string) (*Bootstrap, error) {
 
 	var bc Bootstrap
 	if err := c.Scan(&bc); err != nil {
+		return nil, err
+	}
+	if err := loadBootstrapEmbeddingConfig(path, &bc); err != nil {
 		return nil, err
 	}
 	return &bc, nil
@@ -41,4 +46,32 @@ func (c *PGDatabase) DSN() string {
 		c.GetSslmode(),
 		schema,
 	)
+}
+
+type bootstrapConfigExtras struct {
+	AI *aiConfigExtras `yaml:"ai"`
+}
+
+type aiConfigExtras struct {
+	Embedding *EmbeddingSettings `yaml:"embedding"`
+}
+
+func loadBootstrapEmbeddingConfig(path string, bc *Bootstrap) error {
+	if bc == nil {
+		return nil
+	}
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var extras bootstrapConfigExtras
+	if err := yaml.Unmarshal(payload, &extras); err != nil {
+		return err
+	}
+	BindBootstrapEmbeddingSettings(bc, nil)
+	if extras.AI == nil {
+		return nil
+	}
+	BindBootstrapEmbeddingSettings(bc, extras.AI.Embedding)
+	return nil
 }

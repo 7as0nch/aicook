@@ -11,9 +11,9 @@ import (
 	"github.com/cloudwego/eino/adk/prebuilt/deep"
 	"github.com/cloudwego/eino/schema"
 
+	aircheckpoint "github.com/chengjiang/aicook/backend/internal/platform/airuntime/checkpoint"
 	airinstruction "github.com/chengjiang/aicook/backend/internal/platform/airuntime/instruction"
 	airtool "github.com/chengjiang/aicook/backend/internal/platform/airuntime/tool"
-	aircheckpoint "github.com/chengjiang/aicook/backend/internal/platform/airuntime/checkpoint"
 )
 
 const (
@@ -71,14 +71,14 @@ func (r *Runtime) initADK() {
 	}
 
 	rootAgent, err := deep.New(ctx, &deep.Config{
-		Name:                  adkRootAgentName,
-		Description:           "AICook 官方 deep planner，处理聊天、工具增强、多模态与可恢复的候选确认。",
-		ChatModel:             routingModel,
-		Instruction:           airinstruction.BuildDeepInstruction(adkMultimodalAgentName, adkRecommendAgentName),
-		ToolsConfig:           r.deepToolsConfig(r.filterDeepTools(ctx, tools, "web_search", "knowledge_lookup", "save_household_memory", "recipe_query")),
-		SubAgents:             []einoadk.Agent{multimodalSubAgent, recommendSubAgent},
-		MaxIteration:          12,
-		WithoutWriteTodos:     true,
+		Name:                   adkRootAgentName,
+		Description:            "AICook 官方 deep planner，处理聊天、工具增强、多模态与可恢复的候选确认。",
+		ChatModel:              routingModel,
+		Instruction:            airinstruction.BuildDeepInstruction(adkMultimodalAgentName, adkRecommendAgentName),
+		ToolsConfig:            r.deepToolsConfig(r.filterDeepTools(ctx, tools, "web_search", "knowledge_lookup", "knowledge_ingest_manage", "save_household_memory", "recipe_query")),
+		SubAgents:              []einoadk.Agent{multimodalSubAgent, recommendSubAgent},
+		MaxIteration:           12,
+		WithoutWriteTodos:      true,
 		WithoutGeneralSubAgent: true,
 	})
 	if err != nil {

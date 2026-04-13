@@ -11,6 +11,11 @@ type KnowledgeLookup interface {
 	LookupKnowledgeSources(ctx context.Context, householdID int64, question string, limit int) ([]Source, error)
 }
 
+// KnowledgeIngestManager 供 Agent 查询当前会话里的文档入库状态，并按消息记录直接发起重试。
+type KnowledgeIngestManager interface {
+	ManageKnowledgeIngest(ctx context.Context, householdID, userID, sessionID int64, action, hint string) (*KnowledgeIngestActionResult, error)
+}
+
 type RecipeLookup interface {
 	SearchRecipesForAI(ctx context.Context, householdID int64, query string, limit int) ([]RecipeCard, error)
 }
@@ -21,6 +26,10 @@ type ImageRecipeCreator interface {
 
 func (r *Runtime) RegisterKnowledgeLookup(adapter KnowledgeLookup) {
 	r.knowledgeLookup = adapter
+}
+
+func (r *Runtime) RegisterKnowledgeIngestManager(adapter KnowledgeIngestManager) {
+	r.knowledgeIngestManager = adapter
 }
 
 func (r *Runtime) RegisterMemoryWriter(adapter MemoryWriter) {

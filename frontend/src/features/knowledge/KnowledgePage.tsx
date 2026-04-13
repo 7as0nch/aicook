@@ -4,9 +4,13 @@ import { useSearchParams } from 'react-router-dom'
 import { VoiceHoldButton } from '../../components/media/VoiceHoldButton'
 import {
   createKnowledgeBase,
+  knowledgeDocumentRetryable,
+  knowledgeDocStageLabel,
   listKnowledgeBases,
   listKnowledgeDocuments,
   queryKnowledgeBase,
+  retryChatKnowledgeIngest,
+  pollKnowledgeDocumentUntilSettled,
   reindexKnowledgeBase,
   uploadKnowledgeDocument,
   type ID,
@@ -26,6 +30,7 @@ export function KnowledgePage() {
   const [sources, setSources] = useState<Array<{ title: string; snippet: string }>>([])
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [retryingDocumentId, setRetryingDocumentId] = useState<ID>('')
 
   async function loadBases() {
     setLoading(true)
@@ -66,7 +71,7 @@ export function KnowledgePage() {
     setBusy(true)
     try {
       const base = await createKnowledgeBase(name, description)
-      setBases((current) => [base, ...current])
+      setBases((current: KnowledgeBase[]) => [base, ...current])
       setSelectedBaseId(base.id)
     } finally {
       setBusy(false)
@@ -110,6 +115,22 @@ export function KnowledgePage() {
     try {
       await reindexKnowledgeBase(selectedBaseId)
     } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRetryDocument(document: KnowledgeDocument) {
+    if (!selectedBaseId || !document.id || retryingDocumentId) {
+      return
+    }
+    setRetryingDocumentId(document.id)
+    setBusy(true)
+    try {
+      await retryChatKnowledgeIngest(document.id)
+      await pollKnowledgeDocumentUntilSettled(selectedBaseId, document.id)
+      await loadDocuments(selectedBaseId)
+    } finally {
+      setRetryingDocumentId('')
       setBusy(false)
     }
   }
@@ -178,7 +199,7 @@ export function KnowledgePage() {
               <div className="flex flex-wrap gap-3">
                 <label className="rounded-full bg-[var(--surface-soft)] px-4 py-2 text-sm font-bold text-[var(--text)]">
                   上传文档
-                  <input className="hidden" type="file" accept=".txt,.md,.pdf,.doc,.docx" onChange={(event) => void handleUpload(event)} />
+                  <input className="hidden" type="file" accept=".txt,.md,.markdown,.pdf,.json,.xml,.docx" onChange={(event) => void handleUpload(event)} />
                 </label>
                 <button type="button" className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white" onClick={() => void handleReindex()}>
                   重新索引
@@ -192,9 +213,23 @@ export function KnowledgePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h4 className="font-headline text-xl font-black tracking-tight">{document.title}</h4>
-                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">{document.status || 'indexed'}</p>
+                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                        {knowledgeDocStageLabel(document.processing_stage, document.status)}
+                      </p>
                     </div>
-                    <span className="text-xs font-bold text-[var(--primary)]">{document.content_type || document.file_name}</span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="text-xs font-bold text-[var(--primary)]">{document.content_type || document.file_name}</span>
+                      {knowledgeDocumentRetryable(document) ? (
+                        <button
+                          type="button"
+                          disabled={busy || retryingDocumentId === document.id}
+                          onClick={() => void handleRetryDocument(document)}
+                          className="rounded-full bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+                        >
+                          {retryingDocumentId === document.id ? '重试中...' : '直接重试'}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">{document.summary || document.text_content || '等待解析内容。'}</p>
                 </article>
@@ -209,7 +244,7 @@ export function KnowledgePage() {
                 <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Knowledge QA</p>
                 <h3 className="mt-1 font-headline text-2xl font-black tracking-tight">问知识库</h3>
               </div>
-              <VoiceHoldButton onTranscribed={(text) => setQuestion((current) => `${current} ${text}`.trim())} />
+                <VoiceHoldButton onTranscribed={(text) => setQuestion((current: string) => `${current} ${text}`.trim())} />
             </div>
 
             <textarea

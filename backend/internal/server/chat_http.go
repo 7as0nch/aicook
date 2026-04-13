@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,18 +24,23 @@ type AIChatHandler struct {
 type chatSessionID string
 
 type chatSendRequest struct {
-	SessionID        chatSessionID          `json:"session_id"`
-	Scene            string                 `json:"scene"`
-	Title            string                 `json:"title"`
-	RecipeID         *int64                 `json:"recipe_id,omitempty"`
-	Context          json.RawMessage        `json:"context,omitempty"`
-	Text             string                 `json:"text"`
-	Attachments      []airuntime.Attachment `json:"attachments"`
-	QuoteContext     airuntime.QuoteContext `json:"quote_context"`
-	ReasoningEnabled bool                   `json:"reasoning_enabled"`
-	WebSearchEnabled bool                   `json:"web_search_enabled"`
-	ImageRecipeEnabled bool                 `json:"image_recipe_enabled"`
-	ApprovalResponse *airuntime.ApprovalResponse `json:"approval_response,omitempty"`
+	SessionID          chatSessionID               `json:"session_id"`
+	Scene              string                      `json:"scene"`
+	Title              string                      `json:"title"`
+	RecipeID           *int64                      `json:"recipe_id,omitempty"`
+	Context            json.RawMessage             `json:"context,omitempty"`
+	Text               string                      `json:"text"`
+	Attachments        []airuntime.Attachment      `json:"attachments"`
+	QuoteContext       airuntime.QuoteContext      `json:"quote_context"`
+	ReasoningEnabled   bool                        `json:"reasoning_enabled"`
+	WebSearchEnabled   bool                        `json:"web_search_enabled"`
+	ImageRecipeEnabled bool                        `json:"image_recipe_enabled"`
+	ApprovalResponse   *airuntime.ApprovalResponse `json:"approval_response,omitempty"`
+}
+
+type chatKnowledgeRetryRequest struct {
+	SessionID  chatSessionID `json:"session_id"`
+	DocumentID string        `json:"document_id"`
 }
 
 func (id *chatSessionID) UnmarshalJSON(data []byte) error {
@@ -74,6 +80,7 @@ func (h *AIChatHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /chat/send", h.handleSend)
 	mux.HandleFunc("GET /chat/sessions/{session_id}/messages", h.handleListMessages)
 	mux.HandleFunc("GET /chat/knowledge-ingest/status", h.handleKnowledgeIngestStatus)
+	mux.HandleFunc("POST /chat/knowledge-ingest/retry", h.handleKnowledgeIngestRetry)
 }
 
 func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
@@ -135,14 +142,14 @@ func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
 	flusher.Flush()
 
 	reply, err := h.usecase.StreamMessage(ctx, sessionID, biz.SendMessageRequest{
-		Text:             req.Text,
-		Scene:            req.Scene,
-		Attachments:      req.Attachments,
-		QuoteContext:     req.QuoteContext,
-		ReasoningEnabled: req.ReasoningEnabled,
-		WebSearchEnabled: req.WebSearchEnabled,
+		Text:               req.Text,
+		Scene:              req.Scene,
+		Attachments:        req.Attachments,
+		QuoteContext:       req.QuoteContext,
+		ReasoningEnabled:   req.ReasoningEnabled,
+		WebSearchEnabled:   req.WebSearchEnabled,
 		ImageRecipeEnabled: req.ImageRecipeEnabled,
-		ApprovalResponse: req.ApprovalResponse,
+		ApprovalResponse:   req.ApprovalResponse,
 	}, func(chunk airuntime.StreamEvent) error {
 		eventName := "answer_delta"
 		switch chunk.Kind {
@@ -201,7 +208,10 @@ func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
 		"is_fallback":          reply.Reply.IsFallback,
 		"reply_metadata":       reply.Reply.Metadata,
 	}
-	if watch := knowledgeIngestWatchFromRequest(req); len(watch) > 0 {
+	if watch := mergeKnowledgeIngestWatch(
+		knowledgeIngestWatchFromRequest(req),
+		knowledgeIngestWatchFromReply(reply.Reply),
+	); len(watch) > 0 {
 		donePayload["knowledge_ingest_watch"] = watch
 	}
 	_ = writeSSE(w, "done", donePayload)
@@ -222,6 +232,59 @@ func knowledgeIngestWatchFromRequest(req chatSendRequest) []map[string]any {
 			"asset_id": aid,
 			"name":     strings.TrimSpace(a.Name),
 		})
+	}
+	return out
+}
+
+func knowledgeIngestWatchFromReply(reply *airuntime.ReplyResponse) []map[string]any {
+	if reply == nil || len(reply.Metadata.KnowledgeIngestWatch) == 0 {
+		return nil
+	}
+	out := make([]map[string]any, 0, len(reply.Metadata.KnowledgeIngestWatch))
+	for _, item := range reply.Metadata.KnowledgeIngestWatch {
+		assetID := strings.TrimSpace(item.AssetID)
+		if assetID == "" {
+			continue
+		}
+		out = append(out, map[string]any{
+			"asset_id": assetID,
+			"name":     strings.TrimSpace(item.Name),
+		})
+	}
+	return out
+}
+
+func mergeKnowledgeIngestWatch(groups ...[]map[string]any) []map[string]any {
+	merged := make(map[string]map[string]any)
+	for _, group := range groups {
+		for _, item := range group {
+			if item == nil {
+				continue
+			}
+			assetID := strings.TrimSpace(fmt.Sprint(item["asset_id"]))
+			if assetID == "" {
+				continue
+			}
+			name := strings.TrimSpace(fmt.Sprint(item["name"]))
+			if existing, ok := merged[assetID]; ok {
+				if strings.TrimSpace(fmt.Sprint(existing["name"])) == "" && name != "" {
+					existing["name"] = name
+				}
+				continue
+			}
+			entry := map[string]any{"asset_id": assetID}
+			if name != "" {
+				entry["name"] = name
+			}
+			merged[assetID] = entry
+		}
+	}
+	if len(merged) == 0 {
+		return nil
+	}
+	out := make([]map[string]any, 0, len(merged))
+	for _, item := range merged {
+		out = append(out, item)
 	}
 	return out
 }
@@ -262,6 +325,48 @@ func (h *AIChatHandler) handleKnowledgeIngestStatus(w http.ResponseWriter, r *ht
 		return
 	}
 	writeJSON(w, st)
+}
+
+func (h *AIChatHandler) handleKnowledgeIngestRetry(w http.ResponseWriter, r *http.Request) {
+	if h.knowledge == nil {
+		writeErrorJSON(w, http.StatusServiceUnavailable, "knowledge not configured")
+		return
+	}
+	var req chatKnowledgeRetryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	documentID, err := strconv.ParseInt(strings.TrimSpace(req.DocumentID), 10, 64)
+	if err != nil || documentID <= 0 {
+		writeErrorJSON(w, http.StatusBadRequest, "invalid document_id")
+		return
+	}
+	sessionID, err := req.SessionID.Int64()
+	if err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, "invalid session_id")
+		return
+	}
+	ctx := h.authContext(r)
+	actor := biz.ActorFromContext(ctx)
+	if actor.HouseholdID == 0 {
+		writeErrorJSON(w, http.StatusUnauthorized, "household required")
+		return
+	}
+	doc, err := h.usecase.QueueKnowledgeDocumentRetry(ctx, actor, sessionID, documentID)
+	if err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{
+		"accepted":         true,
+		"document_id":      strconv.FormatInt(doc.ID, 10),
+		"media_asset_id":   formatNullableID(doc.MediaAssetID),
+		"title":            doc.Title,
+		"processing_stage": "fetch_object",
+		"status":           "processing",
+		"stage_label":      "准备重试…",
+	})
 }
 
 func (h *AIChatHandler) ensureSession(ctx context.Context, sessionID int64, scene string, req chatSendRequest) (*data.AISession, error) {
@@ -351,18 +456,25 @@ func writeErrorJSON(w http.ResponseWriter, statusCode int, message string) {
 	})
 }
 
+func formatNullableID(id *int64) string {
+	if id == nil || *id <= 0 {
+		return ""
+	}
+	return strconv.FormatInt(*id, 10)
+}
+
 func buildSessionPayload(session *data.AISession) map[string]any {
 	if session == nil {
 		return nil
 	}
 	return map[string]any{
-		"id":          strconv.FormatInt(session.ID, 10),
+		"id":           strconv.FormatInt(session.ID, 10),
 		"household_id": strconv.FormatInt(session.HouseholdID, 10),
-		"user_id":     strconv.FormatInt(session.UserID, 10),
-		"scene":       session.Scene,
-		"title":       session.Title,
-		"created_at":  formatJSONTime(session.CreatedAt),
-		"updated_at":  formatJSONTime(session.UpdatedAt),
+		"user_id":      strconv.FormatInt(session.UserID, 10),
+		"scene":        session.Scene,
+		"title":        session.Title,
+		"created_at":   formatJSONTime(session.CreatedAt),
+		"updated_at":   formatJSONTime(session.UpdatedAt),
 	}
 }
 
@@ -390,12 +502,12 @@ func buildMessagePayload(message *data.AIMessage) map[string]any {
 	sources := make([]map[string]any, 0, len(envelope.Sources))
 	for _, source := range envelope.Sources {
 		sources = append(sources, map[string]any{
-			"title":       source.Title,
-			"document_id": source.DocumentID,
-			"snippet":     source.Snippet,
-			"site_name":   source.SiteName,
+			"title":        source.Title,
+			"document_id":  source.DocumentID,
+			"snippet":      source.Snippet,
+			"site_name":    source.SiteName,
 			"publish_time": source.PublishTime,
-			"logo_url":    source.LogoURL,
+			"logo_url":     source.LogoURL,
 		})
 	}
 	attachmentItems := make([]map[string]any, 0, len(attachments))

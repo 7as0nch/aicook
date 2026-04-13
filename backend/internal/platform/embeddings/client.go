@@ -1,56 +1,59 @@
 package embeddings
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
+	arkembed "github.com/cloudwego/eino-ext/components/embedding/ark"
 )
-
-// Dimensions 与 deploy/sql/base.sql 中 knowledge_chunks.embedding VECTOR(1536) 一致。
-const Dimensions = 1536
 
 const maxBatch = 64
 
 type Client struct {
-	httpClient *http.Client
+	embedder   *arkembed.Embedder
 	baseURL    string
 	apiKey     string
 	model      string
+	apiType    string
+	dimensions int
+	initErr    error
 }
 
-func NewClient(ai *conf.AI) *Client {
-	if ai == nil || strings.TrimSpace(ai.GetEmbeddingModel()) == "" {
+func NewClient(cfg *conf.Bootstrap) *Client {
+	if cfg == nil {
 		return nil
 	}
-	base := strings.TrimSuffix(strings.TrimSpace(ai.GetBaseUrl()), "/")
-	if base == "" {
+	base, apiKey, model, apiType, dimensions := resolveEmbeddingEndpoint(cfg)
+	if base == "" || model == "" {
 		return nil
 	}
+	embedderCfg := &arkembed.EmbeddingConfig{
+		BaseURL: base,
+		APIKey:  apiKey,
+		Model:   model,
+	}
+	if parsedType := parseArkAPIType(apiType, model); parsedType != nil {
+		embedderCfg.APIType = parsedType
+	}
+	embedder, err := arkembed.NewEmbedder(context.Background(), embedderCfg)
 	return &Client{
-		httpClient: &http.Client{Timeout: 90 * time.Second},
+		embedder:   embedder,
 		baseURL:    base,
-		apiKey:     ai.GetApiKey(),
-		model:      ai.GetEmbeddingModel(),
+		apiKey:     apiKey,
+		model:      model,
+		apiType:    apiType,
+		dimensions: dimensions,
+		initErr:    err,
 	}
 }
 
-type apiRequest struct {
-	Model string   `json:"model"`
-	Input []string `json:"input"`
-}
-
-type apiResponse struct {
-	Data []struct {
-		Index     int       `json:"index"`
-		Embedding []float64 `json:"embedding"`
-	} `json:"data"`
+func (c *Client) Model() string {
+	if c == nil {
+		return ""
+	}
+	return strings.TrimSpace(c.model)
 }
 
 func (c *Client) Embed(ctx context.Context, text string) ([]float32, error) {
@@ -67,6 +70,12 @@ func (c *Client) Embed(ctx context.Context, text string) ([]float32, error) {
 func (c *Client) EmbedBatch(ctx context.Context, texts []string) ([][]float32, error) {
 	if c == nil {
 		return nil, fmt.Errorf("embeddings: nil client")
+	}
+	if c.initErr != nil {
+		return nil, fmt.Errorf("embeddings: init ark embedder: %w", c.initErr)
+	}
+	if c.embedder == nil {
+		return nil, fmt.Errorf("embeddings: nil ark embedder")
 	}
 	if len(texts) == 0 {
 		return nil, nil
@@ -87,47 +96,72 @@ func (c *Client) EmbedBatch(ctx context.Context, texts []string) ([][]float32, e
 }
 
 func (c *Client) embedSlice(ctx context.Context, texts []string) ([][]float32, error) {
-	body, err := json.Marshal(apiRequest{Model: c.model, Input: texts})
+	vecs, err := c.embedder.EmbedStrings(ctx, texts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("embeddings: ark embed strings: %w", err)
 	}
-	url := c.baseURL + "/embeddings"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
+	if len(vecs) != len(texts) {
+		return nil, fmt.Errorf("embeddings: got %d vectors for %d inputs", len(vecs), len(texts))
 	}
-	req.Header.Set("Content-Type", "application/json")
-	if c.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embeddings: HTTP %d", resp.StatusCode)
-	}
-	var parsed apiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return nil, err
-	}
-	sort.Slice(parsed.Data, func(i, j int) bool {
-		return parsed.Data[i].Index < parsed.Data[j].Index
-	})
-	out := make([][]float32, 0, len(parsed.Data))
-	for _, row := range parsed.Data {
-		vec := make([]float32, 0, len(row.Embedding))
-		for _, v := range row.Embedding {
+	out := make([][]float32, 0, len(vecs))
+	expectedDim := c.dimensions
+	for _, row := range vecs {
+		vec := make([]float32, 0, len(row))
+		for _, v := range row {
 			vec = append(vec, float32(v))
 		}
-		if len(vec) != Dimensions {
-			return nil, fmt.Errorf("embeddings: expected dim %d, got %d", Dimensions, len(vec))
+		if expectedDim == 0 {
+			expectedDim = len(vec)
+		}
+		if expectedDim <= 0 {
+			return nil, fmt.Errorf("embeddings: empty vector")
+		}
+		if len(vec) != expectedDim {
+			return nil, fmt.Errorf("embeddings: expected dim %d, got %d (check ai.embedding.provider.*.dimensions or remove it to accept the provider default)", expectedDim, len(vec))
 		}
 		out = append(out, vec)
 	}
-	if len(out) != len(texts) {
-		return nil, fmt.Errorf("embeddings: got %d vectors for %d inputs", len(out), len(texts))
-	}
 	return out, nil
+}
+
+func resolveEmbeddingEndpoint(cfg *conf.Bootstrap) (baseURL, apiKey, model, apiType string, dimensions int) {
+	if provider := conf.GetBootstrapEmbeddingProvider(cfg); provider != nil {
+		baseURL = strings.TrimSuffix(strings.TrimSpace(provider.BaseURL), "/")
+		model = strings.TrimSpace(provider.Model)
+		apiKey = strings.TrimSpace(provider.APIKey)
+		apiType = strings.TrimSpace(provider.APIType)
+		dimensions = int(provider.Dimensions)
+		if baseURL != "" && model != "" {
+			return baseURL, apiKey, model, apiType, dimensions
+		}
+	}
+
+	ai := cfg.GetAi()
+	if ai == nil || strings.TrimSpace(ai.GetEmbeddingModel()) == "" {
+		return "", "", "", "", 0
+	}
+	baseURL = strings.TrimSuffix(strings.TrimSpace(ai.GetBaseUrl()), "/")
+	model = strings.TrimSpace(ai.GetEmbeddingModel())
+	apiKey = strings.TrimSpace(ai.GetApiKey())
+	if baseURL == "" || model == "" {
+		return "", "", "", "", 0
+	}
+	return baseURL, apiKey, model, "", 0
+}
+
+func parseArkAPIType(raw, model string) *arkembed.APIType {
+	raw = strings.ToLower(strings.TrimSpace(raw))
+	switch raw {
+	case "text", "text_api":
+		apiType := arkembed.APITypeText
+		return &apiType
+	case "multimodal", "multi_modal", "multi-modal", "multi_modal_api", "vision":
+		apiType := arkembed.APITypeMultiModal
+		return &apiType
+	}
+	if strings.Contains(strings.ToLower(strings.TrimSpace(model)), "vision") {
+		apiType := arkembed.APITypeMultiModal
+		return &apiType
+	}
+	return nil
 }

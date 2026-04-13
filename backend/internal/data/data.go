@@ -83,5 +83,5 @@ func NewAIRuntime(cfg *conf.Bootstrap) *airuntime.Runtime {
 }
 
 func NewEmbeddingClient(cfg *conf.Bootstrap) *embeddings.Client {
-	return embeddings.NewClient(cfg.GetAi())
+	return embeddings.NewClient(cfg)
 }

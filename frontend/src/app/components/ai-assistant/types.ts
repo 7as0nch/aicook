@@ -71,6 +71,14 @@ export type Message = {
   searchResultsExpanded?: boolean
   createdAt?: string
   kind?: string
+  ingestNotice?: {
+    documentId?: string
+    mediaAssetId?: string
+    retryable?: boolean
+    partial?: boolean
+    failureReason?: string
+    summary?: string
+  }
 }
 
 export type PendingAttachment = {

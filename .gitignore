@@ -32,6 +32,7 @@ go.work.sum
 # .vscode/
 .cache/
 .gocache/
+__debug_bin*
 node_modules/
 dist/
 venv/

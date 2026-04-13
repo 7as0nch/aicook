@@ -1,7 +1,5 @@
 package graph
 
-import "context"
-
 type Step struct {
 	ID     string `json:"id"`
 	Title  string `json:"title"`
@@ -10,28 +8,28 @@ type Step struct {
 }
 
 type RecipeCard struct {
-	RecipeID     string           `json:"recipe_id,omitempty"`
-	Title        string           `json:"title"`
-	Summary      string           `json:"summary"`
-	CoverImageURL string          `json:"cover_image_url,omitempty"`
-	Ingredients  []string         `json:"ingredients,omitempty"`
-	Time         string           `json:"time,omitempty"`
-	Difficulty   string           `json:"difficulty,omitempty"`
-	Status       string           `json:"status,omitempty"`
-	Source       string           `json:"source,omitempty"`
-	IsRecipe     bool             `json:"is_recipe"`
-	RejectReason string           `json:"reject_reason,omitempty"`
-	Draft        *TextRecipeDraft `json:"draft,omitempty"`
+	RecipeID      string           `json:"recipe_id,omitempty"`
+	Title         string           `json:"title"`
+	Summary       string           `json:"summary"`
+	CoverImageURL string           `json:"cover_image_url,omitempty"`
+	Ingredients   []string         `json:"ingredients,omitempty"`
+	Time          string           `json:"time,omitempty"`
+	Difficulty    string           `json:"difficulty,omitempty"`
+	Status        string           `json:"status,omitempty"`
+	Source        string           `json:"source,omitempty"`
+	IsRecipe      bool             `json:"is_recipe"`
+	RejectReason  string           `json:"reject_reason,omitempty"`
+	Draft         *TextRecipeDraft `json:"draft,omitempty"`
 }
 
 type Source struct {
-	Title      string `json:"title"`
-	DocumentID string `json:"document_id"`
-	Snippet    string `json:"snippet"`
-	SourceKind string `json:"source_kind,omitempty"`
-	SiteName   string `json:"site_name,omitempty"`
+	Title       string `json:"title"`
+	DocumentID  string `json:"document_id"`
+	Snippet     string `json:"snippet"`
+	SourceKind  string `json:"source_kind,omitempty"`
+	SiteName    string `json:"site_name,omitempty"`
 	PublishTime string `json:"publish_time,omitempty"`
-	LogoURL    string `json:"logo_url,omitempty"`
+	LogoURL     string `json:"logo_url,omitempty"`
 }
 
 type DraftIngredient struct {
@@ -66,26 +64,17 @@ type TextRecipeDraft struct {
 }
 
 type TextRecipePreferences struct {
-	Flavor     string `json:"flavor,omitempty"`
-	Duration   string `json:"duration,omitempty"`
-	Difficulty string `json:"difficulty,omitempty"`
-	Style      string `json:"style,omitempty"`
+	Flavor      string   `json:"flavor,omitempty"`
+	Duration    string   `json:"duration,omitempty"`
+	Difficulty  string   `json:"difficulty,omitempty"`
+	Style       string   `json:"style,omitempty"`
 	Constraints []string `json:"constraints,omitempty"`
 }
 
-type Input struct {
-	Text string
-}
-
-type Output struct {
+type ImageRecipeOutput struct {
 	Steps      []Step
 	Card       *RecipeCard
 	Content    string
 	IsRecipe   bool
 	RejectHint string
-}
-
-type Executor interface {
-	Classify(ctx context.Context, input Input) (bool, string, error)
-	Create(ctx context.Context, input Input) (*RecipeCard, error)
 }

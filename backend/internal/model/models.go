@@ -191,7 +191,7 @@ type KnowledgeChunk struct {
 	Content         string            `gorm:"type:text;not null" json:"content"`
 	SourceSnippet   string            `gorm:"type:text" json:"source_snippet"`
 	TokenSize       int               `gorm:"default:0" json:"token_size"`
-	Embedding       *pgvector.Vector  `gorm:"type:vector(1536)" json:"-"`
+	Embedding       *pgvector.Vector  `gorm:"type:vector" json:"-"`
 	MetadataJSON    datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
 }
 

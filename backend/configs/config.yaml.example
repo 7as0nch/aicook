@@ -49,4 +49,11 @@ ai:
   chat_model: "mimo-v2-pro" # mimo-v2-pro
   # 上传图片/音频/文件时自动切到多模态模型。
   vision_model: "mimo-v2-omni"
-  embedding_model: "mimo-v2-omni"
+  embedding:
+    provider:
+      doubao:
+        base_url: "https://ark.cn-beijing.volces.com/api/v3"
+        model: "doubao-embedding-vision-251215"
+        api_key: "your-doubao-api-key"
+        api_type: "multimodal"
+        dimensions: 2048

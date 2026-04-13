@@ -10,6 +10,8 @@ require (
 	github.com/aliyun/credentials-go v1.4.12
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/cloudwego/eino v0.8.5
+	github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive v0.0.0-20260409083444-42d9d11b55f4
+	github.com/cloudwego/eino-ext/components/embedding/ark v0.1.1
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.10
 	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260323112355-f061db7e8419
 	github.com/go-kratos/kratos/v2 v2.8.4
@@ -27,6 +29,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
+	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
@@ -69,6 +72,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
@@ -90,6 +94,8 @@ require (
 	github.com/smartwalle/nsign v1.0.9 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/volcengine/volc-sdk-golang v1.0.23 // indirect
+	github.com/volcengine/volcengine-go-sdk v1.0.181 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
@@ -103,6 +109,6 @@ require (
 	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect
 )

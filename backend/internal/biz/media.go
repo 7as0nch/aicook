@@ -133,6 +133,7 @@ func (u *MediaUsecase) PrepareUpload(ctx context.Context, req PrepareUploadReque
 		return nil, fmt.Errorf("unsupported media kind: %s", req.MediaKind)
 	}
 
+	bucket := u.bucketForMediaType(mediaType)
 	objectKey := buildObjectKey(mediaType, req.HouseholdID, req.FileName)
 	asset := &data.MediaAsset{
 		HouseholdID: req.HouseholdID,
@@ -141,16 +142,16 @@ func (u *MediaUsecase) PrepareUpload(ctx context.Context, req PrepareUploadReque
 		FileName:    req.FileName,
 		ContentType: req.ContentType,
 		SizeBytes:   req.SizeBytes,
-		Bucket:      u.mediaBucket,
+		Bucket:      bucket,
 		ObjectKey:   objectKey,
-		StorageURL:  buildStorageURL(u.publicEndpoint, u.mediaBucket, objectKey),
+		StorageURL:  buildStorageURL(u.publicEndpoint, bucket, objectKey),
 		Source:      "upload",
 	}
 	if err := u.repo.Create(ctx, asset); err != nil {
 		return nil, err
 	}
 
-	uploadURL, err := u.objectStorage.PresignPutObject(ctx, u.mediaBucket, objectKey, 15*time.Minute)
+	uploadURL, err := u.objectStorage.PresignPutObject(ctx, bucket, objectKey, 15*time.Minute)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +183,13 @@ func (u *MediaUsecase) CompleteUpload(ctx context.Context, assetID int64) (*data
 
 func (u *MediaUsecase) Get(ctx context.Context, id int64) (*data.MediaAsset, error) {
 	return u.repo.Get(ctx, id)
+}
+
+func (u *MediaUsecase) bucketForMediaType(mediaType string) string {
+	if strings.EqualFold(strings.TrimSpace(mediaType), "document") && strings.TrimSpace(u.knowledgeBucket) != "" {
+		return u.knowledgeBucket
+	}
+	return u.mediaBucket
 }
 
 func normalizeMediaKind(kind string) string {

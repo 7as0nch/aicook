@@ -2,12 +2,14 @@ import { ArrowLeft, ChevronDown, ChevronRight, Database, Upload } from 'lucide-r
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
+  knowledgeDocumentRetryable,
   createKnowledgeBase,
   knowledgeDocStageLabel,
   listHouseholdAIMemories,
   listKnowledgeBases,
   listKnowledgeDocuments,
   pollKnowledgeDocumentUntilSettled,
+  retryChatKnowledgeIngest,
   type HouseholdAIMemory,
   type KnowledgeBase,
   type KnowledgeDocument,
@@ -27,6 +29,7 @@ export default function KnowledgeBasePage() {
   const [uploadBusy, setUploadBusy] = useState(false)
   const [uploadStage, setUploadStage] = useState('')
   const [createBusy, setCreateBusy] = useState(false)
+  const [retryingDocId, setRetryingDocId] = useState('')
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -94,6 +97,25 @@ export default function KnowledgeBasePage() {
     }
   }
 
+  async function onRetryDocument(doc: KnowledgeDocument) {
+    if (!selectedBaseId || !doc.id || retryingDocId) return
+    setRetryingDocId(doc.id)
+    setUploadBusy(true)
+    setUploadStage('准备重试…')
+    setError('')
+    try {
+      await retryChatKnowledgeIngest(doc.id)
+      await pollKnowledgeDocumentUntilSettled(selectedBaseId, doc.id, (label) => setUploadStage(label), { intervalMs: 800, maxTicks: 450 })
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '重试失败')
+    } finally {
+      setRetryingDocId('')
+      setUploadBusy(false)
+      setUploadStage('')
+    }
+  }
+
   const totalDocs = Object.values(docsByBase).reduce((n, a) => n + a.length, 0)
   const selectedBase = bases.find((b) => b.id === selectedBaseId)
   const docs = selectedBaseId ? (docsByBase[selectedBaseId] ?? []) : []
@@ -106,7 +128,7 @@ export default function KnowledgeBasePage() {
       <input
         ref={fileRef}
         type="file"
-        accept=".pdf,.txt,.md,.markdown,.json,.xml,application/pdf,text/plain,text/markdown"
+        accept=".pdf,.txt,.md,.markdown,.json,.xml,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="hidden"
         onChange={(ev) => void onFile(ev)}
       />
@@ -253,7 +275,20 @@ export default function KnowledgeBasePage() {
                     <ul className="divide-y" style={{ borderColor: 'var(--line)' }}>
                       {docs.map((doc) => (
                         <li key={doc.id} className="flex flex-col gap-0.5 py-3 first:pt-0">
-                          <div className="font-medium">{doc.title || doc.file_name}</div>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="font-medium">{doc.title || doc.file_name}</div>
+                            {knowledgeDocumentRetryable(doc) ? (
+                              <button
+                                type="button"
+                                disabled={uploadBusy || retryingDocId === doc.id}
+                                onClick={() => void onRetryDocument(doc)}
+                                className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                                style={{ background: 'var(--color-tertiary, #944a00)' }}
+                              >
+                                {retryingDocId === doc.id ? '重试中…' : '直接重试'}
+                              </button>
+                            ) : null}
+                          </div>
                           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                             <span>{doc.status}</span>
                             {doc.processing_stage ? (
