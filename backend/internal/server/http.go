@@ -47,7 +47,7 @@ func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratosht
 	return server
 }
 
-func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, chatHandler *AIChatHandler, memoryHandler *HouseholdMemoryHandler) *kratoshttp.Server {
+func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService, chatHandler *AIChatHandler) *kratoshttp.Server {
 	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second
@@ -85,6 +85,9 @@ func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRep
 	v1.RegisterKnowledgeServiceHTTPServer(server, knowledgeSvc)
 	v1.RegisterAIServiceHTTPServer(server, aiSvc)
 	v1.RegisterCookingServiceHTTPServer(server, cookingSvc)
+	if kitchenSvc != nil {
+		v1.RegisterKitchenServiceHTTPServer(server, kitchenSvc)
+	}
 
 	mux := nethttp.NewServeMux()
 	mux.HandleFunc("GET /health", func(w nethttp.ResponseWriter, r *nethttp.Request) {
@@ -92,9 +95,7 @@ func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRep
 		_, _ = w.Write([]byte("ok"))
 	})
 	chatHandler.Register(mux)
-	if memoryHandler != nil {
-		memoryHandler.Register(mux)
-	}
 	server.HandlePrefix("/", mux)
 	return server
 }
+

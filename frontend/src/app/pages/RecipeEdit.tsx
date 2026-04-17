@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { getRecipeDetail, updateRecipe, uploadMedia, type RecipeDetail } from '../../lib/api/client'
 import { RecipeCoverImg } from '../components/RecipeCoverImg'
+import { toast } from 'sonner'
 
 type IngForm = { group_name: string; name: string; amount_text: string; preparation: string }
 type StepForm = { title: string; description: string; media_urls: string[] }
@@ -98,17 +99,17 @@ export default function RecipeEdit() {
 
   async function submit(nextStatus: 'draft' | 'published') {
     if (!id || !title.trim()) {
-      window.alert('请填写标题')
+      toast.error('请填写标题')
       return
     }
     const ings = ingredients.filter((i) => i.name.trim())
     if (!ings.length) {
-      window.alert('至少保留一条食材')
+      toast.error('至少保留一条食材')
       return
     }
     const st = steps.filter((x) => x.description.trim())
     if (!st.length) {
-      window.alert('至少保留一步骤')
+      toast.error('至少保留一步骤')
       return
     }
     setSaving(true)
@@ -139,7 +140,7 @@ export default function RecipeEdit() {
       })
       navigate(`/recipes/${id}`)
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : '保存失败')
+      toast.error(e instanceof Error ? e.message : '保存失败')
     } finally {
       setSaving(false)
     }
@@ -272,7 +273,7 @@ export default function RecipeEdit() {
                       setGallery((g) => [...g, url])
                       setCover((c) => c || url)
                     } catch (err) {
-                      window.alert(err instanceof Error ? err.message : '上传失败')
+                      toast.error(err instanceof Error ? err.message : '上传失败')
                     }
                   }
                 }}
@@ -441,7 +442,7 @@ export default function RecipeEdit() {
                           try {
                             urls.push(await uploadKind(f))
                           } catch (err) {
-                            window.alert(err instanceof Error ? err.message : '上传失败')
+                            toast.error(err instanceof Error ? err.message : '上传失败')
                           }
                         }
                         if (urls.length) {
@@ -490,3 +491,4 @@ export default function RecipeEdit() {
     </div>
   )
 }
+

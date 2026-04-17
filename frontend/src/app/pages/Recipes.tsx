@@ -1,16 +1,24 @@
 import { MoreVertical, Plus, Search, Image as ImageIcon, Link as LinkIcon, PenTool, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 import { deleteRecipe, getRecipeDetail, listKitchenTags, listRecipes, updateRecipe, type KitchenTag } from '../../lib/api/client'
-import { mapCardToUiRecipe, recipeDetailToUpdatePayload, type UiRecipe } from '../../lib/mappers/recipe'
+import { recipeDetailToUpdatePayload, mapCardToUiRecipe, type UiRecipe } from '../../lib/mappers/recipe'
+import { useFeedback } from '../contexts/FeedbackContext'
 import { RecipeCoverImg } from '../components/RecipeCoverImg'
 
 type RailKey = '__all__' | '__draft__' | string
 
 export default function Recipes() {
   const navigate = useNavigate()
+  const { confirm } = useFeedback()
+  const [searchParams] = useSearchParams()
+  const fromPlan = searchParams.get('from') === 'plan'
+  const targetDay = searchParams.get('day') ?? ''
+  const targetSlot = searchParams.get('slot') ?? ''
+
   const [recipes, setRecipes] = useState<UiRecipe[]>([])
   const [kitchenTags, setKitchenTags] = useState<KitchenTag[]>([])
   const [railKey, setRailKey] = useState<RailKey>('__all__')
@@ -28,6 +36,8 @@ export default function Recipes() {
             ? await listRecipes(200, { recipeStatus: 'draft' })
             : await listRecipes(200, { kitchenTag: railKey })
       setRecipes(cards.map(mapCardToUiRecipe))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '加载菜谱失败')
     } finally {
       setLoading(false)
     }
@@ -39,9 +49,13 @@ export default function Recipes() {
 
   useEffect(() => {
     let cancelled = false
-    void listKitchenTags().then((tags) => {
-      if (!cancelled) setKitchenTags(tags)
-    })
+    void listKitchenTags()
+      .then((tags) => {
+        if (!cancelled) setKitchenTags(tags)
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : '加载标签失败')
+      })
     return () => {
       cancelled = true
     }
@@ -50,10 +64,7 @@ export default function Recipes() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return recipes
-    return recipes.filter((r) => {
-      const blob = `${r.title} ${r.tags.join(' ')}`.toLowerCase()
-      return blob.includes(q)
-    })
+    return recipes.filter((r) => `${r.title} ${r.tags.join(' ')}`.toLowerCase().includes(q))
   }, [query, recipes])
 
   const railItems = useMemo(() => {
@@ -98,20 +109,27 @@ export default function Recipes() {
   }, [railKey, query])
 
   useEffect(() => {
-    wasAtBottomRef.current = false
-  }, [recipes])
-
-  useEffect(() => {
     return () => {
       if (endToastTimerRef.current) clearTimeout(endToastTimerRef.current)
     }
   }, [])
 
+  function handleRecipeClick(recipe: UiRecipe) {
+    if (fromPlan && targetDay && targetSlot) {
+      navigate(`/plan?add_recipe_id=${encodeURIComponent(recipe.id)}&add_recipe_title=${encodeURIComponent(recipe.title)}&day=${encodeURIComponent(targetDay)}&slot=${encodeURIComponent(targetSlot)}`)
+      return
+    }
+    navigate(`/recipes/${recipe.id}`)
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50">
       <div className="shrink-0 space-y-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">菜谱库</h1>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">菜谱库</h1>
+            {fromPlan ? <p className="text-xs text-orange-500">选择后会直接加入当前餐次</p> : null}
+          </div>
           <button
             type="button"
             onClick={() => setShowAddMenu(true)}
@@ -161,20 +179,14 @@ export default function Recipes() {
             ) : (
               <ul className="divide-y divide-gray-100">
                 {filtered.map((recipe) => (
-                  <RecipeRowCard key={recipe.id} recipe={recipe} onRefresh={() => void loadRecipes()} />
+                  <RecipeRowCard key={recipe.id} recipe={recipe} onRefresh={() => void loadRecipes()} onOpen={() => handleRecipeClick(recipe)} onConfirm={confirm} />
                 ))}
               </ul>
             )}
           </div>
           {endToast ? (
-            <div
-              className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center"
-              role="status"
-              aria-live="polite"
-            >
-              <span className="rounded-full bg-gray-900/85 px-3 py-1.5 text-xs text-white shadow-md">
-                已经到底啦
-              </span>
+            <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center" role="status" aria-live="polite">
+              <span className="rounded-full bg-gray-900/85 px-3 py-1.5 text-xs text-white shadow-md">已经到底啦</span>
             </div>
           ) : null}
         </div>
@@ -219,13 +231,13 @@ export default function Recipes() {
                   </div>
                   <div className="text-center">
                     <div className="mb-1 text-[14px] font-bold text-gray-900">图片识别</div>
-                    <div className="text-[11px] text-gray-500">AI解析图片菜谱</div>
+                    <div className="text-[11px] text-gray-500">AI 解析图片菜谱</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => alert('功能开发中...')}
+                  onClick={() => toast.info('网页提取入口已预留，下一步会接入真实解析链路。')}
                   className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-gray-50 px-2 py-6 transition-colors hover:bg-gray-100"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-700 shadow-sm">
@@ -238,21 +250,19 @@ export default function Recipes() {
                 </button>
               </div>
 
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/recipes/editor')}
-                  className="flex w-full items-center gap-4 rounded-2xl bg-gray-50 p-4 transition-colors hover:bg-gray-100"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-700 shadow-sm">
-                    <PenTool className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-[14px] font-bold text-gray-900">手动录入</div>
-                    <div className="text-[12px] text-gray-500">自己写下独特秘方</div>
-                  </div>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/recipes/editor')}
+                className="flex w-full items-center gap-4 rounded-2xl bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-700 shadow-sm">
+                  <PenTool className="h-5 w-5" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-[14px] font-bold text-gray-900">手动录入</div>
+                  <div className="text-[12px] text-gray-500">自己写下独特秘方</div>
+                </div>
+              </button>
             </motion.div>
           </>
         )}
@@ -261,7 +271,17 @@ export default function Recipes() {
   )
 }
 
-function RecipeRowCard({ recipe, onRefresh }: { recipe: UiRecipe; onRefresh: () => void }) {
+function RecipeRowCard({
+  recipe,
+  onRefresh,
+  onOpen,
+  onConfirm,
+}: {
+  recipe: UiRecipe
+  onRefresh: () => void
+  onOpen: () => void
+  onConfirm: (options: { title: string; description?: string; confirmText?: string; cancelText?: string; tone?: 'default' | 'danger' }) => Promise<boolean>
+}) {
   const navigate = useNavigate()
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -284,94 +304,74 @@ function RecipeRowCard({ recipe, onRefresh }: { recipe: UiRecipe; onRefresh: () 
     return () => window.removeEventListener('resize', onResize)
   }, [menuOpen])
 
-  const menuPortal =
-    menuOpen &&
-    createPortal(
-      <>
-        <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setMenuOpen(false)} />
-        <div
-          className="fixed z-[201] w-36 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
-          style={{ top: menuPos.top, right: menuPos.right }}
-          role="menu"
-        >
+  const menuPortal = menuOpen && createPortal(
+    <>
+      <div className="fixed inset-0 z-[200]" aria-hidden onClick={() => setMenuOpen(false)} />
+      <div className="fixed z-[201] w-36 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg" style={{ top: menuPos.top, right: menuPos.right }} role="menu">
+        <button type="button" className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50" onClick={() => { setMenuOpen(false); onOpen() }}>
+          打开
+        </button>
+        <button type="button" className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50" onClick={() => { setMenuOpen(false); navigate(`/recipes/${recipe.id}/edit`) }}>
+          编辑
+        </button>
+        {recipe.status === 'draft' ? (
           <button
             type="button"
-            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50"
+            className="block w-full px-3 py-2 text-left text-[13px] text-orange-600 hover:bg-orange-50"
             onClick={() => {
               setMenuOpen(false)
-              navigate(`/recipes/${recipe.id}`)
+              void (async () => {
+                try {
+                  const d = await getRecipeDetail(recipe.id)
+                  await updateRecipe(recipe.id, recipeDetailToUpdatePayload(d, 'published'))
+                  toast.success('菜谱已发布')
+                  onRefresh()
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : '发布失败')
+                }
+              })()
             }}
           >
-            打开
+            发布
           </button>
-          <button
-            type="button"
-            className="block w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50"
-            onClick={() => {
-              setMenuOpen(false)
-              navigate(`/recipes/${recipe.id}/edit`)
-            }}
-          >
-            编辑
-          </button>
-          {recipe.status === 'draft' ? (
-            <button
-              type="button"
-              className="block w-full px-3 py-2 text-left text-[13px] text-orange-600 hover:bg-orange-50"
-              onClick={() => {
-                setMenuOpen(false)
-                void (async () => {
-                  try {
-                    const d = await getRecipeDetail(recipe.id)
-                    await updateRecipe(recipe.id, recipeDetailToUpdatePayload(d, 'published'))
-                    onRefresh()
-                  } catch (err) {
-                    window.alert(err instanceof Error ? err.message : '发布失败')
-                  }
-                })()
-              }}
-            >
-              发布
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="block w-full px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50"
-            onClick={() => {
-              setMenuOpen(false)
-              if (!window.confirm(`删除「${recipe.title}」？`)) return
+        ) : null}
+        <button
+          type="button"
+          className="block w-full px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50"
+          onClick={() => {
+            setMenuOpen(false)
+            void (async () => {
+              const confirmed = await onConfirm({
+                title: `删除《${recipe.title}》？`,
+                description: '删除后将无法在菜谱库中继续查看这道菜。',
+                confirmText: '删除',
+                tone: 'danger',
+              })
+              if (!confirmed) return
               void deleteRecipe(recipe.id)
-                .then(() => onRefresh())
-                .catch((err) => window.alert(err instanceof Error ? err.message : '删除失败'))
-            }}
-          >
-            删除
-          </button>
-        </div>
-      </>,
-      document.body,
-    )
+                .then(() => {
+                  toast.success('菜谱已删除')
+                  onRefresh()
+                })
+                .catch((err) => toast.error(err instanceof Error ? err.message : '删除失败'))
+            })()
+          }}
+        >
+          删除
+        </button>
+      </div>
+    </>,
+    document.body,
+  )
 
   return (
     <li className="relative bg-white">
       {recipe.status === 'draft' ? (
-        <span className="absolute right-10 top-2 z-10 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-          草稿
-        </span>
+        <span className="absolute right-10 top-2 z-10 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">草稿</span>
       ) : null}
-      <button
-        type="button"
-        className="flex w-full gap-3 p-2.5 pr-12 text-left"
-        onClick={() => navigate(`/recipes/${recipe.id}`)}
-      >
+      <button type="button" className="flex w-full gap-3 p-2.5 pr-12 text-left" onClick={onOpen}>
         <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-          <RecipeCoverImg
-            src={recipe.cover}
-            alt={recipe.title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            fetchPriority="low"
-          />
+          <RecipeCoverImg src={recipe.cover} alt={recipe.title} className="h-full w-full object-cover" loading="lazy" fetchPriority="low" />
         </div>
         <div className="min-w-0 flex-1 py-0.5">
           <h3 className="line-clamp-2 text-[14px] font-bold leading-snug text-gray-900">{recipe.title}</h3>
@@ -381,9 +381,7 @@ function RecipeRowCard({ recipe, onRefresh }: { recipe: UiRecipe; onRefresh: () 
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
             {[recipe.category, ...recipe.secondaryKitchenTags].filter(Boolean).slice(0, 3).map((tag, idx) => (
-              <span key={`${recipe.id}-${tag}-${idx}`} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
-                {tag}
-              </span>
+              <span key={`${recipe.id}-${tag}-${idx}`} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">{tag}</span>
             ))}
           </div>
         </div>

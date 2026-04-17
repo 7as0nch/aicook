@@ -22,6 +22,7 @@ export interface UiRecipe {
   id: string
   title: string
   cover: string
+  summary?: string
   /** Extra images (carousel); cover is list thumbnail */
   gallery: string[]
   status: string
@@ -81,6 +82,7 @@ export function mapCardToUiRecipe(card: RecipeCard): UiRecipe {
     id: card.id,
     title: card.title,
     cover: card.cover_image_url,
+    summary: card.summary || undefined,
     gallery: Array.isArray(card.gallery_image_urls) ? card.gallery_image_urls.filter(Boolean) : [],
     status: card.status || 'draft',
     category: card.category || undefined,
@@ -148,6 +150,7 @@ export function mapDetailToUiRecipe(detail: RecipeDetail): UiRecipe {
     id: recipe.id,
     title: recipe.title,
     cover: recipe.cover_image_url,
+    summary: recipe.summary || undefined,
     gallery: Array.isArray(recipe.gallery_image_urls) ? recipe.gallery_image_urls.filter(Boolean) : [],
     status: recipe.status || 'draft',
     category: recipe.category || undefined,

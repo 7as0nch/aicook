@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Settings, LogOut, Database, ChevronRight, Home, RefreshCcw, Plus, Download, X, Camera } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import QRCode from "antd/es/qr-code";
 
 import {
   clearAuthSession,
@@ -20,6 +21,9 @@ import {
 } from "../../lib/api/client";
 import { mapCardToUiRecipe, type UiRecipe } from "../../lib/mappers/recipe";
 import { ModalPortal } from "../components/ModalPortal";
+import { canUseBarcodeDetector, createQrCodeDetector, detectQrCodeFromImageFile } from "../../lib/nativeCamera";
+import { resolveShareScanTarget } from "../../lib/shareScan";
+import { toast } from "sonner";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -45,6 +49,15 @@ export default function Profile() {
 
   const [showKitchensModal, setShowKitchensModal] = useState(false);
 
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanError, setScanError] = useState("");
+  type ScanUiMode = "loading" | "live" | "album_only" | "none";
+  const [scanUiMode, setScanUiMode] = useState<ScanUiMode>("loading");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scanRafRef = useRef<number | null>(null);
+  const scanStreamRef = useRef<MediaStream | null>(null);
+  const scanQrFileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     void getMe()
       .then(setSession)
@@ -56,6 +69,16 @@ export default function Profile() {
     setShowAccountModal(true);
     const next = new URLSearchParams(searchParams);
     next.delete("sheet");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const code = searchParams.get("share")?.trim();
+    if (!code) return;
+    setShareCodeInput(code);
+    setShowShareModal(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("share");
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -75,6 +98,9 @@ export default function Profile() {
       if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
     };
   }, [avatarObjectUrl]);
+
+  const current = session?.current_household;
+  const profileInitial = (session?.user.display_name || session?.user.username || '?').trim().charAt(0).toUpperCase() || '?';
 
   async function refreshProfile() {
     const latest = await getMe();
@@ -168,26 +194,145 @@ export default function Profile() {
     }
   }
 
-  const current = session?.current_household;
-  const profileInitial = (session?.user.display_name || session?.user.username || "厨").slice(0, 1);
+  const handleScannedText = useCallback(
+    (raw: string) => {
+      const target = resolveShareScanTarget(raw, window.location.origin, window.location.hostname);
+      setScanError("");
+      if (target.kind === "recipe") {
+        setShowScanModal(false);
+        navigate(`/share/recipe/${target.shareCode}`);
+        return;
+      }
+      if (target.kind === "kitchen" || target.kind === "code") {
+        setShowScanModal(false);
+        setShareCodeInput(target.shareCode);
+        setShowShareModal(true);
+        return;
+      }
+      setScanError("未识别到有效的厨房或菜谱分享链接");
+    },
+    [navigate],
+  );
 
-  async function handleAccountSave() {
-    const name = draftDisplayName.trim();
-    if (!name) {
-      setMessage("昵称不能为空");
+  useEffect(() => {
+    if (!showScanModal) {
+      setScanUiMode("loading");
       return;
     }
-    setAccountBusy(true);
-    setMessage("");
+    setScanError("");
+    if (!canUseBarcodeDetector()) {
+      setScanUiMode("none");
+      return;
+    }
+    let cancelled = false;
+    setScanUiMode("loading");
+    void (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((tr) => tr.stop());
+          return;
+        }
+        scanStreamRef.current = stream;
+        const video = videoRef.current;
+        if (video) {
+          video.srcObject = stream;
+          await video.play().catch(() => undefined);
+        }
+        setScanUiMode("live");
+      } catch {
+        if (!cancelled) {
+          setScanUiMode("album_only");
+          setScanError("无法打开摄像头，请从相册选择含二维码的图片（与不支持实时相机时相同逻辑）");
+          toast.info("已切换为从相册选择二维码截图");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (scanRafRef.current != null) {
+        cancelAnimationFrame(scanRafRef.current);
+        scanRafRef.current = null;
+      }
+      const stream = scanStreamRef.current;
+      scanStreamRef.current = null;
+      stream?.getTracks().forEach((tr) => tr.stop());
+      const v = videoRef.current;
+      if (v) v.srcObject = null;
+    };
+  }, [showScanModal]);
+
+  useEffect(() => {
+    if (!showScanModal || scanUiMode !== "live") return;
+    const detector = createQrCodeDetector();
+    if (!detector) return;
+    let cancelled = false;
+    const loop = async () => {
+      const video = videoRef.current;
+      if (cancelled || !video) return;
+      try {
+        const codes = await detector.detect(video);
+        const hit = codes.find((c) => c.rawValue?.trim());
+        if (hit?.rawValue) {
+          handleScannedText(hit.rawValue);
+          return;
+        }
+      } catch {
+        /* ignore frame */
+      }
+      scanRafRef.current = requestAnimationFrame(() => void loop());
+    };
+    void loop();
+    return () => {
+      cancelled = true;
+      if (scanRafRef.current != null) {
+        cancelAnimationFrame(scanRafRef.current);
+        scanRafRef.current = null;
+      }
+    };
+  }, [showScanModal, scanUiMode, handleScannedText]);
+
+  async function handleScanQrImageFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !canUseBarcodeDetector()) return;
+    setScanError("");
     try {
-      const patch: UpdateProfilePatch = { display_name: name };
-      if (pendingAvatarAssetId) patch.avatar_asset_id = pendingAvatarAssetId;
+      const raw = await detectQrCodeFromImageFile(file);
+      if (raw) {
+        handleScannedText(raw);
+      } else {
+        setScanError("未在图片中识别到二维码，请换一张清晰的截图");
+      }
+    } catch {
+      setScanError("图片加载或识别失败，请重试");
+    }
+  }
+
+
+  async function handleAccountSave() {
+    const patch: UpdateProfilePatch = {
+      display_name: draftDisplayName.trim(),
+    };
+    if (pendingAvatarAssetId !== null) {
+      patch.avatar_asset_id = pendingAvatarAssetId;
+    }
+    setAccountBusy(true);
+    setMessage('');
+    try {
       const next = await updateProfile(patch);
       setSession(next);
-      setMessage("资料已更新");
+      setPendingAvatarAssetId(null);
+      setAvatarObjectUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       setShowAccountModal(false);
+      setMessage('账户资料已更新');
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "保存失败");
+      setMessage(e instanceof Error ? e.message : '保存失败');
     } finally {
       setAccountBusy(false);
     }
@@ -389,6 +534,22 @@ export default function Profile() {
       </ModalPortal>
 
       <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => {
+            setScanError("");
+            setShowScanModal(true);
+          }}
+          className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:bg-gray-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50">
+              <Camera className="h-4 w-4 text-orange-500" />
+            </div>
+            <span className="font-medium text-gray-800">扫一扫</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-gray-300" />
+        </button>
         <button 
           onClick={() => setShowKitchensModal(true)} 
           className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:bg-gray-50"
@@ -553,6 +714,34 @@ export default function Profile() {
               </div>
               
               <div className="space-y-4">
+                <div className="rounded-3xl bg-gray-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">我的厨房二维码</p>
+                      <p className="mt-1 text-xs text-gray-500">家人可扫码或输入分享码导入当前厨房菜谱。</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleShareCode()}
+                      disabled={busy}
+                      className="rounded-full bg-gray-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                    >
+                      生成分享码
+                    </button>
+                  </div>
+                  {session?.current_household?.share_code ? (
+                    <div className="mt-4 flex flex-col items-center gap-3">
+                      <QRCode
+                        value={`${window.location.origin}/profile?share=${session.current_household.share_code}`}
+                        size={148}
+                        bordered={false}
+                      />
+                      <p className="text-sm font-semibold text-gray-900">分享码：{session.current_household.share_code}</p>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-xs text-gray-500">点击上面的按钮即可生成厨房分享码。</p>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500">输入朋友分享的厨房代码，将他们的独家秘方直接导入到你的菜谱库中。</p>
                 <div className="flex gap-2">
                   <input 
@@ -611,6 +800,102 @@ export default function Profile() {
           ) : null}
         </AnimatePresence>
       </ModalPortal>
+
+      <ModalPortal>
+        <AnimatePresence>
+          {showScanModal ? (
+            <>
+              <motion.div
+                key="scan-scrim"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowScanModal(false)}
+                className="fixed inset-0 z-[200] min-h-[100dvh] w-full bg-black/40 backdrop-blur-sm"
+              />
+              <motion.div
+                key="scan-sheet"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-4 right-4 top-1/2 z-[201] max-h-[85vh] -translate-y-1/2 overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-gray-900">扫一扫</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowScanModal(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-500"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <p className="mb-3 text-xs text-gray-500">将二维码对准取景框；支持菜谱分享链接与厨房分享链接。</p>
+                <input
+                  ref={scanQrFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void handleScanQrImageFile(e)}
+                />
+                {scanUiMode === "loading" ? (
+                  <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl bg-gray-100 text-sm text-gray-500">正在准备相机…</div>
+                ) : null}
+                {scanUiMode !== "none" && scanUiMode !== "album_only" ? (
+                  <video
+                    ref={videoRef}
+                    className={
+                      scanUiMode === "live"
+                        ? "aspect-[4/3] w-full rounded-2xl bg-black object-cover"
+                        : "sr-only h-0 w-0 overflow-hidden opacity-0"
+                    }
+                    playsInline
+                    muted
+                  />
+                ) : null}
+                {scanUiMode === "album_only" ? (
+                  <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-sm text-gray-700">无法使用实时取景，请从相册选择含二维码的截图（与不支持摄像头时相同）。</p>
+                    <button
+                      type="button"
+                      onClick={() => scanQrFileInputRef.current?.click()}
+                      className="w-full rounded-xl bg-orange-500 py-3 text-sm font-semibold text-white"
+                    >
+                      从相册选择图片
+                    </button>
+                  </div>
+                ) : null}
+                {scanUiMode === "none" ? (
+                  <div className="space-y-3 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                    <p className="text-sm text-amber-900">当前浏览器不支持原生扫码 API，请使用「输入分享码导入」或换用 Chrome / Edge。</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowScanModal(false);
+                        setShowShareModal(true);
+                      }}
+                      className="w-full rounded-xl bg-orange-500 py-3 text-sm font-semibold text-white"
+                    >
+                      去输入分享码导入
+                    </button>
+                  </div>
+                ) : null}
+                {scanError ? <p className="mt-3 text-sm text-red-500">{scanError}</p> : null}
+                <button
+                  type="button"
+                  onClick={() => setShowScanModal(false)}
+                  className="mt-4 w-full rounded-xl bg-gray-100 py-3 text-sm font-semibold text-gray-700"
+                >
+                  关闭
+                </button>
+              </motion.div>
+            </>
+          ) : null}
+        </AnimatePresence>
+      </ModalPortal>
     </div>
   );
 }
+
+
+

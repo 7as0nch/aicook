@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Bubble, Welcome, Think, ThoughtChain, Sources } from '@ant-design/x'
-import { Button } from 'antd'
+import Button from 'antd/es/button'
 import {
   X,
   Image as ImageIcon,

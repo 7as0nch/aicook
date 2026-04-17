@@ -1,13 +1,19 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from '@capacitor/cli'
+
+const devServerUrl = process.env.VITE_CAPACITOR_SERVER_URL?.trim()
 
 const config: CapacitorConfig = {
-  server: {
-    url: 'http://172.16.1.76:5173',
-    cleartext: true,
-  },
+  ...(devServerUrl
+    ? {
+        server: {
+          url: devServerUrl,
+          cleartext: true,
+        },
+      }
+    : {}),
   appId: 'chat.aihelper.cook',
   appName: 'AIcook',
-  webDir: 'dist'
-};
+  webDir: 'dist',
+}
 
-export default config;
+export default config

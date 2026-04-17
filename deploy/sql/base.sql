@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS households (
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
+  household_id BIGINT NOT NULL,
   -- 用户名唯一，用于当前版本登录注册。
   username VARCHAR(60) NOT NULL UNIQUE,
   -- 存储 bcrypt 哈希后的密码，禁止保存明文。
@@ -41,8 +41,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS household_members (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
-  user_id BIGINT NOT NULL REFERENCES users(id),
+  household_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
   -- owner/member 等角色，便于后续扩展多厨房成员权限。
   role VARCHAR(20) NOT NULL DEFAULT 'member',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS household_members (
 
 CREATE TABLE IF NOT EXISTS kitchen_tags (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
+  household_id BIGINT NOT NULL,
   -- 厨房标签用于聚合某个厨房的特色菜谱分类。
   name VARCHAR(60) NOT NULL,
   icon VARCHAR(16) NOT NULL DEFAULT '',
@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS kitchen_tags (
 
 CREATE TABLE IF NOT EXISTS media_assets (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
-  user_id BIGINT NOT NULL REFERENCES users(id),
+  household_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
   media_type VARCHAR(20) NOT NULL,
   file_name VARCHAR(255) NOT NULL,
   content_type VARCHAR(120) NOT NULL,
@@ -85,10 +85,10 @@ CREATE TABLE IF NOT EXISTS media_assets (
 
 CREATE TABLE IF NOT EXISTS recipes (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
-  owner_user_id BIGINT NOT NULL REFERENCES users(id),
-  source_household_id BIGINT REFERENCES households(id),
-  forked_from_recipe_id BIGINT REFERENCES recipes(id),
+  household_id BIGINT NOT NULL,
+  owner_user_id BIGINT NOT NULL,
+  source_household_id BIGINT,
+  forked_from_recipe_id BIGINT,
   title VARCHAR(120) NOT NULL,
   summary TEXT NOT NULL DEFAULT '',
   cover_image_url TEXT NOT NULL DEFAULT '',
@@ -110,8 +110,8 @@ CREATE TABLE IF NOT EXISTS recipes (
 
 CREATE TABLE IF NOT EXISTS recipe_kitchen_tags (
   id BIGINT PRIMARY KEY,
-  recipe_id BIGINT NOT NULL REFERENCES recipes(id),
-  kitchen_tag_id BIGINT NOT NULL REFERENCES kitchen_tags(id),
+  recipe_id BIGINT NOT NULL,
+  kitchen_tag_id BIGINT NOT NULL,
   -- primary: category 主标签；secondary: scenario_tags 次标签。
   relation_type VARCHAR(20) NOT NULL DEFAULT 'secondary',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS recipe_kitchen_tags (
 
 CREATE TABLE IF NOT EXISTS recipe_ingredients (
   id BIGINT PRIMARY KEY,
-  recipe_id BIGINT NOT NULL REFERENCES recipes(id),
+  recipe_id BIGINT NOT NULL,
   sort_order INT NOT NULL,
   group_name VARCHAR(50) NOT NULL DEFAULT '',
   name VARCHAR(120) NOT NULL,
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
 
 CREATE TABLE IF NOT EXISTS recipe_steps (
   id BIGINT PRIMARY KEY,
-  recipe_id BIGINT NOT NULL REFERENCES recipes(id),
+  recipe_id BIGINT NOT NULL,
   step_no INT NOT NULL,
   title VARCHAR(120) NOT NULL DEFAULT '',
   description TEXT NOT NULL,
@@ -157,12 +157,12 @@ CREATE TABLE IF NOT EXISTS recipe_steps (
 
 CREATE TABLE IF NOT EXISTS import_jobs (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
-  user_id BIGINT NOT NULL REFERENCES users(id),
+  household_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
   input_type VARCHAR(30) NOT NULL,
   status VARCHAR(30) NOT NULL,
   stage VARCHAR(50) NOT NULL DEFAULT '',
-  recipe_id BIGINT REFERENCES recipes(id),
+  recipe_id BIGINT,
   input_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
   normalized_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
   error_message TEXT NOT NULL DEFAULT '',
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS import_jobs (
 
 CREATE TABLE IF NOT EXISTS knowledge_bases (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
+  household_id BIGINT NOT NULL,
   name VARCHAR(120) NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -187,8 +187,8 @@ CREATE TABLE IF NOT EXISTS knowledge_bases (
 
 CREATE TABLE IF NOT EXISTS knowledge_documents (
   id BIGINT PRIMARY KEY,
-  knowledge_base_id BIGINT NOT NULL REFERENCES knowledge_bases(id),
-  media_asset_id BIGINT REFERENCES media_assets(id),
+  knowledge_base_id BIGINT NOT NULL,
+  media_asset_id BIGINT,
   title VARCHAR(255) NOT NULL,
   file_name VARCHAR(255) NOT NULL,
   content_type VARCHAR(120) NOT NULL,
@@ -206,8 +206,8 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
 
 CREATE TABLE IF NOT EXISTS knowledge_chunks (
   id BIGINT PRIMARY KEY,
-  knowledge_base_id BIGINT NOT NULL REFERENCES knowledge_bases(id),
-  document_id BIGINT NOT NULL REFERENCES knowledge_documents(id),
+  knowledge_base_id BIGINT NOT NULL,
+  document_id BIGINT NOT NULL,
   chunk_no INT NOT NULL,
   content TEXT NOT NULL,
   source_snippet TEXT NOT NULL DEFAULT '',
@@ -221,8 +221,8 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 
 CREATE TABLE IF NOT EXISTS knowledge_index_jobs (
   id BIGINT PRIMARY KEY,
-  knowledge_base_id BIGINT NOT NULL REFERENCES knowledge_bases(id),
-  document_id BIGINT NOT NULL REFERENCES knowledge_documents(id),
+  knowledge_base_id BIGINT NOT NULL,
+  document_id BIGINT NOT NULL,
   status VARCHAR(30) NOT NULL,
   stage VARCHAR(50) NOT NULL DEFAULT '',
   error_message TEXT NOT NULL DEFAULT '',
@@ -233,8 +233,8 @@ CREATE TABLE IF NOT EXISTS knowledge_index_jobs (
 
 CREATE TABLE IF NOT EXISTS household_ai_memories (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
-  user_id BIGINT REFERENCES users(id),
+  household_id BIGINT NOT NULL,
+  user_id BIGINT,
   scope VARCHAR(40) NOT NULL DEFAULT 'general',
   content TEXT NOT NULL DEFAULT '',
   source VARCHAR(50) NOT NULL DEFAULT 'user_stated',
@@ -246,7 +246,7 @@ CREATE TABLE IF NOT EXISTS household_ai_memories (
 
 CREATE TABLE IF NOT EXISTS knowledge_graph_edges (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
+  household_id BIGINT NOT NULL,
   subject_kind VARCHAR(40) NOT NULL DEFAULT '',
   subject_id VARCHAR(64) NOT NULL DEFAULT '',
   predicate VARCHAR(80) NOT NULL DEFAULT '',
@@ -261,9 +261,9 @@ CREATE TABLE IF NOT EXISTS knowledge_graph_edges (
 
 CREATE TABLE IF NOT EXISTS ai_sessions (
   id BIGINT PRIMARY KEY,
-  household_id BIGINT NOT NULL REFERENCES households(id),
-  user_id BIGINT NOT NULL REFERENCES users(id),
-  recipe_id BIGINT REFERENCES recipes(id),
+  household_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  recipe_id BIGINT,
   scene VARCHAR(20) NOT NULL,
   title VARCHAR(120) NOT NULL DEFAULT '',
   context_json JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -274,7 +274,7 @@ CREATE TABLE IF NOT EXISTS ai_sessions (
 
 CREATE TABLE IF NOT EXISTS ai_messages (
   id BIGINT PRIMARY KEY,
-  ai_session_id BIGINT NOT NULL REFERENCES ai_sessions(id),
+  ai_session_id BIGINT NOT NULL,
   role VARCHAR(20) NOT NULL,
   content TEXT NOT NULL,
   mode VARCHAR(20) NOT NULL DEFAULT 'adk',
@@ -284,6 +284,109 @@ CREATE TABLE IF NOT EXISTS ai_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS meal_plans (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  week_start_date DATE NOT NULL,
+  timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Shanghai',
+  source VARCHAR(30) NOT NULL DEFAULT 'manual',
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  UNIQUE (household_id, week_start_date)
+);
+
+CREATE TABLE IF NOT EXISTS meal_plan_items (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  meal_plan_id BIGINT NOT NULL,
+  plan_date DATE NOT NULL,
+  meal_slot VARCHAR(20) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 1,
+  recipe_id BIGINT,
+  recipe_title_snapshot VARCHAR(120) NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS shopping_lists (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  meal_plan_id BIGINT,
+  week_start_date DATE NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  completed_at TIMESTAMPTZ,
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  UNIQUE (household_id, week_start_date)
+);
+
+CREATE TABLE IF NOT EXISTS shopping_list_items (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  shopping_list_id BIGINT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 1,
+  source_type VARCHAR(30) NOT NULL DEFAULT 'plan_gap',
+  source_recipe_id BIGINT,
+  source_recipe_title VARCHAR(120) NOT NULL DEFAULT '',
+  ingredient_name VARCHAR(120) NOT NULL,
+  normalized_name VARCHAR(120) NOT NULL DEFAULT '',
+  category VARCHAR(60) NOT NULL DEFAULT '',
+  required_quantity_value DOUBLE PRECISION NOT NULL DEFAULT 0,
+  required_unit VARCHAR(30) NOT NULL DEFAULT '',
+  required_text VARCHAR(80) NOT NULL DEFAULT '',
+  missing_quantity_value DOUBLE PRECISION NOT NULL DEFAULT 0,
+  missing_text VARCHAR(80) NOT NULL DEFAULT '',
+  checked BOOLEAN NOT NULL DEFAULT FALSE,
+  note TEXT NOT NULL DEFAULT '',
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS inventory_items (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  kind VARCHAR(20) NOT NULL DEFAULT 'ingredient',
+  name VARCHAR(120) NOT NULL,
+  normalized_name VARCHAR(120) NOT NULL DEFAULT '',
+  category VARCHAR(60) NOT NULL DEFAULT '',
+  quantity_value DOUBLE PRECISION NOT NULL DEFAULT 0,
+  unit VARCHAR(30) NOT NULL DEFAULT '',
+  quantity_text VARCHAR(80) NOT NULL DEFAULT '',
+  source_type VARCHAR(20) NOT NULL DEFAULT 'manual',
+  confidence DOUBLE PRECISION NOT NULL DEFAULT 1,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  expires_at TIMESTAMPTZ,
+  last_seen_at TIMESTAMPTZ,
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS recipe_shares (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  recipe_id BIGINT NOT NULL,
+  owner_user_id BIGINT NOT NULL,
+  share_code VARCHAR(32) NOT NULL UNIQUE,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  last_viewed_at TIMESTAMPTZ,
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  UNIQUE (household_id, recipe_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_household_id ON users(household_id);
@@ -311,6 +414,13 @@ CREATE INDEX IF NOT EXISTS idx_household_ai_memories_household_id ON household_a
 CREATE INDEX IF NOT EXISTS idx_knowledge_graph_edges_household_id ON knowledge_graph_edges(household_id);
 CREATE INDEX IF NOT EXISTS idx_ai_sessions_household_id ON ai_sessions(household_id);
 CREATE INDEX IF NOT EXISTS idx_ai_messages_session_id ON ai_messages(ai_session_id);
+CREATE INDEX IF NOT EXISTS idx_meal_plans_household_week ON meal_plans(household_id, week_start_date);
+CREATE INDEX IF NOT EXISTS idx_meal_plan_items_plan_slot_sort ON meal_plan_items(meal_plan_id, plan_date, meal_slot, sort_order);
+CREATE INDEX IF NOT EXISTS idx_shopping_lists_household_week ON shopping_lists(household_id, week_start_date);
+CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_sort ON shopping_list_items(shopping_list_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_household_status ON inventory_items(household_id, status);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_normalized_name ON inventory_items(household_id, normalized_name);
+CREATE INDEX IF NOT EXISTS idx_recipe_shares_code_status ON recipe_shares(share_code, status);
 CREATE INDEX IF NOT EXISTS idx_recipes_title_tsv ON recipes USING GIN (
   to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(summary, ''))
 );
@@ -336,3 +446,4 @@ VALUES
   (202503240000001012, 202503240000001001, '快手菜', 'zap', 'amber'),
   (202503240000001013, 202503240000001001, '下饭菜', 'utensils', 'stone')
 ON CONFLICT (household_id, name) DO NOTHING;
+

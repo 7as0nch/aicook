@@ -18,5 +18,10 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": [
+    "src/features/**/*",
+    "src/components/layout/**/*",
+    "src/components/selection/**/*"
+  ]
 }

@@ -1,72 +1,95 @@
-import type { ReactNode } from "react";
-import { createBrowserRouter, Navigate, Outlet } from "react-router";
+import { Suspense, lazy, type ComponentType, type ReactNode } from 'react'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router'
 
-import { isAuthenticated } from "../lib/api/client";
-import AIAssistant from "./components/AIAssistant";
-import Layout from "./components/Layout";
-import Home from "./pages/Home";
-import Recipes from "./pages/Recipes";
-import RecipeDetail from "./pages/RecipeDetail";
-import RecipeEdit from "./pages/RecipeEdit";
-import CookingMode from "./pages/CookingMode";
-import Plan from "./pages/Plan";
-import Shop from "./pages/Shop";
-import Profile from "./pages/Profile";
-import Preferences from "./pages/Preferences";
-import KnowledgeBase from "./pages/KnowledgeBase";
-import { RecipeWorkbenchPage } from "../features/recipes/RecipeWorkbenchPage";
-import Auth from "./pages/Auth";
+import { isAuthenticated } from '../lib/api/client'
 
-function RequireAuth({ children }: { children: ReactNode }) {
-  return isAuthenticated() ? <>{children}</> : <Navigate to="/auth" replace />;
+const LazyAIAssistant = lazy(() => import('./components/AIAssistant'))
+const LazyLayout = lazy(() => import('./components/Layout'))
+const LazyRecipeShareImport = lazy(() => import('./pages/RecipeShareImport'))
+const LazyCookingMode = lazy(() => import('./pages/CookingMode'))
+
+function loadPage<T extends { default: ComponentType<any> }>(
+  importer: () => Promise<T>,
+) {
+  return async () => {
+    const module = await importer()
+    return { Component: module.default }
+  }
 }
 
-/** Renda Outlet + global AI overlay inside RouterProvider so <Link> / useNavigate work. */
+function RequireAuth({ children }: { children: ReactNode }) {
+  return isAuthenticated() ? <>{children}</> : <Navigate to="/auth" replace />
+}
+
 function AppRoot() {
+  const shouldMountAssistant = isAuthenticated()
   return (
     <>
       <Outlet />
-      <AIAssistant />
+      {shouldMountAssistant ? (
+        <Suspense fallback={null}>
+          <LazyAIAssistant />
+        </Suspense>
+      ) : null}
     </>
-  );
+  )
 }
 
 export const router = createBrowserRouter([
   {
     element: <AppRoot />,
     children: [
+      { path: '/auth', lazy: loadPage(() => import('./pages/Auth')) },
       {
-        path: "/auth",
-        Component: Auth,
-      },
-      {
-        path: "/",
+        path: '/',
         element: (
           <RequireAuth>
-            <Layout />
+            <Suspense fallback={<RoutePending />}>
+              <LazyLayout />
+            </Suspense>
           </RequireAuth>
         ),
         children: [
-          { index: true, Component: Home },
-          { path: "recipes", Component: Recipes },
-          { path: "recipes/editor", Component: RecipeWorkbenchPage },
-          { path: "recipes/:id/edit", Component: RecipeEdit },
-          { path: "recipes/:id", Component: RecipeDetail },
-          { path: "plan", Component: Plan },
-          { path: "shop", Component: Shop },
-          { path: "profile", Component: Profile },
-          { path: "profile/preferences", Component: Preferences },
-          { path: "profile/knowledge-base", Component: KnowledgeBase },
+          { index: true, lazy: loadPage(() => import('./pages/Home')) },
+          { path: 'recipes', lazy: loadPage(() => import('./pages/Recipes')) },
+          { path: 'recipes/editor', lazy: loadPage(() => import('./pages/RecipeWorkbench')) },
+          { path: 'recipes/:id/edit', lazy: loadPage(() => import('./pages/RecipeEdit')) },
+          { path: 'recipes/:id', lazy: loadPage(() => import('./pages/RecipeDetail')) },
+          { path: 'plan', lazy: loadPage(() => import('./pages/Plan')) },
+          { path: 'shop', lazy: loadPage(() => import('./pages/Shop')) },
+          { path: 'profile', lazy: loadPage(() => import('./pages/Profile')) },
+          { path: 'profile/preferences', lazy: loadPage(() => import('./pages/Preferences')) },
+          { path: 'profile/knowledge-base', lazy: loadPage(() => import('./pages/KnowledgeBase')) },
         ],
       },
       {
-        path: "/cook/:id",
+        path: '/share/recipe/:shareCode',
         element: (
           <RequireAuth>
-            <CookingMode />
+            <Suspense fallback={<RoutePending />}>
+              <LazyRecipeShareImport />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/cook/:id',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<RoutePending />}>
+              <LazyCookingMode />
+            </Suspense>
           </RequireAuth>
         ),
       },
     ],
   },
-]);
+])
+
+function RoutePending() {
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-gray-50 text-sm font-medium text-gray-500">
+      页面加载中…
+    </div>
+  )
+}

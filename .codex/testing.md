@@ -66,3 +66,8 @@
   - 命令: `go get github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive`、`go mod tidy`
   - 结果: 通过
   - 说明: RAG 切分已从手写逻辑切到 Eino 官方 `recursive splitter`
+
+## 2026-04-17 前端类型清理与首包瘦身
+- `pnpm exec tsc --noEmit`：通过。
+- `pnpm build`：通过。
+- 构建观察：路由与 AIAssistant 已拆分为独立 chunk，首页入口 chunk 显著下降；仍存在一个偏大的 `vendor-antd` chunk，需要后续继续评估替换或局部下沉 Provider。

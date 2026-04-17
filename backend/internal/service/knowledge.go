@@ -4,7 +4,10 @@ import (
 	"context"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
+	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/data"
+	kerrors "github.com/go-kratos/kratos/v2/errors"
 )
 
 type KnowledgeService struct {
@@ -86,4 +89,60 @@ func (s *KnowledgeService) QueryKnowledgeBase(ctx context.Context, req *v1.Query
 		Sources: toProtoSources(result.Sources),
 		Mode:    result.Mode,
 	}, nil
+}
+
+func requireAuthClaims(ctx context.Context) error {
+	if _, ok := auth.FromContext(ctx); !ok {
+		return kerrors.Unauthorized("UNAUTHORIZED", "unauthorized")
+	}
+	return nil
+}
+
+func (s *KnowledgeService) ListHouseholdAIMemories(ctx context.Context, req *v1.ListHouseholdAIMemoriesRequest) (*v1.ListHouseholdAIMemoriesReply, error) {
+	if err := requireAuthClaims(ctx); err != nil {
+		return nil, err
+	}
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 80
+	}
+	items, err := s.usecase.ListHouseholdAIMemoriesForActor(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*v1.HouseholdAIMemory, 0, len(items))
+	for _, m := range items {
+		out = append(out, toProtoHouseholdAIMemory(m))
+	}
+	return &v1.ListHouseholdAIMemoriesReply{Memories: out}, nil
+}
+
+func (s *KnowledgeService) CreateHouseholdAIMemory(ctx context.Context, req *v1.CreateHouseholdAIMemoryRequest) (*v1.CreateHouseholdAIMemoryReply, error) {
+	if err := requireAuthClaims(ctx); err != nil {
+		return nil, err
+	}
+	if err := s.usecase.SaveHouseholdAIMemoryForActor(ctx, req.GetContent(), req.GetScope()); err != nil {
+		return nil, err
+	}
+	return &v1.CreateHouseholdAIMemoryReply{Ok: true}, nil
+}
+
+func toProtoHouseholdAIMemory(m *data.HouseholdAIMemory) *v1.HouseholdAIMemory {
+	if m == nil {
+		return nil
+	}
+	var uid *int64
+	if m.UserID != nil {
+		v := *m.UserID
+		uid = &v
+	}
+	return &v1.HouseholdAIMemory{
+		Id:        m.ID,
+		Scope:     m.Scope,
+		Content:   m.Content,
+		Source:    m.Source,
+		UserId:    uid,
+		CreatedAt: toTimestamp(m.CreatedAt),
+		UpdatedAt: toTimestamp(m.UpdatedAt),
+	}
 }

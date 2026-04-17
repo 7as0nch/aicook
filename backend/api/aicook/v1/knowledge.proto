@@ -5,6 +5,7 @@ package aicook.v1;
 option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
 
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 import "api/aicook/v1/common.proto";
 
 service KnowledgeService {
@@ -44,6 +45,19 @@ service KnowledgeService {
   rpc QueryKnowledgeBase(QueryKnowledgeBaseRequest) returns (QueryKnowledgeBaseReply) {
     option (google.api.http) = {
       post: "/api/v1/knowledge-bases/{knowledge_base_id}/query"
+      body: "*"
+    };
+  }
+
+  rpc ListHouseholdAIMemories(ListHouseholdAIMemoriesRequest) returns (ListHouseholdAIMemoriesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/household-ai-memories"
+    };
+  }
+
+  rpc CreateHouseholdAIMemory(CreateHouseholdAIMemoryRequest) returns (CreateHouseholdAIMemoryReply) {
+    option (google.api.http) = {
+      post: "/api/v1/household-ai-memories"
       body: "*"
     };
   }
@@ -99,4 +113,32 @@ message QueryKnowledgeBaseReply {
   string answer = 1;
   repeated Source sources = 2;
   string mode = 3;
+}
+
+message ListHouseholdAIMemoriesRequest {
+  // 默认服务端按 80 条处理；0 表示使用默认上限。
+  int32 limit = 1;
+}
+
+message ListHouseholdAIMemoriesReply {
+  repeated HouseholdAIMemory memories = 1;
+}
+
+message HouseholdAIMemory {
+  int64 id = 1;
+  string scope = 2;
+  string content = 3;
+  string source = 4;
+  optional int64 user_id = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateHouseholdAIMemoryRequest {
+  string content = 1;
+  string scope = 2;
+}
+
+message CreateHouseholdAIMemoryReply {
+  bool ok = 1;
 }

@@ -1,47 +1,36 @@
 {
-  "date": "2026-04-10",
-  "executor": "Codex",
+  "task": "前端类型清理与首包瘦身",
   "affected_areas": [
-    "backend/internal/biz/knowledge.go",
-    "backend/internal/biz/media.go",
-    "backend/internal/platform/airuntime",
-    "backend/internal/platform/airuntime/graph",
-    "backend/internal/platform/airuntime/rag",
-    "backend/internal/platform/embeddings/client.go",
-    "backend/internal/data/knowledge.go",
-    "frontend/src/lib/api/client.ts",
-    "frontend/src/app/pages/KnowledgeBase.tsx",
-    "frontend/src/features/knowledge/KnowledgePage.tsx"
+    "frontend/src/app/App.tsx",
+    "frontend/src/app/routes.tsx",
+    "frontend/src/app/components/AIAssistant.tsx",
+    "frontend/src/app/components/ai-assistant",
+    "frontend/src/app/pages",
+    "frontend/src/lib/mappers/recipe.ts",
+    "frontend/tsconfig.json",
+    "frontend/vite.config.ts"
   ],
   "current_behavior": {
-    "rag_ingest": "知识库文档入库目前由 biz 层调度，但抽取、切分、向量化已下沉到 airuntime/rag。",
-    "storage": "knowledge_document 上传已切到 knowledge_bucket。",
-    "splitting": "文本切分改为按自然边界优先并保留 overlap，不再按 rune 硬切。",
-    "embedding": "embedding 失败会显式标记为 embed_failed，不再静默假成功。",
-    "agent_runtime": "图片菜谱链路去掉了自定义通用 runner，直接使用 Eino compose.Graph。"
+    "typecheck": "活跃页面与组件的 TypeScript 报错已清理，旧死代码目录已从 tsconfig 排除。",
+    "routing": "主页面、做菜页、分享导入页和 AI 助手已改为懒加载，首页不再把全部页面与聊天面板打进首包。",
+    "bundle": "首页入口 chunk 已明显下降，但 antd/x 生态仍形成一个偏大的公共 vendor chunk。"
   },
-  "similar_cases": [
-    "backend/internal/platform/airuntime/graph/text_recipe.go 已使用 Eino compose.Graph 组织多步骤状态流。",
-    "backend/internal/platform/airuntime/graph/web_search.go 已把带状态的联网流程收敛到显式 graph。",
-    "backend/internal/platform/airuntime/tool/*.go 已统一使用 toolutils.InferTool 封装工具。"
+  "reuse_targets": [
+    "frontend/src/app/components/ai-assistant 现有子组件拆分",
+    "frontend/src/lib/api/client.ts 现有接口层",
+    "frontend/src/app/pages 既有页面结构",
+    "Vite 原生 rollupOptions.output.manualChunks"
   ],
   "stack": {
-    "backend": "Go, Kratos, GORM, pgvector, CloudWeGo Eino/ADK, MinIO",
-    "frontend": "React, TypeScript"
+    "frontend": "React 18 + React Router + Vite + Tailwind + Ant Design X + Sonner"
   },
-  "tests": {
-    "available": [
-      "$env:GOCACHE='D:\\workspace\\goproject\\my\\aicook\\.cache\\gobuild'; go test ./internal/biz ./internal/platform/airuntime/... ./internal/service",
-      "$env:GOCACHE='D:\\workspace\\goproject\\my\\aicook\\.cache\\gobuild'; go test ./internal/platform/airuntime/rag ./internal/biz"
-    ],
-    "environment_gaps": [
-      "全量 go test 目前会被仓库既有的 internal/auth/test TestToken 失败干扰。",
-      "前端 tsc 目前也受仓库既有依赖与旧页面问题影响，无法作为本轮唯一验收标准。"
-    ]
-  },
+  "validation_plan": [
+    "pnpm exec tsc --noEmit",
+    "pnpm build"
+  ],
   "observations": [
-    "前端部分入口曾允许 .doc/.ppt/.xls 等格式，但后端并不支持，已收敛为实际可处理的类型。",
-    "backend/internal/platform/airuntime/rag 目录已承接新的 RAG 实现。",
-    "graph/document_knowledge.go 现已替换原 typo 文件名。"
+    "AIAssistant 仍然是较大的独立 chunk，但已从首包移出。",
+    "全局 App 仍使用 ConfigProvider，AI 相关组件依赖 @ant-design/x，这使 antd vendor chunk 仍偏大。",
+    "当前阶段优先保证活跃页面无红线、路由按需加载和构建稳定。"
   ]
 }

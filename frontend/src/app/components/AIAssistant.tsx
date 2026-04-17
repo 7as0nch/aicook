@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
-import html2canvas from 'html2canvas'
 import { useAI } from '../contexts/AIContext'
+import { useFeedback } from '../contexts/FeedbackContext'
 import { motion, AnimatePresence } from 'motion/react'
+import html2canvas from 'html2canvas'
 import { Bot, History, Maximize2, Minimize2, X } from 'lucide-react'
 import {
   type QuoteContext,
@@ -17,13 +18,12 @@ import {
   type AIWorkflowStep,
   type ActiveCooking,
   createTextRecipeDraft,
-  deleteAiSession,
   fetchChatKnowledgeIngestStatus,
-  getAuthSession,
+  deleteAiSession,
   isAuthenticated,
-  listActiveCooking,
   listAiMessages,
   listAiSessions,
+  listActiveCooking,
   retryChatKnowledgeIngest,
   streamAiMessage,
   subscribeAuthSession,
@@ -34,31 +34,45 @@ import type { Message, PendingAttachment } from './ai-assistant/types'
 import { WELCOME } from './ai-assistant/types'
 import {
   normalizeMessageDisplayState,
-  serializeMessages,
   shouldCollapseContent,
   toRecipeData,
 } from './ai-assistant/helpers'
 import { AIChatMessages } from './ai-assistant/AIChatMessages'
 import { AIChatComposer } from './ai-assistant/AIChatComposer'
 import { AIChatHistory } from './ai-assistant/AIChatHistory'
+import { buildStageReasoningContent, extractSearchPayload, getVisibleAgentTrace, mergeAgentTrace, mergeToolCalls, mergeWorkflowSteps } from './ai-assistant/message-state'
+import { useAIAssistantPersistence } from './ai-assistant/useAIAssistantPersistence'
 
 function buildQuoteContext(pageContext: unknown): QuoteContext {
-  const serialized =
-    pageContext && typeof pageContext === 'object' ? JSON.stringify(pageContext) : ''
+  const serialized = pageContext && typeof pageContext === 'object' ? JSON.stringify(pageContext) : ''
+  const scene =
+    pageContext && typeof pageContext === 'object' && 'type' in pageContext && typeof (pageContext as { type?: string }).type === 'string'
+      ? (pageContext as { type: string }).type
+      : 'assistant'
   return {
     selected_text: serialized.slice(0, 2000),
     selection_source: 'aicook_app',
     surrounding_text: '',
-    scene: 'assistant',
+    scene,
   }
 }
 
-const AI_ASSISTANT_STORAGE_PREFIX = 'aicook-ai-assistant'
+function quickCapturePrompt(intent: string | undefined) {
+  if (intent === 'inventory') {
+    return '请识别这张图片里的食材或调料，整理成库存清单，并根据现有食材推荐能做的菜。'
+  }
+  if (intent === 'recipe') {
+    return '请识别这张图片里的菜谱信息，尽量整理成结构化菜谱草稿。'
+  }
+  return '请先判断这张图片更像菜谱图还是冰箱/食材图；如果是菜谱，请整理出菜谱草稿；如果是冰箱或食材，请识别库存并推荐可以做的菜。'
+}
+
 const STREAMING_CONTENT_THRESHOLD = 320
 const MESSAGE_PAGE_SIZE = 5
 
 export default function AIAssistant() {
-  const { isOpen, openAI, closeAI, pageContext } = useAI()
+  const { isOpen, openAI, closeAI, pageContext, setPageContext } = useAI()
+  const { confirm } = useFeedback()
   const showCookingContextBanner = Boolean(
     pageContext && typeof pageContext === 'object' && (pageContext as { type?: string }).type === 'cooking',
   )
@@ -89,6 +103,7 @@ export default function AIAssistant() {
   const startRecordingRef = useRef<() => void>(() => {})
   const finishRecordingRef = useRef<() => void>(() => {})
   const shouldAutoScrollRef = useRef(true)
+  const quickCaptureConsumedRef = useRef('')
 
   const [messages, setMessages] = useState<Message[]>([WELCOME])
   const [sessionMessageCache, setSessionMessageCache] = useState<Record<string, Message[]>>({})
@@ -194,55 +209,21 @@ export default function AIAssistant() {
       })
     }
   }, [])
+  useAIAssistantPersistence({
+    messages,
+    sessionMessageCache,
+    sessionIdRef,
+    setMessages,
+    setSessionMessageCache,
+    setActiveSessionId,
+    reasoningEnabled,
+    setReasoningEnabled,
+    webSearchEnabled,
+    setWebSearchEnabled,
+    imageRecipeEnabled,
+    setImageRecipeEnabled,
+  })
 
-  const storageKey = (() => {
-    const session = getAuthSession()
-    const householdId = session?.current_household?.id || 'anon'
-    return `${AI_ASSISTANT_STORAGE_PREFIX}:${householdId}`
-  })()
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(storageKey)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as {
-        sessionId?: string | null
-        messages?: Message[]
-        sessionMessageCache?: Record<string, Message[]>
-        reasoningEnabled?: boolean
-        webSearchEnabled?: boolean
-        imageRecipeEnabled?: boolean
-      }
-      if (parsed.sessionId) {
-        sessionIdRef.current = parsed.sessionId
-        setActiveSessionId(parsed.sessionId)
-      }
-      if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
-        setMessages(parsed.messages.map(normalizeMessageDisplayState))
-      }
-      if (parsed.sessionMessageCache && typeof parsed.sessionMessageCache === 'object') {
-        setSessionMessageCache(
-          Object.fromEntries(
-            Object.entries(parsed.sessionMessageCache).map(([sessionId, sessionMessages]) => [
-              sessionId,
-              Array.isArray(sessionMessages) ? sessionMessages.map(normalizeMessageDisplayState) : [WELCOME],
-            ]),
-          ),
-        )
-      }
-      if (typeof parsed.reasoningEnabled === 'boolean') {
-        setReasoningEnabled(parsed.reasoningEnabled)
-      }
-      if (typeof parsed.webSearchEnabled === 'boolean') {
-        setWebSearchEnabled(parsed.webSearchEnabled)
-      }
-      if (typeof parsed.imageRecipeEnabled === 'boolean') {
-        setImageRecipeEnabled(parsed.imageRecipeEnabled)
-      }
-    } catch {
-      window.localStorage.removeItem(storageKey)
-    }
-  }, [storageKey])
 
   useEffect(() => {
     if (!isOpen) return
@@ -361,39 +342,6 @@ export default function AIAssistant() {
     return () => window.cancelAnimationFrame(raf)
   }, [isOpen, messages, sendBusy])
 
-  useEffect(() => {
-    if (!sessionIdRef.current) return
-    const sessionId = sessionIdRef.current
-    const persistedMessages = messages.length > 0 ? messages : [WELCOME]
-    setSessionMessageCache((prev) => {
-      const existing = prev[sessionId]
-      if (JSON.stringify(existing ?? []) === JSON.stringify(persistedMessages)) {
-        return prev
-      }
-      return {
-        ...prev,
-        [sessionId]: persistedMessages,
-      }
-    })
-  }, [messages])
-
-  useEffect(() => {
-    const persistedMessages = messages.length > 0 ? messages : [WELCOME]
-    window.localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        sessionId: sessionIdRef.current,
-        reasoningEnabled,
-        webSearchEnabled,
-        imageRecipeEnabled,
-        sessionMessageCache: Object.fromEntries(
-          Object.entries(sessionMessageCache).map(([sessionId, sessionMessages]) => [sessionId, serializeMessages(sessionMessages)]),
-        ),
-        messages: serializeMessages(persistedMessages),
-      }),
-    )
-  }, [imageRecipeEnabled, messages, reasoningEnabled, sessionMessageCache, storageKey, webSearchEnabled])
-
   function updateLastAssistantMessage(updater: (message: Message) => Message) {
     setMessages((prev) => {
       const next = [...prev]
@@ -404,111 +352,6 @@ export default function AIAssistant() {
         }
       }
       return next
-    })
-  }
-
-  function mergeWorkflowSteps(existing: AIWorkflowStep[] | undefined, incoming: AIWorkflowStep): AIWorkflowStep[] {
-    const items = [...(existing ?? [])]
-    const index = items.findIndex((item) => item.id === incoming.id)
-    if (index >= 0) {
-      items[index] = { ...items[index], ...incoming }
-      return items
-    }
-    return [...items, incoming]
-  }
-
-  function buildStageReasoningContent(workflow: AIWorkflowStep[] | undefined) {
-    const items = (workflow ?? []).filter((item) => (item.title || item.detail || '').trim())
-    if (items.length === 0) return ''
-    const lines = items.map((item) => {
-      const title = (item.title || '执行步骤').trim()
-      const detail = (item.detail || '').trim()
-      return detail ? `- ${title}：${detail}` : `- ${title}`
-    })
-    return ['[阶段化思考]', ...lines].join('\n')
-  }
-
-  function mergeToolCalls(existing: AIToolCall[] | undefined, incoming: AIToolCall): AIToolCall[] {
-    const items = [...(existing ?? [])]
-    const key = incoming.call_id || `${incoming.name}:${incoming.arguments ?? ''}`
-    const index = items.findIndex((item) => (item.call_id || `${item.name}:${item.arguments ?? ''}`) === key)
-    if (index >= 0) {
-      const prevItem = items[index]
-      items[index] = {
-        ...prevItem,
-        ...incoming,
-        result: incoming.result !== undefined ? incoming.result : prevItem.result,
-        arguments: incoming.arguments !== undefined ? incoming.arguments : prevItem.arguments,
-      }
-      return items
-    }
-    return [...items, incoming]
-  }
-
-  function mergeAgentTrace(existing: AIAgentTrace[] | undefined, incoming: AIAgentTrace): AIAgentTrace[] {
-    const items = [...(existing ?? [])]
-    const index = items.findIndex((item) => item.id === incoming.id)
-    if (index >= 0) {
-      items[index] = { ...items[index], ...incoming }
-      return items
-    }
-    return [...items, incoming]
-  }
-
-  function extractSearchPayload(toolCall: AIToolCall | undefined) {
-    const searchNames = new Set(['web_search', 'native_web_search'])
-    if (!toolCall?.result || !searchNames.has(toolCall.name)) {
-      return null
-    }
-    try {
-      const parsed = JSON.parse(toolCall.result) as {
-        status?: string
-        summary?: string
-        results?: Array<{
-          title?: string
-          document_id?: string
-          documentId?: string
-          snippet?: string
-          site_name?: string
-          siteName?: string
-          publish_time?: string
-          publishTime?: string
-          logo_url?: string
-          logoUrl?: string
-        }>
-        error_message?: string
-        errorMessage?: string
-        need_web_enabled?: boolean
-        needWebEnabled?: boolean
-      }
-      const results = Array.isArray(parsed.results)
-        ? parsed.results.map((item) => ({
-            title: item.title ?? '',
-            documentId: item.document_id ?? item.documentId ?? '',
-            snippet: item.snippet ?? '',
-            siteName: item.site_name ?? item.siteName ?? undefined,
-            publishTime: item.publish_time ?? item.publishTime ?? undefined,
-            logoUrl: item.logo_url ?? item.logoUrl ?? undefined,
-          }))
-        : []
-      return {
-        results,
-        error:
-          parsed.error_message ??
-          parsed.errorMessage ??
-          ((parsed.need_web_enabled ?? parsed.needWebEnabled) ? (parsed.summary ?? '当前会话未开启网页搜索，请先打开网页搜索开关。') : undefined),
-      }
-    } catch {
-      return null
-    }
-  }
-
-  function getVisibleAgentTrace(items: AIAgentTrace[] | undefined) {
-    return (items ?? []).filter((item) => {
-      const content = `${item.detail ?? ''} ${item.name ?? ''}`
-      return !content.includes('切换到工具 agent')
-        && !content.includes('切换到多模态 agent')
-        && !content.includes('文本对话')
     })
   }
 
@@ -679,7 +522,7 @@ export default function AIAssistant() {
       let insertedCount = 0
       setMessages((prev) => {
         const existingIds = new Set(prev.map((item) => item.id).filter(Boolean))
-        const olderMessages = incoming.filter((item) => !item.id || !existingIds.has(item.id))
+        const olderMessages = incoming.filter((item: Message) => !item.id || !existingIds.has(item.id))
         insertedCount = olderMessages.length
         return olderMessages.length ? [...olderMessages, ...prev] : prev
       })
@@ -715,7 +558,13 @@ export default function AIAssistant() {
   }, [isOpen, activeSessionId, hasMoreMessages, loadOlderMessages, oldestMessageId, loadingMoreMessages])
 
   async function handleDeleteSession(sessionId: string) {
-    if (!window.confirm('删除这个会话后将无法在历史中查看，确认删除吗？')) return
+    const confirmed = await confirm({
+      title: '删除这个会话？',
+      description: '删除后将无法在历史记录中继续查看。',
+      confirmText: '删除',
+      tone: 'danger',
+    })
+    if (!confirmed) return
     try {
       await deleteAiSession(sessionId)
       setSessions((prev) => prev.filter((item) => item.id !== sessionId))
@@ -946,7 +795,7 @@ export default function AIAssistant() {
       const { messages: fresh } = await listAiMessages(sid, { limit: 30 })
       setMessages((prev) => {
         const prevIds = new Set(prev.map((m) => m.id).filter((id): id is string => Boolean(id)))
-        const additions = fresh.filter((m) => m.id && !prevIds.has(m.id)).map(mapHistoryMessage)
+        const additions = fresh.filter((m: AIHistoryMessage) => m.id && !prevIds.has(m.id)).map(mapHistoryMessage)
         if (additions.length === 0) return prev
         shouldAutoScrollRef.current = true
         return [...prev, ...additions]
@@ -1166,6 +1015,30 @@ export default function AIAssistant() {
     }
   }
 
+  useEffect(() => {
+    if (!isOpen || pageContext?.type !== 'quick_capture') return
+    const pendingFiles = pageContext.pendingFiles ?? []
+    if (pendingFiles.length === 0) return
+    const captureKey = pendingFiles.map((item) => `${item.file.name}:${item.file.size}:${item.file.lastModified}`).join('|')
+    if (!captureKey || quickCaptureConsumedRef.current === captureKey) return
+    quickCaptureConsumedRef.current = captureKey
+    if (pageContext.forceNewSession) {
+      resetConversation()
+    }
+    appendPendingAttachments(
+      pendingFiles.map((item) => ({
+        file: item.file,
+        type: item.kind,
+        previewUrl: item.previewUrl,
+      })),
+    )
+    setImageRecipeEnabled(true)
+    const prompt = quickCapturePrompt(pageContext.captureIntent)
+    setPageContext({ type: 'assistant', preferredSessionId: pageContext.preferredSessionId })
+    window.setTimeout(() => {
+      void handleSend(prompt)
+    }, 80)
+  }, [isOpen, pageContext])
   const handleActionClick = (action: string) => {
     const sentAt = new Date().toISOString()
     setMessages((prev) => [...prev, { role: 'user', content: `[操作: 上传${action}]`, createdAt: sentAt }])
@@ -1541,3 +1414,15 @@ export default function AIAssistant() {
     </>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+

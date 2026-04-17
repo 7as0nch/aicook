@@ -25,6 +25,8 @@ const (
 	KnowledgeService_ListKnowledgeDocuments_FullMethodName  = "/aicook.v1.KnowledgeService/ListKnowledgeDocuments"
 	KnowledgeService_ReindexKnowledgeBase_FullMethodName    = "/aicook.v1.KnowledgeService/ReindexKnowledgeBase"
 	KnowledgeService_QueryKnowledgeBase_FullMethodName      = "/aicook.v1.KnowledgeService/QueryKnowledgeBase"
+	KnowledgeService_ListHouseholdAIMemories_FullMethodName = "/aicook.v1.KnowledgeService/ListHouseholdAIMemories"
+	KnowledgeService_CreateHouseholdAIMemory_FullMethodName = "/aicook.v1.KnowledgeService/CreateHouseholdAIMemory"
 )
 
 // KnowledgeServiceClient is the client API for KnowledgeService service.
@@ -37,6 +39,8 @@ type KnowledgeServiceClient interface {
 	ListKnowledgeDocuments(ctx context.Context, in *ListKnowledgeDocumentsRequest, opts ...grpc.CallOption) (*ListKnowledgeDocumentsReply, error)
 	ReindexKnowledgeBase(ctx context.Context, in *ReindexKnowledgeBaseRequest, opts ...grpc.CallOption) (*ReindexKnowledgeBaseReply, error)
 	QueryKnowledgeBase(ctx context.Context, in *QueryKnowledgeBaseRequest, opts ...grpc.CallOption) (*QueryKnowledgeBaseReply, error)
+	ListHouseholdAIMemories(ctx context.Context, in *ListHouseholdAIMemoriesRequest, opts ...grpc.CallOption) (*ListHouseholdAIMemoriesReply, error)
+	CreateHouseholdAIMemory(ctx context.Context, in *CreateHouseholdAIMemoryRequest, opts ...grpc.CallOption) (*CreateHouseholdAIMemoryReply, error)
 }
 
 type knowledgeServiceClient struct {
@@ -107,6 +111,26 @@ func (c *knowledgeServiceClient) QueryKnowledgeBase(ctx context.Context, in *Que
 	return out, nil
 }
 
+func (c *knowledgeServiceClient) ListHouseholdAIMemories(ctx context.Context, in *ListHouseholdAIMemoriesRequest, opts ...grpc.CallOption) (*ListHouseholdAIMemoriesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListHouseholdAIMemoriesReply)
+	err := c.cc.Invoke(ctx, KnowledgeService_ListHouseholdAIMemories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *knowledgeServiceClient) CreateHouseholdAIMemory(ctx context.Context, in *CreateHouseholdAIMemoryRequest, opts ...grpc.CallOption) (*CreateHouseholdAIMemoryReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateHouseholdAIMemoryReply)
+	err := c.cc.Invoke(ctx, KnowledgeService_CreateHouseholdAIMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // KnowledgeServiceServer is the server API for KnowledgeService service.
 // All implementations should embed UnimplementedKnowledgeServiceServer
 // for forward compatibility.
@@ -117,6 +141,8 @@ type KnowledgeServiceServer interface {
 	ListKnowledgeDocuments(context.Context, *ListKnowledgeDocumentsRequest) (*ListKnowledgeDocumentsReply, error)
 	ReindexKnowledgeBase(context.Context, *ReindexKnowledgeBaseRequest) (*ReindexKnowledgeBaseReply, error)
 	QueryKnowledgeBase(context.Context, *QueryKnowledgeBaseRequest) (*QueryKnowledgeBaseReply, error)
+	ListHouseholdAIMemories(context.Context, *ListHouseholdAIMemoriesRequest) (*ListHouseholdAIMemoriesReply, error)
+	CreateHouseholdAIMemory(context.Context, *CreateHouseholdAIMemoryRequest) (*CreateHouseholdAIMemoryReply, error)
 }
 
 // UnimplementedKnowledgeServiceServer should be embedded to have
@@ -143,6 +169,12 @@ func (UnimplementedKnowledgeServiceServer) ReindexKnowledgeBase(context.Context,
 }
 func (UnimplementedKnowledgeServiceServer) QueryKnowledgeBase(context.Context, *QueryKnowledgeBaseRequest) (*QueryKnowledgeBaseReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryKnowledgeBase not implemented")
+}
+func (UnimplementedKnowledgeServiceServer) ListHouseholdAIMemories(context.Context, *ListHouseholdAIMemoriesRequest) (*ListHouseholdAIMemoriesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListHouseholdAIMemories not implemented")
+}
+func (UnimplementedKnowledgeServiceServer) CreateHouseholdAIMemory(context.Context, *CreateHouseholdAIMemoryRequest) (*CreateHouseholdAIMemoryReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateHouseholdAIMemory not implemented")
 }
 func (UnimplementedKnowledgeServiceServer) testEmbeddedByValue() {}
 
@@ -272,6 +304,42 @@ func _KnowledgeService_QueryKnowledgeBase_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _KnowledgeService_ListHouseholdAIMemories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListHouseholdAIMemoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KnowledgeServiceServer).ListHouseholdAIMemories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: KnowledgeService_ListHouseholdAIMemories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KnowledgeServiceServer).ListHouseholdAIMemories(ctx, req.(*ListHouseholdAIMemoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KnowledgeService_CreateHouseholdAIMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateHouseholdAIMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KnowledgeServiceServer).CreateHouseholdAIMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: KnowledgeService_CreateHouseholdAIMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KnowledgeServiceServer).CreateHouseholdAIMemory(ctx, req.(*CreateHouseholdAIMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // KnowledgeService_ServiceDesc is the grpc.ServiceDesc for KnowledgeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -302,6 +370,14 @@ var KnowledgeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryKnowledgeBase",
 			Handler:    _KnowledgeService_QueryKnowledgeBase_Handler,
+		},
+		{
+			MethodName: "ListHouseholdAIMemories",
+			Handler:    _KnowledgeService_ListHouseholdAIMemories_Handler,
+		},
+		{
+			MethodName: "CreateHouseholdAIMemory",
+			Handler:    _KnowledgeService_CreateHouseholdAIMemory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

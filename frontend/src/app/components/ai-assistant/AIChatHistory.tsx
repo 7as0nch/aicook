@@ -1,4 +1,4 @@
-import { Typography } from 'antd'
+import Typography from 'antd/es/typography'
 import { Plus, Trash2 } from 'lucide-react'
 import type { AISessionSummary } from './types'
 

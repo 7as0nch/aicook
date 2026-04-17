@@ -19,16 +19,20 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationKnowledgeServiceCreateHouseholdAIMemory = "/aicook.v1.KnowledgeService/CreateHouseholdAIMemory"
 const OperationKnowledgeServiceCreateKnowledgeBase = "/aicook.v1.KnowledgeService/CreateKnowledgeBase"
 const OperationKnowledgeServiceCreateKnowledgeDocument = "/aicook.v1.KnowledgeService/CreateKnowledgeDocument"
+const OperationKnowledgeServiceListHouseholdAIMemories = "/aicook.v1.KnowledgeService/ListHouseholdAIMemories"
 const OperationKnowledgeServiceListKnowledgeBases = "/aicook.v1.KnowledgeService/ListKnowledgeBases"
 const OperationKnowledgeServiceListKnowledgeDocuments = "/aicook.v1.KnowledgeService/ListKnowledgeDocuments"
 const OperationKnowledgeServiceQueryKnowledgeBase = "/aicook.v1.KnowledgeService/QueryKnowledgeBase"
 const OperationKnowledgeServiceReindexKnowledgeBase = "/aicook.v1.KnowledgeService/ReindexKnowledgeBase"
 
 type KnowledgeServiceHTTPServer interface {
+	CreateHouseholdAIMemory(context.Context, *CreateHouseholdAIMemoryRequest) (*CreateHouseholdAIMemoryReply, error)
 	CreateKnowledgeBase(context.Context, *CreateKnowledgeBaseRequest) (*CreateKnowledgeBaseReply, error)
 	CreateKnowledgeDocument(context.Context, *CreateKnowledgeDocumentRequest) (*CreateKnowledgeDocumentReply, error)
+	ListHouseholdAIMemories(context.Context, *ListHouseholdAIMemoriesRequest) (*ListHouseholdAIMemoriesReply, error)
 	ListKnowledgeBases(context.Context, *ListKnowledgeBasesRequest) (*ListKnowledgeBasesReply, error)
 	ListKnowledgeDocuments(context.Context, *ListKnowledgeDocumentsRequest) (*ListKnowledgeDocumentsReply, error)
 	QueryKnowledgeBase(context.Context, *QueryKnowledgeBaseRequest) (*QueryKnowledgeBaseReply, error)
@@ -43,6 +47,8 @@ func RegisterKnowledgeServiceHTTPServer(s *http.Server, srv KnowledgeServiceHTTP
 	r.GET("/api/v1/knowledge-bases/{knowledge_base_id}/documents", _KnowledgeService_ListKnowledgeDocuments0_HTTP_Handler(srv))
 	r.POST("/api/v1/knowledge-bases/{knowledge_base_id}/reindex", _KnowledgeService_ReindexKnowledgeBase0_HTTP_Handler(srv))
 	r.POST("/api/v1/knowledge-bases/{knowledge_base_id}/query", _KnowledgeService_QueryKnowledgeBase0_HTTP_Handler(srv))
+	r.GET("/api/v1/household-ai-memories", _KnowledgeService_ListHouseholdAIMemories0_HTTP_Handler(srv))
+	r.POST("/api/v1/household-ai-memories", _KnowledgeService_CreateHouseholdAIMemory0_HTTP_Handler(srv))
 }
 
 func _KnowledgeService_CreateKnowledgeBase0_HTTP_Handler(srv KnowledgeServiceHTTPServer) func(ctx http.Context) error {
@@ -183,9 +189,52 @@ func _KnowledgeService_QueryKnowledgeBase0_HTTP_Handler(srv KnowledgeServiceHTTP
 	}
 }
 
+func _KnowledgeService_ListHouseholdAIMemories0_HTTP_Handler(srv KnowledgeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListHouseholdAIMemoriesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationKnowledgeServiceListHouseholdAIMemories)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListHouseholdAIMemories(ctx, req.(*ListHouseholdAIMemoriesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListHouseholdAIMemoriesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _KnowledgeService_CreateHouseholdAIMemory0_HTTP_Handler(srv KnowledgeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateHouseholdAIMemoryRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationKnowledgeServiceCreateHouseholdAIMemory)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateHouseholdAIMemory(ctx, req.(*CreateHouseholdAIMemoryRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateHouseholdAIMemoryReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type KnowledgeServiceHTTPClient interface {
+	CreateHouseholdAIMemory(ctx context.Context, req *CreateHouseholdAIMemoryRequest, opts ...http.CallOption) (rsp *CreateHouseholdAIMemoryReply, err error)
 	CreateKnowledgeBase(ctx context.Context, req *CreateKnowledgeBaseRequest, opts ...http.CallOption) (rsp *CreateKnowledgeBaseReply, err error)
 	CreateKnowledgeDocument(ctx context.Context, req *CreateKnowledgeDocumentRequest, opts ...http.CallOption) (rsp *CreateKnowledgeDocumentReply, err error)
+	ListHouseholdAIMemories(ctx context.Context, req *ListHouseholdAIMemoriesRequest, opts ...http.CallOption) (rsp *ListHouseholdAIMemoriesReply, err error)
 	ListKnowledgeBases(ctx context.Context, req *ListKnowledgeBasesRequest, opts ...http.CallOption) (rsp *ListKnowledgeBasesReply, err error)
 	ListKnowledgeDocuments(ctx context.Context, req *ListKnowledgeDocumentsRequest, opts ...http.CallOption) (rsp *ListKnowledgeDocumentsReply, err error)
 	QueryKnowledgeBase(ctx context.Context, req *QueryKnowledgeBaseRequest, opts ...http.CallOption) (rsp *QueryKnowledgeBaseReply, err error)
@@ -198,6 +247,19 @@ type KnowledgeServiceHTTPClientImpl struct {
 
 func NewKnowledgeServiceHTTPClient(client *http.Client) KnowledgeServiceHTTPClient {
 	return &KnowledgeServiceHTTPClientImpl{client}
+}
+
+func (c *KnowledgeServiceHTTPClientImpl) CreateHouseholdAIMemory(ctx context.Context, in *CreateHouseholdAIMemoryRequest, opts ...http.CallOption) (*CreateHouseholdAIMemoryReply, error) {
+	var out CreateHouseholdAIMemoryReply
+	pattern := "/api/v1/household-ai-memories"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationKnowledgeServiceCreateHouseholdAIMemory))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (c *KnowledgeServiceHTTPClientImpl) CreateKnowledgeBase(ctx context.Context, in *CreateKnowledgeBaseRequest, opts ...http.CallOption) (*CreateKnowledgeBaseReply, error) {
@@ -220,6 +282,19 @@ func (c *KnowledgeServiceHTTPClientImpl) CreateKnowledgeDocument(ctx context.Con
 	opts = append(opts, http.Operation(OperationKnowledgeServiceCreateKnowledgeDocument))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *KnowledgeServiceHTTPClientImpl) ListHouseholdAIMemories(ctx context.Context, in *ListHouseholdAIMemoriesRequest, opts ...http.CallOption) (*ListHouseholdAIMemoriesReply, error) {
+	var out ListHouseholdAIMemoriesReply
+	pattern := "/api/v1/household-ai-memories"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationKnowledgeServiceListHouseholdAIMemories))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

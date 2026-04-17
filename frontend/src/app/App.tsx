@@ -1,9 +1,12 @@
-import { RouterProvider } from "react-router";
-import { ConfigProvider, theme } from "antd";
-import zhCN from "antd/locale/zh_CN";
-import { XProvider } from "@ant-design/x";
-import { router } from "./routes";
-import { AIProvider } from "./contexts/AIContext";
+import { RouterProvider } from 'react-router'
+import ConfigProvider from 'antd/es/config-provider'
+import theme from 'antd/es/theme'
+import zhCN from 'antd/locale/zh_CN'
+import { XProvider } from '@ant-design/x'
+import { Toaster } from 'sonner'
+import { router } from './routes'
+import { AIProvider } from './contexts/AIContext'
+import { FeedbackProvider } from './contexts/FeedbackContext'
 
 export default function App() {
   return (
@@ -12,16 +15,19 @@ export default function App() {
       theme={{
         algorithm: theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#ea580c",
+          colorPrimary: '#ea580c',
           borderRadiusLG: 12,
         },
       }}
     >
       <XProvider>
-        <AIProvider>
-          <RouterProvider router={router} />
-        </AIProvider>
+        <FeedbackProvider>
+          <AIProvider>
+            <RouterProvider router={router} />
+            <Toaster richColors closeButton position="top-center" />
+          </AIProvider>
+        </FeedbackProvider>
       </XProvider>
     </ConfigProvider>
-  );
+  )
 }

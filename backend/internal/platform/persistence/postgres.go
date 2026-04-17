@@ -13,7 +13,8 @@ import (
 
 func OpenPostgres(cfg *conf.PGDatabase) (*gorm.DB, error) {
 	return gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger:                                   logger.Default.LogMode(logger.Warn),
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 }
 
@@ -39,5 +40,11 @@ func AutoMigrate(ctx context.Context, db *gorm.DB) error {
 		&model.KnowledgeGraphEdge{},
 		&model.AISession{},
 		&model.AIMessage{},
+		&model.MealPlan{},
+		&model.MealPlanItem{},
+		&model.ShoppingList{},
+		&model.ShoppingListItem{},
+		&model.InventoryItem{},
+		&model.RecipeShare{},
 	)
 }

@@ -9,7 +9,7 @@ import (
 	kratosgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 )
 
-func NewGRPCServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService) *kratosgrpc.Server {
+func NewGRPCServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService) *kratosgrpc.Server {
 	timeout := cfg.GetServer().GetGrpc().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second
@@ -33,5 +33,9 @@ func NewGRPCServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *
 	v1.RegisterKnowledgeServiceServer(server, knowledgeSvc)
 	v1.RegisterAIServiceServer(server, aiSvc)
 	v1.RegisterCookingServiceServer(server, cookingSvc)
+	if kitchenSvc != nil {
+		v1.RegisterKitchenServiceServer(server, kitchenSvc)
+	}
 	return server
 }
+

@@ -120,6 +120,86 @@ export interface RecipeDetail {
   steps: RecipeStep[]
 }
 
+export type MealSlotKey = 'breakfast' | 'lunch' | 'dinner'
+
+export interface MealPlanDish {
+  id: ID
+  recipe_id?: ID
+  recipe_title: string
+  note?: string
+  metadata_json?: Record<string, unknown>
+}
+
+export interface MealPlanWeek {
+  id?: ID
+  week_start_date: string
+  timezone: string
+  source: string
+  days: Record<string, Record<MealSlotKey, MealPlanDish[]>>
+}
+
+export interface ShoppingListSummary {
+  id: ID
+  meal_plan_id?: ID
+  week_start_date: string
+  status: string
+  completed_at?: string
+}
+
+export interface ShoppingListItem {
+  id: ID
+  shopping_list_id: ID
+  sort_order: number
+  source_type: string
+  source_recipe_id?: ID
+  source_recipe_title?: string
+  ingredient_name: string
+  normalized_name: string
+  category: string
+  required_quantity_value: number
+  required_unit: string
+  required_text: string
+  missing_quantity_value: number
+  missing_text: string
+  checked: boolean
+  note?: string
+}
+
+export interface InventoryItem {
+  id: ID
+  household_id?: ID
+  kind: string
+  name: string
+  normalized_name: string
+  category: string
+  quantity_value: number
+  unit: string
+  quantity_text: string
+  source_type: string
+  confidence: number
+  status: string
+  expires_at?: string
+  last_seen_at?: string
+}
+
+export interface InventoryRecommendation {
+  recipe: RecipeCard
+  match_count: number
+  ingredient_total: number
+  match_percent: number
+  matched_items: string[]
+}
+
+export interface RecipeSharePreview {
+  share: {
+    id: ID
+    share_code: string
+    status: string
+    recipe_id: ID
+    share_url: string
+  }
+  detail: RecipeDetail
+}
 export interface UpdateRecipePayload {
   title: string
   summary?: string
@@ -1018,6 +1098,108 @@ function normalizeStep(raw: any): RecipeStep {
   }
 }
 
+function createEmptyMealPlanDays(): MealPlanWeek['days'] {
+  return {
+    monday: { breakfast: [], lunch: [], dinner: [] },
+    tuesday: { breakfast: [], lunch: [], dinner: [] },
+    wednesday: { breakfast: [], lunch: [], dinner: [] },
+    thursday: { breakfast: [], lunch: [], dinner: [] },
+    friday: { breakfast: [], lunch: [], dinner: [] },
+    saturday: { breakfast: [], lunch: [], dinner: [] },
+    sunday: { breakfast: [], lunch: [], dinner: [] },
+  }
+}
+
+function normalizeMealPlanDish(raw: any): MealPlanDish {
+  return {
+    id: normalizeId(raw.id),
+    recipe_id: raw.recipe_id ?? raw.recipeId ? normalizeId(raw.recipe_id ?? raw.recipeId) : undefined,
+    recipe_title: raw.recipe_title ?? raw.recipeTitle ?? '',
+    note: raw.note ?? undefined,
+    metadata_json: raw.metadata_json ?? raw.metadataJson ?? undefined,
+  }
+}
+
+function normalizeMealPlan(raw: any): MealPlanWeek {
+  const days = createEmptyMealPlanDays()
+  const sourceDays = raw?.days ?? {}
+  for (const [dayKey, dayValue] of Object.entries(sourceDays)) {
+    if (!(dayKey in days) || !dayValue || typeof dayValue !== 'object') continue
+    for (const slot of ['breakfast', 'lunch', 'dinner'] as MealSlotKey[]) {
+      const entries = (dayValue as Record<string, any[]>)[slot]
+      days[dayKey as keyof typeof days][slot] = Array.isArray(entries) ? entries.map(normalizeMealPlanDish) : []
+    }
+  }
+  return {
+    id: raw?.id ? normalizeId(raw.id) : undefined,
+    week_start_date: raw?.week_start_date ?? raw?.weekStartDate ?? '',
+    timezone: raw?.timezone ?? 'Asia/Shanghai',
+    source: raw?.source ?? 'manual',
+    days,
+  }
+}
+
+function normalizeShoppingListSummary(raw: any): ShoppingListSummary {
+  return {
+    id: normalizeId(raw.id),
+    meal_plan_id: raw.meal_plan_id ?? raw.mealPlanId ? normalizeId(raw.meal_plan_id ?? raw.mealPlanId) : undefined,
+    week_start_date: raw.week_start_date ?? raw.weekStartDate ?? '',
+    status: raw.status ?? 'draft',
+    completed_at: raw.completed_at ?? raw.completedAt ?? undefined,
+  }
+}
+
+function normalizeShoppingListItem(raw: any): ShoppingListItem {
+  return {
+    id: normalizeId(raw.id),
+    shopping_list_id: normalizeId(raw.shopping_list_id ?? raw.shoppingListId),
+    sort_order: Number(raw.sort_order ?? raw.sortOrder ?? 0),
+    source_type: raw.source_type ?? raw.sourceType ?? '',
+    source_recipe_id: raw.source_recipe_id ?? raw.sourceRecipeId ? normalizeId(raw.source_recipe_id ?? raw.sourceRecipeId) : undefined,
+    source_recipe_title: raw.source_recipe_title ?? raw.sourceRecipeTitle ?? undefined,
+    ingredient_name: raw.ingredient_name ?? raw.ingredientName ?? '',
+    normalized_name: raw.normalized_name ?? raw.normalizedName ?? '',
+    category: raw.category ?? '',
+    required_quantity_value: Number(raw.required_quantity_value ?? raw.requiredQuantityValue ?? 0),
+    required_unit: raw.required_unit ?? raw.requiredUnit ?? '',
+    required_text: raw.required_text ?? raw.requiredText ?? '',
+    missing_quantity_value: Number(raw.missing_quantity_value ?? raw.missingQuantityValue ?? 0),
+    missing_text: raw.missing_text ?? raw.missingText ?? '',
+    checked: Boolean(raw.checked),
+    note: raw.note ?? undefined,
+  }
+}
+
+function normalizeInventoryItem(raw: any): InventoryItem {
+  return {
+    id: normalizeId(raw.id),
+    household_id: raw.household_id ?? raw.householdId ? normalizeId(raw.household_id ?? raw.householdId) : undefined,
+    kind: raw.kind ?? 'ingredient',
+    name: raw.name ?? '',
+    normalized_name: raw.normalized_name ?? raw.normalizedName ?? '',
+    category: raw.category ?? '',
+    quantity_value: Number(raw.quantity_value ?? raw.quantityValue ?? 0),
+    unit: raw.unit ?? '',
+    quantity_text: raw.quantity_text ?? raw.quantityText ?? '',
+    source_type: raw.source_type ?? raw.sourceType ?? 'manual',
+    confidence: Number(raw.confidence ?? 1),
+    status: raw.status ?? 'active',
+    expires_at: raw.expires_at ?? raw.expiresAt ?? undefined,
+    last_seen_at: raw.last_seen_at ?? raw.lastSeenAt ?? undefined,
+  }
+}
+
+function normalizeInventoryRecommendation(raw: any): InventoryRecommendation {
+  return {
+    recipe: normalizeRecipeCard(raw.recipe ?? {}),
+    match_count: Number(raw.match_count ?? raw.matchCount ?? 0),
+    ingredient_total: Number(raw.ingredient_total ?? raw.ingredientTotal ?? 0),
+    match_percent: Number(raw.match_percent ?? raw.matchPercent ?? 0),
+    matched_items: Array.isArray(raw.matched_items ?? raw.matchedItems)
+      ? (raw.matched_items ?? raw.matchedItems).map((item: any) => String(item ?? '').trim()).filter(Boolean)
+      : [],
+  }
+}
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const session = getAuthSession()
   const headers = new Headers(init?.headers ?? {})
@@ -1265,6 +1447,211 @@ export async function createShareCode(): Promise<HouseholdSummary> {
   return normalizeHousehold(payload.household ?? payload)
 }
 
+export async function getCurrentMealPlan(weekStart?: string): Promise<MealPlanWeek> {
+  const query = new URLSearchParams()
+  if (weekStart) query.set('week_start', weekStart)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  const payload = await request<any>(`/api/v1/meal-plans/current${suffix}`)
+  return normalizeMealPlan(payload.plan ?? payload)
+}
+
+export async function saveCurrentMealPlan(input: {
+  week_start_date: string
+  days: Record<string, Record<MealSlotKey, Array<{ recipe_id?: ID; recipe_title: string; note?: string }>>>
+}): Promise<MealPlanWeek> {
+  const payload = await request<any>('/api/v1/meal-plans/current', {
+    method: 'PUT',
+    body: JSON.stringify({
+      week_start_date: input.week_start_date,
+      days: Object.fromEntries(
+        Object.entries(input.days).map(([day, slots]) => [
+          day,
+          Object.fromEntries(
+            Object.entries(slots).map(([slot, dishes]) => [
+              slot,
+              (dishes ?? []).map((dish) => ({
+                recipe_id: dish.recipe_id ? Number(dish.recipe_id) : undefined,
+                recipe_title: dish.recipe_title,
+                note: dish.note ?? '',
+              })),
+            ]),
+          ),
+        ]),
+      ),
+    }),
+  })
+  return normalizeMealPlan(payload.plan ?? payload)
+}
+
+export async function generateCurrentMealPlan(weekStart?: string): Promise<MealPlanWeek> {
+  const query = new URLSearchParams()
+  if (weekStart) query.set('week_start', weekStart)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  const payload = await request<any>(`/api/v1/meal-plans/current:generate${suffix}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return normalizeMealPlan(payload.plan ?? payload)
+}
+
+export async function getCurrentShoppingList(weekStart?: string): Promise<{ list: ShoppingListSummary; items: ShoppingListItem[] }> {
+  const query = new URLSearchParams()
+  if (weekStart) query.set('week_start', weekStart)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  const payload = await request<any>(`/api/v1/shopping-lists/current${suffix}`)
+  return {
+    list: normalizeShoppingListSummary(payload.list ?? {}),
+    items: Array.isArray(payload.items) ? payload.items.map(normalizeShoppingListItem) : [],
+  }
+}
+
+export async function regenerateShoppingList(weekStart?: string): Promise<{ list: ShoppingListSummary; items: ShoppingListItem[] }> {
+  const query = new URLSearchParams()
+  if (weekStart) query.set('week_start', weekStart)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  const payload = await request<any>(`/api/v1/shopping-lists:generate${suffix}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return {
+    list: normalizeShoppingListSummary(payload.list ?? {}),
+    items: Array.isArray(payload.items) ? payload.items.map(normalizeShoppingListItem) : [],
+  }
+}
+
+export async function updateShoppingListItem(listId: ID, itemId: ID, patch: {
+  checked?: boolean
+  note?: string
+  quantity_text?: string
+  category?: string
+}): Promise<ShoppingListItem> {
+  const payload = await request<any>(`/api/v1/shopping-lists/${encodeURIComponent(String(listId))}/items/${encodeURIComponent(String(itemId))}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+  return normalizeShoppingListItem(payload.item ?? payload)
+}
+
+export async function completeShoppingList(listId: ID): Promise<ShoppingListSummary> {
+  const payload = await request<any>(`/api/v1/shopping-lists/${encodeURIComponent(String(listId))}:complete`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return normalizeShoppingListSummary(payload.list ?? payload)
+}
+
+export async function listInventoryItems(keyword = ''): Promise<InventoryItem[]> {
+  const query = new URLSearchParams()
+  if (keyword.trim()) query.set('keyword', keyword.trim())
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  const payload = await request<any>(`/api/v1/inventory-items${suffix}`)
+  return Array.isArray(payload.items) ? payload.items.map(normalizeInventoryItem) : []
+}
+
+export async function upsertInventoryItems(items: Array<{
+  id?: ID
+  kind?: string
+  name: string
+  category?: string
+  quantity_value?: number
+  unit?: string
+  quantity_text?: string
+  source_type?: string
+  confidence?: number
+  status?: string
+}>): Promise<InventoryItem[]> {
+  const payload = await request<any>('/api/v1/inventory-items:upsert', {
+    method: 'POST',
+    body: JSON.stringify({
+      items: items.map((item) => ({
+        id: item.id ? Number(item.id) : 0,
+        kind: item.kind ?? '',
+        name: item.name,
+        category: item.category ?? '',
+        quantity_value: item.quantity_value ?? 0,
+        unit: item.unit ?? '',
+        quantity_text: item.quantity_text ?? '',
+        source_type: item.source_type ?? 'manual',
+        confidence: item.confidence ?? 1,
+        status: item.status ?? 'active',
+      })),
+    }),
+  })
+  return Array.isArray(payload.items) ? payload.items.map(normalizeInventoryItem) : []
+}
+
+export async function updateInventoryItem(itemId: ID, patch: Partial<Omit<InventoryItem, 'id'>>): Promise<InventoryItem> {
+  const payload = await request<any>(`/api/v1/inventory-items/${encodeURIComponent(String(itemId))}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      kind: patch.kind,
+      name: patch.name,
+      category: patch.category,
+      quantity_value: patch.quantity_value,
+      unit: patch.unit,
+      quantity_text: patch.quantity_text,
+      source_type: patch.source_type,
+      confidence: patch.confidence,
+      status: patch.status,
+      expires_at: patch.expires_at,
+      last_seen_at: patch.last_seen_at,
+    }),
+  })
+  return normalizeInventoryItem(payload.item ?? payload)
+}
+
+export async function listInventoryRecommendations(limit = 12): Promise<InventoryRecommendation[]> {
+  const payload = await request<any>(`/api/v1/inventory-items/recommendations?limit=${limit}`)
+  return Array.isArray(payload.items) ? payload.items.map(normalizeInventoryRecommendation) : []
+}
+
+export async function createRecipeShare(id: ID): Promise<RecipeSharePreview> {
+  const payload = await request<any>(`/api/v1/recipes/${encodeURIComponent(String(id))}/share`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return {
+    share: {
+      id: normalizeId(payload.share?.id),
+      share_code: payload.share?.share_code ?? '',
+      status: payload.share?.status ?? 'active',
+      recipe_id: normalizeId(payload.share?.recipe_id),
+      share_url: payload.share?.share_url ?? '',
+    },
+    detail: {
+      recipe: normalizeRecipeCard(payload.detail?.recipe ?? {}),
+      ingredients: (payload.detail?.ingredients ?? []).map(normalizeIngredient),
+      steps: (payload.detail?.steps ?? []).map(normalizeStep),
+    },
+  }
+}
+
+export async function previewRecipeShare(shareCode: string): Promise<RecipeSharePreview> {
+  const payload = await request<any>(`/api/v1/recipe-shares/${encodeURIComponent(shareCode)}`)
+  return {
+    share: {
+      id: normalizeId(payload.share?.id),
+      share_code: payload.share?.share_code ?? '',
+      status: payload.share?.status ?? 'active',
+      recipe_id: normalizeId(payload.share?.recipe_id),
+      share_url: payload.share?.share_url ?? '',
+    },
+    detail: {
+      recipe: normalizeRecipeCard(payload.detail?.recipe ?? {}),
+      ingredients: (payload.detail?.ingredients ?? []).map(normalizeIngredient),
+      steps: (payload.detail?.steps ?? []).map(normalizeStep),
+    },
+  }
+}
+
+export async function importRecipeShare(shareCode: string): Promise<RecipeCard> {
+  const payload = await request<any>(`/api/v1/recipe-shares/${encodeURIComponent(shareCode)}:import`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  cache.clear()
+  return normalizeRecipeCard(payload.recipe ?? payload)
+}
 export async function listKitchenTags(): Promise<KitchenTag[]> {
   const payload = await requestCached<{ tags?: any[] }>('/api/v1/kitchen-tags')
   return (payload.tags ?? []).map(normalizeKitchenTag)
@@ -2063,3 +2450,5 @@ export async function queryKnowledgeBase(baseId: ID, question: string) {
     mode: payload.mode ?? payload.reply_mode ?? 'knowledge',
   }
 }
+
+

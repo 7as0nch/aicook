@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { toast } from 'sonner'
 import { transcribeAudio, type ID } from '../../lib/api/client'
 
 /** WeChat-style: `5"` under 60s, else `m:ss`. */
@@ -12,10 +13,8 @@ function formatWeChatSeconds(seconds: number) {
 
 type Props = {
   src?: string
-  /** Kept for API compatibility; not shown (avoid exposing filenames). */
   label?: string
   assetId?: ID
-  /** When no `assetId`, long-press shows this text (e.g. saved transcript). */
   fallbackText?: string
 }
 
@@ -82,23 +81,19 @@ export function VoiceMessageBar({ src, assetId, fallbackText }: Props) {
       setPlaying(false)
       return
     }
-    void audio
-      .play()
-      .then(() => setPlaying(true))
-      .catch(() => setPlaying(false))
+    void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
   }, [playing, src])
 
   const runTranscribe = useCallback(async () => {
     try {
       if (assetId) {
-        const r = await transcribeAudio(assetId)
-        const t = (r.text ?? '').trim() || '（无文字）'
-        window.alert(`转文字：\n${t}`)
+        const result = await transcribeAudio(assetId)
+        toast((result.text ?? '').trim() || '（无文字）')
       } else if (fallbackText?.trim()) {
-        window.alert(`转文字：\n${fallbackText.trim()}`)
+        toast(fallbackText.trim())
       }
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : '转写失败')
+      toast.error(e instanceof Error ? e.message : '转写失败')
     }
   }, [assetId, fallbackText])
 
@@ -189,36 +184,15 @@ export function VoiceMessageBar({ src, assetId, fallbackText }: Props) {
       onPointerUp={onRowPointerUp}
       onPointerCancel={onRowPointerUp}
     >
-      {/* Right speech-bubble tail (sent), aligns with bubble fill */}
-      <span
-        className="pointer-events-none absolute left-full top-1/2 z-0 -translate-y-1/2 border-y-[7px] border-l-[9px] border-y-transparent border-l-gray-800/90"
-        aria-hidden
-      />
-
+      <span className="pointer-events-none absolute left-full top-1/2 z-0 -translate-y-1/2 border-y-[7px] border-l-[9px] border-y-transparent border-l-gray-800/90" aria-hidden />
       {src ? <audio ref={audioRef} src={src} preload="metadata" className="hidden" /> : null}
-
       <div className="relative z-10 flex items-center gap-3 pr-1">
         <div className="min-w-0 flex-1 pt-0.5">
-          <div
-            ref={trackRef}
-            data-voice-scrub
-            onPointerDown={onTrackPointerDown}
-            onPointerMove={onTrackPointerMove}
-            onPointerUp={endTrackDrag}
-            onPointerCancel={endTrackDrag}
-            onClick={(e) => e.stopPropagation()}
-            className={`relative h-1.5 cursor-pointer rounded-full bg-white/15 ${dragging ? 'ring-1 ring-orange-400/50' : ''}`}
-          >
-            <div
-              className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-white/50"
-              style={{ width: `${progress * 100}%` }}
-            />
+          <div ref={trackRef} data-voice-scrub onPointerDown={onTrackPointerDown} onPointerMove={onTrackPointerMove} onPointerUp={endTrackDrag} onPointerCancel={endTrackDrag} onClick={(e) => e.stopPropagation()} className={`relative h-1.5 cursor-pointer rounded-full bg-white/15 ${dragging ? 'ring-1 ring-orange-400/50' : ''}`}>
+            <div className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-white/50" style={{ width: `${progress * 100}%` }} />
           </div>
         </div>
-
-        <span className="shrink-0 text-[15px] font-medium tabular-nums text-white/95">
-          {formatWeChatSeconds(shownSeconds)}
-        </span>
+        <span className="shrink-0 text-[15px] font-medium tabular-nums text-white/95">{formatWeChatSeconds(shownSeconds)}</span>
       </div>
     </div>
   )

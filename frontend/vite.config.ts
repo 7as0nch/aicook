@@ -5,6 +5,25 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        /**
+         * 把稳定依赖拆成独立 vendor chunk，减轻首页主包体积，
+         * 同时让 AI 助手、动效和 Ant Design 缓存更稳定。
+         */
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('/node_modules/antd/')) return 'vendor-antd'
+          if (id.includes('/node_modules/@ant-design/')) return 'vendor-antd-icons'
+          if (id.includes('/node_modules/rc-')) return 'vendor-antd-rc'
+          if (id.includes('motion') || id.includes('framer-motion')) return 'vendor-motion'
+          if (id.includes('html2canvas')) return 'vendor-capture'
+          if (id.includes('react-router')) return 'vendor-router'
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

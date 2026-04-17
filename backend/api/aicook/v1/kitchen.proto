@@ -1,0 +1,306 @@
+syntax = "proto3";
+
+package aicook.v1;
+
+option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "api/aicook/v1/common.proto";
+
+// Kitchen 厨房核心：周计划、购物清单、库存、菜谱分享等（与前端 client.ts 对齐）。
+service KitchenService {
+  rpc GetCurrentMealPlan(GetCurrentMealPlanRequest) returns (GetCurrentMealPlanReply) {
+    option (google.api.http) = {get: "/api/v1/meal-plans/current"};
+  }
+
+  rpc SaveCurrentMealPlan(SaveCurrentMealPlanRequest) returns (SaveCurrentMealPlanReply) {
+    option (google.api.http) = {
+      put: "/api/v1/meal-plans/current"
+      body: "*"
+    };
+  }
+
+  rpc GenerateCurrentMealPlan(GenerateCurrentMealPlanRequest) returns (GenerateCurrentMealPlanReply) {
+    option (google.api.http) = {post: "/api/v1/meal-plans/current:generate"};
+  }
+
+  rpc GetCurrentShoppingList(GetCurrentShoppingListRequest) returns (GetCurrentShoppingListReply) {
+    option (google.api.http) = {get: "/api/v1/shopping-lists/current"};
+  }
+
+  rpc GenerateShoppingList(GenerateShoppingListRequest) returns (GenerateShoppingListReply) {
+    option (google.api.http) = {post: "/api/v1/shopping-lists:generate"};
+  }
+
+  rpc PatchShoppingListItem(PatchShoppingListItemRequest) returns (PatchShoppingListItemReply) {
+    option (google.api.http) = {
+      patch: "/api/v1/shopping-lists/{list_id}/items/{item_id}"
+      body: "*"
+    };
+  }
+
+  rpc CompleteShoppingList(CompleteShoppingListRequest) returns (CompleteShoppingListReply) {
+    option (google.api.http) = {post: "/api/v1/shopping-lists/{list_id}:complete"};
+  }
+
+  rpc ListInventoryItems(ListInventoryItemsRequest) returns (ListInventoryItemsReply) {
+    option (google.api.http) = {get: "/api/v1/inventory-items"};
+  }
+
+  rpc UpsertInventoryItems(UpsertInventoryItemsRequest) returns (UpsertInventoryItemsReply) {
+    option (google.api.http) = {
+      post: "/api/v1/inventory-items:upsert"
+      body: "*"
+    };
+  }
+
+  rpc PatchInventoryItem(PatchInventoryItemRequest) returns (PatchInventoryItemReply) {
+    option (google.api.http) = {
+      patch: "/api/v1/inventory-items/{item_id}"
+      body: "*"
+    };
+  }
+
+  rpc ListInventoryRecommendations(ListInventoryRecommendationsRequest) returns (ListInventoryRecommendationsReply) {
+    option (google.api.http) = {get: "/api/v1/inventory-items/recommendations"};
+  }
+
+  rpc CreateRecipeShare(CreateRecipeShareRequest) returns (CreateRecipeShareReply) {
+    option (google.api.http) = {post: "/api/v1/recipes/{id}/share"};
+  }
+
+  rpc PreviewRecipeShare(PreviewRecipeShareRequest) returns (PreviewRecipeShareReply) {
+    option (google.api.http) = {get: "/api/v1/recipe-shares/{share_code}"};
+  }
+
+  rpc ImportRecipeShare(ImportRecipeShareRequest) returns (ImportRecipeShareReply) {
+    option (google.api.http) = {post: "/api/v1/recipe-shares/{share_code}:import"};
+  }
+}
+
+// --- Meal plan ---
+
+message GetCurrentMealPlanRequest {
+  string week_start = 1;
+}
+
+message GetCurrentMealPlanReply {
+  MealPlanWeek plan = 1;
+}
+
+message SaveCurrentMealPlanRequest {
+  string week_start_date = 1;
+  google.protobuf.Struct days = 2;
+}
+
+message SaveCurrentMealPlanReply {
+  MealPlanWeek plan = 1;
+}
+
+message GenerateCurrentMealPlanRequest {
+  string week_start = 1;
+}
+
+message GenerateCurrentMealPlanReply {
+  MealPlanWeek plan = 1;
+}
+
+message MealPlanWeek {
+  int64 id = 1;
+  string week_start_date = 2;
+  string timezone = 3;
+  string source = 4;
+  google.protobuf.Struct days = 5;
+}
+
+// --- Shopping list ---
+
+message GetCurrentShoppingListRequest {
+  string week_start = 1;
+}
+
+message GetCurrentShoppingListReply {
+  ShoppingList list = 1;
+  repeated ShoppingListItem items = 2;
+}
+
+message GenerateShoppingListRequest {
+  string week_start = 1;
+}
+
+message GenerateShoppingListReply {
+  ShoppingList list = 1;
+  repeated ShoppingListItem items = 2;
+}
+
+message ShoppingList {
+  int64 id = 1;
+  optional int64 meal_plan_id = 2;
+  string week_start_date = 3;
+  string status = 4;
+  google.protobuf.Timestamp completed_at = 5;
+}
+
+message ShoppingListItem {
+  int64 id = 1;
+  int64 shopping_list_id = 2;
+  int32 sort_order = 3;
+  string source_type = 4;
+  optional int64 source_recipe_id = 5;
+  string source_recipe_title = 6;
+  string ingredient_name = 7;
+  string normalized_name = 8;
+  string category = 9;
+  double required_quantity_value = 10;
+  string required_unit = 11;
+  string required_text = 12;
+  double missing_quantity_value = 13;
+  string missing_text = 14;
+  bool checked = 15;
+  string note = 16;
+}
+
+message PatchShoppingListItemRequest {
+  int64 list_id = 1;
+  int64 item_id = 2;
+  optional bool checked = 3;
+  optional string note = 4;
+  optional string quantity_text = 5;
+  optional string category = 6;
+}
+
+message PatchShoppingListItemReply {
+  ShoppingListItem item = 1;
+}
+
+message CompleteShoppingListRequest {
+  int64 list_id = 1;
+}
+
+message CompleteShoppingListReply {
+  ShoppingList list = 1;
+}
+
+// --- Inventory ---
+
+message ListInventoryItemsRequest {
+  string keyword = 1;
+}
+
+message ListInventoryItemsReply {
+  repeated InventoryItem items = 1;
+}
+
+message InventoryUpsertItem {
+  int64 id = 1;
+  string kind = 2;
+  string name = 3;
+  string category = 4;
+  double quantity_value = 5;
+  string unit = 6;
+  string quantity_text = 7;
+  string source_type = 8;
+  double confidence = 9;
+  string status = 10;
+}
+
+message UpsertInventoryItemsRequest {
+  repeated InventoryUpsertItem items = 1;
+}
+
+message UpsertInventoryItemsReply {
+  repeated InventoryItem items = 1;
+}
+
+message InventoryItem {
+  int64 id = 1;
+  int64 household_id = 2;
+  string kind = 3;
+  string name = 4;
+  string normalized_name = 5;
+  string category = 6;
+  double quantity_value = 7;
+  string unit = 8;
+  string quantity_text = 9;
+  string source_type = 10;
+  double confidence = 11;
+  string status = 12;
+  google.protobuf.Timestamp expires_at = 13;
+  google.protobuf.Timestamp last_seen_at = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+}
+
+message PatchInventoryItemRequest {
+  int64 item_id = 1;
+  string kind = 2;
+  string name = 3;
+  string category = 4;
+  double quantity_value = 5;
+  string unit = 6;
+  string quantity_text = 7;
+  string source_type = 8;
+  double confidence = 9;
+  string status = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  google.protobuf.Timestamp last_seen_at = 12;
+}
+
+message PatchInventoryItemReply {
+  InventoryItem item = 1;
+}
+
+message ListInventoryRecommendationsRequest {
+  int32 limit = 1;
+}
+
+message ListInventoryRecommendationsReply {
+  repeated InventoryRecommendation items = 1;
+}
+
+message InventoryRecommendation {
+  Recipe recipe = 1;
+  int32 match_count = 2;
+  int32 ingredient_total = 3;
+  int32 match_percent = 4;
+  repeated string matched_items = 5;
+}
+
+// --- Recipe share ---
+
+message CreateRecipeShareRequest {
+  int64 id = 1;
+}
+
+message RecipeShareSummary {
+  int64 id = 1;
+  string share_code = 2;
+  string status = 3;
+  int64 recipe_id = 4;
+  string share_url = 5;
+}
+
+message CreateRecipeShareReply {
+  RecipeShareSummary share = 1;
+  RecipeDetail detail = 2;
+}
+
+message PreviewRecipeShareRequest {
+  string share_code = 1;
+}
+
+message PreviewRecipeShareReply {
+  RecipeShareSummary share = 1;
+  RecipeDetail detail = 2;
+}
+
+message ImportRecipeShareRequest {
+  string share_code = 1;
+}
+
+message ImportRecipeShareReply {
+  Recipe recipe = 1;
+}
+
