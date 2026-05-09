@@ -1,0 +1,5 @@
+<view class="placeholder-page">
+  <view class="emoji">🏡</view>
+  <view class="title">家庭管理</view>
+  <view class="desc">阶段 1 实现切换 / 创建 / 加入家庭</view>
+</view>

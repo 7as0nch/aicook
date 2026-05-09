@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf dist)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(go build *)",
+      "Bash(npm install *)"
+    ]
+  }
+}

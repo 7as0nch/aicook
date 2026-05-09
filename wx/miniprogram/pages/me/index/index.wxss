@@ -1,0 +1,108 @@
+.me-page {
+  min-height: 100vh;
+  background: #FFF6EE;
+  padding: 24rpx;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 32rpx 24rpx;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 26, 0.16);
+}
+
+.avatar-emoji {
+  font-size: 64rpx;
+}
+
+.user-info { flex: 1; }
+
+.user-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: 8rpx;
+}
+
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.badge.level {
+  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
+  color: #FFFFFF;
+  padding: 2rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.user-house {
+  font-size: 24rpx;
+  color: #8C8C8C;
+}
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 22rpx;
+  color: #FF6B1A;
+}
+
+/* 菜单 */
+.menu-list {
+  margin-top: 24rpx;
+  padding: 0;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #F5F6F8;
+  gap: 16rpx;
+}
+
+.menu-item:last-child { border-bottom: none; }
+.menu-item.hover { background: #F5F6F8; }
+
+.menu-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1A1A1A;
+}
+
+.menu-arrow {
+  font-size: 28rpx;
+  color: #BFBFBF;
+}
+
+.logout-btn {
+  margin-top: 32rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  text-align: center;
+  color: #FF4D4F;
+  font-size: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.bottom-spacer { height: 200rpx; }

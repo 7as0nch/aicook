@@ -1,0 +1,10 @@
+<view class="register-page">
+  <view class="title">注册新账号</view>
+  <view class="form">
+    <input class="input" placeholder="用户名 *" data-field="username" bindinput="onInput" />
+    <input class="input" placeholder="密码 *" password data-field="password" bindinput="onInput" />
+    <input class="input" placeholder="昵称 *" data-field="display_name" bindinput="onInput" />
+    <input class="input" placeholder="家庭名称（可选）" data-field="household_name" bindinput="onInput" />
+    <button class="primary-btn" disabled="{{loading}}" bindtap="onSubmit">{{loading ? '注册中…' : '注册'}}</button>
+  </view>
+</view>

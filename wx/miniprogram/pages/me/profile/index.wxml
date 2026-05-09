@@ -1,0 +1,5 @@
+<view class="placeholder-page">
+  <view class="emoji">👤</view>
+  <view class="title">个人资料</view>
+  <view class="desc">阶段 1 实现昵称 / 头像编辑</view>
+</view>

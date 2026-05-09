@@ -18,10 +18,11 @@ type KitchenService struct {
 
 	usecase *biz.KitchenOpsUsecase
 	media   *biz.MediaUsecase
+	history *biz.CookingHistoryUsecase
 }
 
-func NewKitchenService(usecase *biz.KitchenOpsUsecase, media *biz.MediaUsecase) *KitchenService {
-	return &KitchenService{usecase: usecase, media: media}
+func NewKitchenService(usecase *biz.KitchenOpsUsecase, media *biz.MediaUsecase, history *biz.CookingHistoryUsecase) *KitchenService {
+	return &KitchenService{usecase: usecase, media: media, history: history}
 }
 
 func requireKitchenActor(ctx context.Context) (biz.Actor, error) {
@@ -316,6 +317,87 @@ func (s *KitchenService) ImportRecipeShare(ctx context.Context, req *v1.ImportRe
 	r := toProtoRecipe(recipe)
 	signRecipeMediaURLs(ctx, s.media, r)
 	return &v1.ImportRecipeShareReply{Recipe: r}, nil
+}
+
+func (s *KitchenService) CreateCookingHistory(ctx context.Context, req *v1.CreateCookingHistoryRequest) (*v1.CreateCookingHistoryReply, error) {
+	actor, err := requireKitchenActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	entry, err := s.history.Create(ctx, actor, biz.CreateInput{
+		RecipeID:           req.GetRecipeId(),
+		StartedAtMS:        req.GetStartedAtMs(),
+		CompletedAtMS:      req.GetCompletedAtMs(),
+		DurationSeconds:    int(req.GetDurationSeconds()),
+		CompletedStepCount: int(req.GetCompletedStepCount()),
+		Rating:             int(req.GetRating()),
+		Note:               req.GetNote(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &v1.CreateCookingHistoryReply{Entry: s.toProtoCookingHistoryEntry(ctx, entry)}, nil
+}
+
+func (s *KitchenService) ListCookingHistory(ctx context.Context, req *v1.ListCookingHistoryRequest) (*v1.ListCookingHistoryReply, error) {
+	actor, err := requireKitchenActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	limit := int(req.GetLimit())
+	entries, nextCursor, err := s.history.List(ctx, actor, limit, req.GetBeforeId())
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*v1.CookingHistoryEntry, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, s.toProtoCookingHistoryEntry(ctx, e))
+	}
+	return &v1.ListCookingHistoryReply{Entries: out, NextCursorId: nextCursor}, nil
+}
+
+func (s *KitchenService) ListRecentCookingHistory(ctx context.Context, req *v1.ListRecentCookingHistoryRequest) (*v1.ListRecentCookingHistoryReply, error) {
+	actor, err := requireKitchenActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := s.history.ListRecent(ctx, actor, int(req.GetLimit()))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*v1.CookingHistoryEntry, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, s.toProtoCookingHistoryEntry(ctx, e))
+	}
+	return &v1.ListRecentCookingHistoryReply{Entries: out}, nil
+}
+
+func (s *KitchenService) toProtoCookingHistoryEntry(ctx context.Context, entry *data.CookingHistory) *v1.CookingHistoryEntry {
+	if entry == nil {
+		return nil
+	}
+	cover := entry.RecipeCoverSnapshot
+	// 封面是私有桶 URL，前端无法直链访问，统一替换为短期签名 URL。
+	if cover != "" && s.media != nil {
+		if signed, err := s.media.SignMediaURL(ctx, cover); err == nil && signed != "" {
+			cover = signed
+		}
+	}
+	return &v1.CookingHistoryEntry{
+		Id:                  entry.ID,
+		HouseholdId:         entry.HouseholdID,
+		UserId:              entry.UserID,
+		RecipeId:            entry.RecipeID,
+		RecipeTitleSnapshot: entry.RecipeTitleSnapshot,
+		RecipeCoverSnapshot: cover,
+		StartedAt:           timestampFromTimePtr(entry.StartedAt),
+		CompletedAt:         toTimestampPtr(entry.CompletedAt),
+		DurationSeconds:     int32(entry.DurationSeconds),
+		CompletedStepCount:  int32(entry.CompletedStepCount),
+		Rating:              int32(entry.Rating),
+		Note:                entry.Note,
+		CreatedAt:           toTimestampPtr(entry.CreatedAt),
+	}
 }
 
 func mealPlanWeekViewToProto(v *biz.MealPlanWeekView) (*v1.MealPlanWeek, error) {

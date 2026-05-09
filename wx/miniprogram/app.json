@@ -1,0 +1,48 @@
+{
+  "pages": [
+    "pages/home/index/index",
+    "pages/recipes/list/index",
+    "pages/recipes/detail/index",
+    "pages/recipes/cooking/index",
+    "pages/recipes/snap/index",
+    "pages/plan/index/index",
+    "pages/plan/shopping/index",
+    "pages/ai/index/index",
+    "pages/ai/chat/index",
+    "pages/me/index/index",
+    "pages/me/profile/index",
+    "pages/me/households/index",
+    "pages/me/preferences/index",
+    "pages/auth/login/index",
+    "pages/auth/register/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "馋猫厨房",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFFFFF",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#FF6B1A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/home/index/index", "text": "首页" },
+      { "pagePath": "pages/recipes/list/index", "text": "菜谱" },
+      { "pagePath": "pages/plan/index/index", "text": "计划" },
+      { "pagePath": "pages/me/index/index", "text": "我的" }
+    ]
+  },
+  "networkTimeout": {
+    "request": 15000,
+    "uploadFile": 60000,
+    "downloadFile": 60000
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -33,6 +33,7 @@ var ProviderSet = wire.NewSet(
 	NewAIRepo,
 	NewKitchenOpsRepo,
 	NewCookingProgressStore,
+	NewCookingHistoryRepo,
 )
 
 func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
@@ -47,7 +48,7 @@ func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
 		// 只有在空库/本地引导场景下，才允许 AutoMigrate 创建基础表结构；
 		// 已存在业务表时跳过，避免 GORM 试图重命名或删除手写 SQL 建立的约束与索引。
 		// db.AutoMigrate(&model.RecipeKitchenTag{})
-		if !db.Migrator().HasTable(&Household{}) {
+		if !db.Migrator().HasTable(&CookingHistory{}) {
 			if err := persistence.AutoMigrate(ctx, db); err != nil {
 				return nil, nil, err
 			}

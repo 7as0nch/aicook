@@ -1,0 +1,117 @@
+/* 全局样式入口：导入主题变量 + 全局重置 */
+@import './styles/theme.wxss';
+
+page {
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+view, text, image, button, input, textarea {
+  box-sizing: border-box;
+}
+
+button {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  border: none;
+  line-height: 1.5;
+}
+
+button::after {
+  border: none;
+}
+
+/* 通用容器：带左右边距 */
+.container {
+  padding: 0 32rpx;
+}
+
+/* 通用安全区底部占位 */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 文本省略 */
+.ellipsis-1 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/**
+ * 通用 icon 插槽
+ * 设计稿中所有图标位置使用此基类，用 emoji / image src 二选一占位
+ * 后续替换为正式图标只需把 image src 指向 asset 路径
+ */
+.icon-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.icon-slot.size-sm { width: 32rpx; height: 32rpx; }
+.icon-slot.size-md { width: 48rpx; height: 48rpx; }
+.icon-slot.size-lg { width: 80rpx; height: 80rpx; }
+.icon-slot.size-xl { width: 120rpx; height: 120rpx; }
+
+.icon-slot__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.icon-slot__emoji {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+/* 主按钮 */
+.cta-btn {
+  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
+  color: #FFFFFF;
+  border-radius: 999rpx;
+  padding: 24rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 26, 0.24);
+}
+
+.cta-btn[disabled],
+.cta-btn.disabled { opacity: 0.6; }
+
+/* 通用卡片 */
+.card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  padding: 24rpx;
+}
+
+/* 图片占位（image 加载前/失败兜底） */
+.img-placeholder {
+  background: #F5F6F8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BFBFBF;
+  font-size: 40rpx;
+}

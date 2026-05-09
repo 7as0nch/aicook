@@ -1,0 +1,5 @@
+<view class="placeholder-page">
+  <view class="emoji">🍳</view>
+  <view class="title">做菜步骤 #{{id}}</view>
+  <view class="desc">阶段 4 实现步骤导航 + 计时器</view>
+</view>

@@ -23,6 +23,7 @@ const OperationRecipeServiceCreateRecipeDraft = "/aicook.v1.RecipeService/Create
 const OperationRecipeServiceDeleteRecipe = "/aicook.v1.RecipeService/DeleteRecipe"
 const OperationRecipeServiceGetRecipeDetail = "/aicook.v1.RecipeService/GetRecipeDetail"
 const OperationRecipeServiceListRecipes = "/aicook.v1.RecipeService/ListRecipes"
+const OperationRecipeServiceListTodayRecipes = "/aicook.v1.RecipeService/ListTodayRecipes"
 const OperationRecipeServiceUpdateRecipe = "/aicook.v1.RecipeService/UpdateRecipe"
 
 type RecipeServiceHTTPServer interface {
@@ -30,6 +31,8 @@ type RecipeServiceHTTPServer interface {
 	DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error)
 	GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error)
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesReply, error)
+	// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
+	ListTodayRecipes(context.Context, *ListTodayRecipesRequest) (*ListTodayRecipesReply, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error)
 }
 
@@ -40,6 +43,7 @@ func RegisterRecipeServiceHTTPServer(s *http.Server, srv RecipeServiceHTTPServer
 	r.POST("/api/v1/recipes:draft", _RecipeService_CreateRecipeDraft0_HTTP_Handler(srv))
 	r.PUT("/api/v1/recipes/{id}", _RecipeService_UpdateRecipe0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/recipes/{id}", _RecipeService_DeleteRecipe0_HTTP_Handler(srv))
+	r.GET("/api/v1/recipes/today", _RecipeService_ListTodayRecipes0_HTTP_Handler(srv))
 }
 
 func _RecipeService_ListRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
@@ -152,11 +156,32 @@ func _RecipeService_DeleteRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func
 	}
 }
 
+func _RecipeService_ListTodayRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListTodayRecipesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceListTodayRecipes)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListTodayRecipes(ctx, req.(*ListTodayRecipesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListTodayRecipesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type RecipeServiceHTTPClient interface {
 	CreateRecipeDraft(ctx context.Context, req *CreateRecipeDraftRequest, opts ...http.CallOption) (rsp *CreateRecipeDraftReply, err error)
 	DeleteRecipe(ctx context.Context, req *DeleteRecipeRequest, opts ...http.CallOption) (rsp *DeleteRecipeReply, err error)
 	GetRecipeDetail(ctx context.Context, req *GetRecipeDetailRequest, opts ...http.CallOption) (rsp *GetRecipeDetailReply, err error)
 	ListRecipes(ctx context.Context, req *ListRecipesRequest, opts ...http.CallOption) (rsp *ListRecipesReply, err error)
+	// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
+	ListTodayRecipes(ctx context.Context, req *ListTodayRecipesRequest, opts ...http.CallOption) (rsp *ListTodayRecipesReply, err error)
 	UpdateRecipe(ctx context.Context, req *UpdateRecipeRequest, opts ...http.CallOption) (rsp *UpdateRecipeReply, err error)
 }
 
@@ -212,6 +237,20 @@ func (c *RecipeServiceHTTPClientImpl) ListRecipes(ctx context.Context, in *ListR
 	pattern := "/api/v1/recipes"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationRecipeServiceListRecipes))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
+func (c *RecipeServiceHTTPClientImpl) ListTodayRecipes(ctx context.Context, in *ListTodayRecipesRequest, opts ...http.CallOption) (*ListTodayRecipesReply, error) {
+	var out ListTodayRecipesReply
+	pattern := "/api/v1/recipes/today"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationRecipeServiceListTodayRecipes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

@@ -10,12 +10,13 @@ import (
 type RecipeService struct {
 	v1.UnimplementedRecipeServiceServer
 
-	usecase *biz.RecipeUsecase
-	media   *biz.MediaUsecase
+	usecase   *biz.RecipeUsecase
+	media     *biz.MediaUsecase
+	recommend *biz.RecommendUsecase
 }
 
-func NewRecipeService(usecase *biz.RecipeUsecase, media *biz.MediaUsecase) *RecipeService {
-	return &RecipeService{usecase: usecase, media: media}
+func NewRecipeService(usecase *biz.RecipeUsecase, media *biz.MediaUsecase, recommend *biz.RecommendUsecase) *RecipeService {
+	return &RecipeService{usecase: usecase, media: media, recommend: recommend}
 }
 
 func (s *RecipeService) ListRecipes(ctx context.Context, req *v1.ListRecipesRequest) (*v1.ListRecipesReply, error) {
@@ -108,4 +109,30 @@ func (s *RecipeService) DeleteRecipe(ctx context.Context, req *v1.DeleteRecipeRe
 		return nil, err
 	}
 	return &v1.DeleteRecipeReply{Ok: true}, nil
+}
+
+func (s *RecipeService) ListTodayRecipes(ctx context.Context, req *v1.ListTodayRecipesRequest) (*v1.ListTodayRecipesReply, error) {
+	actor := biz.ActorFromContext(ctx)
+	items, err := s.recommend.ListToday(ctx, actor, int(req.GetLimit()))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*v1.TodayRecipe, 0, len(items))
+	for _, it := range items {
+		if it == nil || it.Recipe == nil {
+			continue
+		}
+		r := toProtoRecipe(it.Recipe)
+		signRecipeMediaURLs(ctx, s.media, r)
+		reasons := make([]*v1.TodayRecipeReason, 0, len(it.Reasons))
+		for _, reason := range it.Reasons {
+			reasons = append(reasons, &v1.TodayRecipeReason{Kind: reason.Kind, Label: reason.Label})
+		}
+		out = append(out, &v1.TodayRecipe{
+			Recipe:  r,
+			Score:   it.Score,
+			Reasons: reasons,
+		})
+	}
+	return &v1.ListTodayRecipesReply{Items: out}, nil
 }

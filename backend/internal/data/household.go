@@ -62,6 +62,13 @@ func (r *HouseholdRepo) UpdateShareCode(ctx context.Context, householdID int64, 
 		Update("share_code", shareCode).Error
 }
 
+// UpdatePreferences 把 preferences JSON 整体替换；调用方负责合并/校验。
+func (r *HouseholdRepo) UpdatePreferences(ctx context.Context, householdID int64, preferences map[string]any) error {
+	return r.db.WithContext(ctx).Model(&Household{}).
+		Where("id = ?", householdID).
+		Update("preferences", preferences).Error
+}
+
 func (r *HouseholdRepo) ListRecipePreviews(ctx context.Context, householdID int64, limit int) ([]*Recipe, error) {
 	if limit <= 0 {
 		limit = 24

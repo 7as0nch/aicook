@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "resolveJsonModule": true,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "sourceMap": false,
+    "outDir": "./miniprogram",
+    "rootDir": "./miniprogram",
+    "baseUrl": "./miniprogram",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "types": ["miniprogram-api-typings"]
+  },
+  "include": [
+    "miniprogram/**/*.ts",
+    "typings/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "miniprogram/miniprogram_npm"
+  ]
+}

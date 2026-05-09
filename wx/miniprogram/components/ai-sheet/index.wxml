@@ -1,0 +1,85 @@
+<view class="ai-sheet-mask {{visible ? 'visible' : ''}}" bindtap="onMaskTap" catchtouchmove="onSheetTap">
+  <view class="ai-sheet {{fullscreen ? 'fullscreen' : ''}}" catchtap="onSheetTap">
+    <!-- 头部 -->
+    <view class="sheet-header">
+      <view class="sheet-title">
+        <view class="title-icon">🐱</view>
+        <text class="title-text">厨艺助理 AI</text>
+      </view>
+      <view class="header-actions">
+        <view class="header-btn" bindtap="onToggleFullscreen">{{fullscreen ? '⤓' : '⤢'}}</view>
+        <view class="header-btn" bindtap="onClose">×</view>
+      </view>
+    </view>
+
+    <!-- 上下文标签 -->
+    <view wx:if="{{context}}" class="context-tag">
+      <text class="context-label">当前上下文：</text>
+      <text class="context-value">{{context}}</text>
+    </view>
+
+    <!-- 内容区 -->
+    <scroll-view class="sheet-body" scroll-y>
+      <!-- 问候卡片 -->
+      <view class="greeting">
+        <view class="greeting-bubble">
+          <text class="greeting-emoji">👋</text>
+          <text class="greeting-text">你好！我是你的厨艺助理</text>
+        </view>
+        <text class="greeting-desc">你可以问我 / 我帮你做：</text>
+      </view>
+
+      <!-- 4 快捷问题 -->
+      <view class="quick-grid">
+        <view
+          wx:for="{{quickQuestions}}"
+          wx:key="id"
+          class="quick-card"
+          data-id="{{item.id}}"
+          bindtap="onQuickTap"
+        >
+          <text class="quick-icon">{{item.icon}}</text>
+          <text class="quick-text">{{item.text}}</text>
+        </view>
+      </view>
+
+      <!-- 推荐问题 -->
+      <view class="suggest-block">
+        <text class="suggest-title">你也可以试试问我：</text>
+        <view class="suggest-item">西红柿炒蛋怎么做更好吃？</view>
+        <view class="suggest-item">鸡胸肉怎样腌制？</view>
+        <view class="suggest-item">如何改造低脂晚餐？</view>
+      </view>
+    </scroll-view>
+
+    <!-- 能力开关 -->
+    <view class="capability-bar">
+      <view class="cap-chip {{reasoningEnabled ? 'active' : ''}}" bindtap="onToggleReasoning">
+        <text>🧠 深度思考</text>
+      </view>
+      <view class="cap-chip {{webSearchEnabled ? 'active' : ''}}" bindtap="onToggleWebSearch">
+        <text>🌐 联网搜索</text>
+      </view>
+      <view class="cap-chip">
+        <text>📝 图文菜谱</text>
+      </view>
+    </view>
+
+    <!-- 输入区 -->
+    <view class="input-bar">
+      <view class="input-wrap">
+        <view class="input-icon">🎤</view>
+        <input
+          class="input-text"
+          placeholder="说点什么…"
+          value="{{text}}"
+          bindinput="onInputChange"
+          confirm-type="send"
+          bindconfirm="onSendTap"
+        />
+        <view class="input-icon">📷</view>
+        <view class="input-icon send" bindtap="onSendTap">+</view>
+      </view>
+    </view>
+  </view>
+</view>

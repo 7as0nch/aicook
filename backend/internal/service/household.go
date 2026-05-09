@@ -104,3 +104,39 @@ func (s *HouseholdService) DeleteKitchenTag(ctx context.Context, req *v1.DeleteK
 	}
 	return &v1.DeleteKitchenTagReply{}, nil
 }
+
+func (s *HouseholdService) GetHouseholdPreferences(ctx context.Context, _ *v1.GetHouseholdPreferencesRequest) (*v1.GetHouseholdPreferencesReply, error) {
+	prefs, err := s.usecase.GetPreferences(ctx, biz.ActorFromContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetHouseholdPreferencesReply{Preferences: toProtoPreferences(prefs)}, nil
+}
+
+func (s *HouseholdService) UpdateHouseholdPreferences(ctx context.Context, req *v1.UpdateHouseholdPreferencesRequest) (*v1.UpdateHouseholdPreferencesReply, error) {
+	in := req.GetPreferences()
+	prefs, err := s.usecase.UpdatePreferences(ctx, biz.ActorFromContext(ctx), &biz.HouseholdPreferences{
+		Flavor:        in.GetFlavor(),
+		Scenarios:     in.GetScenarios(),
+		Restrictions:  in.GetRestrictions(),
+		MaxDifficulty: int(in.GetMaxDifficulty()),
+		MaxMinutes:    int(in.GetMaxMinutes()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UpdateHouseholdPreferencesReply{Preferences: toProtoPreferences(prefs)}, nil
+}
+
+func toProtoPreferences(p *biz.HouseholdPreferences) *v1.HouseholdPreferences {
+	if p == nil {
+		return &v1.HouseholdPreferences{}
+	}
+	return &v1.HouseholdPreferences{
+		Flavor:        append([]string(nil), p.Flavor...),
+		Scenarios:     append([]string(nil), p.Scenarios...),
+		Restrictions:  append([]string(nil), p.Restrictions...),
+		MaxDifficulty: int32(p.MaxDifficulty),
+		MaxMinutes:    int32(p.MaxMinutes),
+	}
+}

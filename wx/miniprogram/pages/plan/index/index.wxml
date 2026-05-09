@@ -1,0 +1,87 @@
+<view class="plan-page">
+  <!-- 本周日历 -->
+  <view class="card week-card">
+    <view class="week-head">
+      <text class="week-title">本周计划</text>
+      <text class="week-action">···</text>
+    </view>
+    <text class="week-range">{{weekRange}}</text>
+    <view class="day-row">
+      <view
+        class="day-cell {{item.isToday ? 'active' : ''}}"
+        wx:for="{{days}}"
+        wx:key="date"
+        data-date="{{item.date}}"
+        bindtap="onDayTap"
+      >
+        <text class="day-week">{{item.weekday}}</text>
+        <view class="day-num-wrap">
+          <text class="day-num">{{item.date}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日计划 -->
+  <view class="today-section">
+    <view class="today-head">
+      <text class="today-title">{{todayLabel}}</text>
+      <text class="today-summary">{{todaySummary}}</text>
+    </view>
+
+    <view class="meal-block" wx:for="{{meals}}" wx:for-item="meal" wx:key="id">
+      <view class="meal-head">
+        <view class="icon-slot size-sm">
+          <text class="icon-slot__emoji">{{meal.iconFallback}}</text>
+        </view>
+        <text class="meal-label">{{meal.label}}</text>
+        <text class="meal-action">{{meal.recipes.length}} 道菜 ›</text>
+      </view>
+      <view class="meal-recipes">
+        <view
+          class="meal-recipe-row"
+          wx:for="{{meal.recipes}}"
+          wx:for-item="r"
+          wx:key="id"
+          data-id="{{r.id}}"
+          bindtap="onRecipeTap"
+        >
+          <view class="r-cover img-placeholder">
+            <image wx:if="{{r.cover}}" class="r-cover-img" src="{{r.cover}}" mode="aspectFill"></image>
+            <text wx:else class="cover-emoji small">{{r.coverFallback}}</text>
+          </view>
+          <view class="r-info">
+            <text class="r-title">{{r.title}}</text>
+            <view class="r-meta">
+              <text>{{r.minutes}}分钟</text>
+              <text wx:if="{{r.tag}}" class="r-tag">{{r.tag}}</text>
+            </view>
+          </view>
+          <text class="r-arrow">›</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- AI 生成 CTA -->
+  <view class="ai-cta cta-btn" bindtap="onAIGenerateTap">
+    <view class="icon-slot size-sm">
+      <text class="icon-slot__emoji">✨</text>
+    </view>
+    <text>AI 生成本周计划</text>
+  </view>
+
+  <!-- 购物清单入口 -->
+  <view class="shopping-link" bindtap="onShoppingTap">
+    <view class="icon-slot size-sm">
+      <text class="icon-slot__emoji">🛒</text>
+    </view>
+    <text class="shopping-text">查看购物清单</text>
+    <text class="shopping-arrow">›</text>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>
+
+<ai-fab />
+<ai-sheet context="周计划" />

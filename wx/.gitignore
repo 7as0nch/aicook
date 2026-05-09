@@ -1,0 +1,8 @@
+node_modules/
+# TS 编译产物（与同目录 ts 同名，开发工具运行时由 gulp 生成）
+miniprogram/**/*.js
+miniprogram/**/*.js.map
+# 但保留以下手写 JS（如 wxs 不算 JS，无需例外；如需手写 JS 在此追加 !path）
+miniprogram/miniprogram_npm/
+.DS_Store
+*.log

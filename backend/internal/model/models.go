@@ -337,3 +337,28 @@ type RecipeShare struct {
 	LastAccessedAt   *time.Time        `json:"last_accessed_at,omitempty"`
 	MetadataJSON     datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
 }
+
+// CookingHistory 用户做过的菜历史记录，用于"最近做过"展示与推荐算法的历史信号。
+// 与临时性的 CookingProgress 完全独立：CookingProgress 跟踪正在做的菜，
+// 这里在烹饪完成时落库，是不可变的"已完成事实"。
+type CookingHistory struct {
+	BaseModel
+	HouseholdID int64 `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	UserID      int64 `gorm:"type:bigint;not null;index;index:idx_cooking_history_user_recipe,priority:1" json:"user_id,string"`
+	// RecipeID 当时菜谱的 id；菜谱可能被删除，因此查询时 LEFT JOIN，并保留 RecipeTitleSnapshot 兜底显示。
+	RecipeID             int64      `gorm:"type:bigint;not null;index;index:idx_cooking_history_user_recipe,priority:2" json:"recipe_id,string"`
+	RecipeTitleSnapshot  string     `gorm:"size:160;not null;default:''" json:"recipe_title_snapshot"`
+	RecipeCoverSnapshot  string     `gorm:"type:text" json:"recipe_cover_snapshot"`
+	StartedAt            *time.Time `json:"started_at,omitempty"`
+	CompletedAt          time.Time  `gorm:"not null;index" json:"completed_at"`
+	DurationSeconds      int        `gorm:"default:0" json:"duration_seconds"`
+	CompletedStepCount   int        `gorm:"default:0" json:"completed_step_count"`
+	// Rating 1-5 的可选评分，预留后续做"我的喜好"反馈，0 表示未评分。
+	Rating int    `gorm:"default:0" json:"rating"`
+	Note   string `gorm:"type:text" json:"note"`
+}
+
+// TableName 显式指定，避免 GORM 推断为 cooking_histories（英语复数规则差异）。
+func (CookingHistory) TableName() string {
+	return "cooking_history"
+}

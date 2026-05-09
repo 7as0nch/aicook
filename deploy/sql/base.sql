@@ -389,6 +389,28 @@ CREATE TABLE IF NOT EXISTS recipe_shares (
   UNIQUE (household_id, recipe_id)
 );
 
+-- cooking_history 记录用户每次做完一道菜的不可变事实，供首页"最近做过"与推荐降权使用。
+CREATE TABLE IF NOT EXISTS cooking_history (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  recipe_id BIGINT NOT NULL,
+  recipe_title_snapshot VARCHAR(160) NOT NULL DEFAULT '',
+  recipe_cover_snapshot TEXT,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ NOT NULL,
+  duration_seconds INT NOT NULL DEFAULT 0,
+  completed_step_count INT NOT NULL DEFAULT 0,
+  rating SMALLINT NOT NULL DEFAULT 0,
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_cooking_history_user_completed ON cooking_history(user_id, completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cooking_history_household_completed ON cooking_history(household_id, completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cooking_history_recipe ON cooking_history(recipe_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_household_id ON users(household_id);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 -- share_code 已由 UNIQUE 约束隐式建立唯一索引，这里不再重复创建同列普通索引。

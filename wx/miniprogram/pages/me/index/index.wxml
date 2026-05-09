@@ -1,0 +1,48 @@
+<view class="me-page">
+  <!-- 用户卡 -->
+  <view class="user-card card">
+    <view class="avatar img-placeholder">
+      <text class="avatar-emoji">🐱</text>
+    </view>
+    <view class="user-info">
+      <text class="user-name">{{user.display_name || user.username || '爱做饭的阿杨'}}</text>
+      <view class="user-meta">
+        <view class="badge level">LV.{{level}}</view>
+        <text class="user-house">{{currentHousehold.name || '我家厨房'}}</text>
+      </view>
+      <view class="streak">
+        <view class="icon-slot size-sm">
+          <text class="icon-slot__emoji">🔥</text>
+        </view>
+        <text>已坚持打卡 {{streakWeeks}} 周</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 菜单 -->
+  <view class="menu-list card">
+    <view
+      class="menu-item"
+      wx:for="{{menus}}"
+      wx:key="id"
+      data-url="{{item.url}}"
+      bindtap="onMenuTap"
+      hover-class="hover"
+    >
+      <view class="icon-slot size-md">
+        <image wx:if="{{item.iconSrc}}" class="icon-slot__img" src="{{item.iconSrc}}" mode="aspectFit"></image>
+        <text wx:else class="icon-slot__emoji">{{item.iconFallback}}</text>
+      </view>
+      <text class="menu-text">{{item.text}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 退出 -->
+  <view class="logout-btn" bindtap="onLogoutTap">退出登录</view>
+
+  <view class="bottom-spacer"></view>
+</view>
+
+<ai-fab />
+<ai-sheet context="个人中心" />

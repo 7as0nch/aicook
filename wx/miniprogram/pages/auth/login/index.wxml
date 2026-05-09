@@ -1,0 +1,13 @@
+<view class="login-page">
+  <view class="brand">
+    <view class="emoji">🐱</view>
+    <view class="title">馋猫厨房</view>
+    <view class="subtitle">家庭智能厨房助手</view>
+  </view>
+  <view class="form">
+    <input class="input" placeholder="用户名" value="{{username}}" bindinput="onUsernameInput" />
+    <input class="input" placeholder="密码" password value="{{password}}" bindinput="onPasswordInput" />
+    <button class="primary-btn" disabled="{{loading}}" bindtap="onLoginTap">{{loading ? '登录中…' : '登录'}}</button>
+    <view class="link" bindtap="onGoRegister">没有账号？去注册</view>
+  </view>
+</view>

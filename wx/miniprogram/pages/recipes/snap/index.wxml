@@ -1,0 +1,56 @@
+<view class="snap-page">
+  <!-- 顶部操作栏 -->
+  <view class="snap-header">
+    <view class="header-btn" bindtap="onBack">
+      <text class="icon-slot__emoji">‹</text>
+    </view>
+    <view class="header-btn" bindtap="onFlashToggle">
+      <text class="icon-slot__emoji">{{flashOn ? '⚡' : '🔆'}}</text>
+    </view>
+  </view>
+
+  <!-- 预览区 -->
+  <view class="preview-area">
+    <view wx:if="{{!captured}}" class="preview-empty">
+      <view class="icon-slot size-xl">
+        <text class="icon-slot__emoji">📸</text>
+      </view>
+      <text class="empty-tip">把摄像头对准冰箱里的食材</text>
+      <text class="empty-sub">2-3 秒内完成识别</text>
+    </view>
+    <view wx:else class="preview-loaded">
+      <view class="preview-mock">
+        <text class="cover-emoji">🥬🍅🥚</text>
+      </view>
+      <view wx:if="{{recognizing}}" class="recog-overlay">
+        <text class="recog-text">识别中… 2-3秒内完成</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 识别结果 -->
+  <view wx:if="{{chips.length}}" class="result-block">
+    <view class="result-title">
+      <text>识别结果</text>
+      <text class="result-count">({{chips.length}})</text>
+    </view>
+    <view class="chip-row">
+      <view class="result-chip" wx:for="{{chips}}" wx:key="id">{{item.name}}</view>
+    </view>
+  </view>
+
+  <!-- 主操作 -->
+  <view class="snap-actions">
+    <view wx:if="{{!captured}}" class="cta-btn capture-btn" bindtap="onCaptureTap">
+      <text>拍照识别</text>
+    </view>
+    <view wx:else class="cta-btn capture-btn {{recognizing ? 'disabled' : ''}}" bindtap="onGenerateTap">
+      <view class="icon-slot size-sm"><text class="icon-slot__emoji">✨</text></view>
+      <text>生成推荐</text>
+    </view>
+    <text wx:if="{{captured && !recognizing}}" class="action-tip">AI 根据您的食材生成菜谱</text>
+  </view>
+</view>
+
+<ai-fab bottom="60rpx" />
+<ai-sheet context="拍照识别食材" />

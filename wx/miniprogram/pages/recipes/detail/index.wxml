@@ -1,0 +1,101 @@
+<view class="detail-page">
+  <!-- 大图 -->
+  <view class="cover-area img-placeholder">
+    <image wx:if="{{recipe.cover}}" class="cover-img" src="{{recipe.cover}}" mode="aspectFill"></image>
+    <text wx:else class="cover-emoji">{{recipe.coverFallback}}</text>
+    <view class="cover-actions">
+      <view class="cover-btn" bindtap="onFavTap">
+        <text class="icon-slot__emoji">⭐</text>
+      </view>
+      <view class="cover-btn" bindtap="onShareTap">
+        <text class="icon-slot__emoji">↗</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 标题区 -->
+  <view class="header-card">
+    <text class="title">{{recipe.title}}</text>
+    <view class="meta-row">
+      <view class="meta-item">
+        <view class="icon-slot size-sm"><text class="icon-slot__emoji">⏱️</text></view>
+        <text>{{recipe.minutes}}分钟</text>
+      </view>
+      <view class="meta-item">
+        <view class="icon-slot size-sm"><text class="icon-slot__emoji">📊</text></view>
+        <text>{{recipe.difficulty}}</text>
+      </view>
+      <view class="meta-item">
+        <view class="icon-slot size-sm"><text class="icon-slot__emoji">👥</text></view>
+        <text>{{recipe.servings}}</text>
+      </view>
+    </view>
+    <view class="tags-row">
+      <view class="tag" wx:for="{{recipe.tags}}" wx:key="*this">{{item}}</view>
+      <view class="match-badge">
+        <text class="match-percent small">{{recipe.matchPercent}}%</text>
+        <text class="match-label">匹配</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Tab -->
+  <view class="tab-bar-detail">
+    <view
+      class="tab-item-detail {{activeTab === 'intro' ? 'active' : ''}}"
+      data-tab="intro"
+      bindtap="onTabSwitch"
+    >简介</view>
+    <view
+      class="tab-item-detail {{activeTab === 'ingredients' ? 'active' : ''}}"
+      data-tab="ingredients"
+      bindtap="onTabSwitch"
+    >食材</view>
+    <view
+      class="tab-item-detail {{activeTab === 'steps' ? 'active' : ''}}"
+      data-tab="steps"
+      bindtap="onTabSwitch"
+    >步骤</view>
+    <view
+      class="tab-item-detail {{activeTab === 'ai' ? 'active' : ''}}"
+      data-tab="ai"
+      bindtap="onTabSwitch"
+    >AI 指导</view>
+  </view>
+
+  <!-- 内容 -->
+  <view class="tab-content">
+    <view wx:if="{{activeTab === 'intro'}}" class="intro-block">{{introText}}</view>
+
+    <view wx:elif="{{activeTab === 'ingredients'}}" class="ingr-block">
+      <view class="ingr-row" wx:for="{{ingredients}}" wx:key="id">
+        <text class="ingr-name">{{item.name}}</text>
+        <text class="ingr-amount">{{item.amount}}</text>
+      </view>
+    </view>
+
+    <view wx:elif="{{activeTab === 'steps'}}" class="steps-block">
+      <view class="step-row" wx:for="{{steps}}" wx:key="no">
+        <view class="step-no">{{item.no}}</view>
+        <text class="step-desc">{{item.description}}</text>
+      </view>
+    </view>
+
+    <view wx:elif="{{activeTab === 'ai'}}" class="ai-block">
+      <view class="ai-row" wx:for="{{aiHints}}" wx:key="*this">
+        <view class="icon-slot size-sm"><text class="icon-slot__emoji">💡</text></view>
+        <text>{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-spacer-detail"></view>
+
+  <!-- 开始烹饪 CTA -->
+  <view class="cta-fixed">
+    <view class="cta-btn cook-cta" bindtap="onCookTap">开始烹饪</view>
+  </view>
+</view>
+
+<ai-fab bottom="200rpx" />
+<ai-sheet context="菜谱：{{recipe.title}}" />

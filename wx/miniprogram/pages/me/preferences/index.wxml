@@ -1,0 +1,5 @@
+<view class="placeholder-page">
+  <view class="emoji">🌶️</view>
+  <view class="title">口味偏好</view>
+  <view class="desc">阶段 9 实现偏好编辑（影响推荐与 AI）</view>
+</view>

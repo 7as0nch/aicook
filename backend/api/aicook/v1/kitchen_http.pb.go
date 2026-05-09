@@ -20,14 +20,17 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationKitchenServiceCompleteShoppingList = "/aicook.v1.KitchenService/CompleteShoppingList"
+const OperationKitchenServiceCreateCookingHistory = "/aicook.v1.KitchenService/CreateCookingHistory"
 const OperationKitchenServiceCreateRecipeShare = "/aicook.v1.KitchenService/CreateRecipeShare"
 const OperationKitchenServiceGenerateCurrentMealPlan = "/aicook.v1.KitchenService/GenerateCurrentMealPlan"
 const OperationKitchenServiceGenerateShoppingList = "/aicook.v1.KitchenService/GenerateShoppingList"
 const OperationKitchenServiceGetCurrentMealPlan = "/aicook.v1.KitchenService/GetCurrentMealPlan"
 const OperationKitchenServiceGetCurrentShoppingList = "/aicook.v1.KitchenService/GetCurrentShoppingList"
 const OperationKitchenServiceImportRecipeShare = "/aicook.v1.KitchenService/ImportRecipeShare"
+const OperationKitchenServiceListCookingHistory = "/aicook.v1.KitchenService/ListCookingHistory"
 const OperationKitchenServiceListInventoryItems = "/aicook.v1.KitchenService/ListInventoryItems"
 const OperationKitchenServiceListInventoryRecommendations = "/aicook.v1.KitchenService/ListInventoryRecommendations"
+const OperationKitchenServiceListRecentCookingHistory = "/aicook.v1.KitchenService/ListRecentCookingHistory"
 const OperationKitchenServicePatchInventoryItem = "/aicook.v1.KitchenService/PatchInventoryItem"
 const OperationKitchenServicePatchShoppingListItem = "/aicook.v1.KitchenService/PatchShoppingListItem"
 const OperationKitchenServicePreviewRecipeShare = "/aicook.v1.KitchenService/PreviewRecipeShare"
@@ -36,14 +39,20 @@ const OperationKitchenServiceUpsertInventoryItems = "/aicook.v1.KitchenService/U
 
 type KitchenServiceHTTPServer interface {
 	CompleteShoppingList(context.Context, *CompleteShoppingListRequest) (*CompleteShoppingListReply, error)
+	// CreateCookingHistory CreateCookingHistory 在烹饪流程结束时落库一条历史记录。
+	CreateCookingHistory(context.Context, *CreateCookingHistoryRequest) (*CreateCookingHistoryReply, error)
 	CreateRecipeShare(context.Context, *CreateRecipeShareRequest) (*CreateRecipeShareReply, error)
 	GenerateCurrentMealPlan(context.Context, *GenerateCurrentMealPlanRequest) (*GenerateCurrentMealPlanReply, error)
 	GenerateShoppingList(context.Context, *GenerateShoppingListRequest) (*GenerateShoppingListReply, error)
 	GetCurrentMealPlan(context.Context, *GetCurrentMealPlanRequest) (*GetCurrentMealPlanReply, error)
 	GetCurrentShoppingList(context.Context, *GetCurrentShoppingListRequest) (*GetCurrentShoppingListReply, error)
 	ImportRecipeShare(context.Context, *ImportRecipeShareRequest) (*ImportRecipeShareReply, error)
+	// ListCookingHistory ListCookingHistory 分页拉取当前用户的历史记录（"我的"页面使用）。
+	ListCookingHistory(context.Context, *ListCookingHistoryRequest) (*ListCookingHistoryReply, error)
 	ListInventoryItems(context.Context, *ListInventoryItemsRequest) (*ListInventoryItemsReply, error)
 	ListInventoryRecommendations(context.Context, *ListInventoryRecommendationsRequest) (*ListInventoryRecommendationsReply, error)
+	// ListRecentCookingHistory ListRecentCookingHistory 取最近 N 条历史，供首页"最近做过"模块使用，独立路径以便缓存。
+	ListRecentCookingHistory(context.Context, *ListRecentCookingHistoryRequest) (*ListRecentCookingHistoryReply, error)
 	PatchInventoryItem(context.Context, *PatchInventoryItemRequest) (*PatchInventoryItemReply, error)
 	PatchShoppingListItem(context.Context, *PatchShoppingListItemRequest) (*PatchShoppingListItemReply, error)
 	PreviewRecipeShare(context.Context, *PreviewRecipeShareRequest) (*PreviewRecipeShareReply, error)
@@ -67,6 +76,9 @@ func RegisterKitchenServiceHTTPServer(s *http.Server, srv KitchenServiceHTTPServ
 	r.POST("/api/v1/recipes/{id}/share", _KitchenService_CreateRecipeShare0_HTTP_Handler(srv))
 	r.GET("/api/v1/recipe-shares/{share_code}", _KitchenService_PreviewRecipeShare0_HTTP_Handler(srv))
 	r.POST("/api/v1/recipe-shares/{share_code}:import", _KitchenService_ImportRecipeShare0_HTTP_Handler(srv))
+	r.POST("/api/v1/cooking-history", _KitchenService_CreateCookingHistory0_HTTP_Handler(srv))
+	r.GET("/api/v1/cooking-history", _KitchenService_ListCookingHistory0_HTTP_Handler(srv))
+	r.GET("/api/v1/cooking-history/recent", _KitchenService_ListRecentCookingHistory0_HTTP_Handler(srv))
 }
 
 func _KitchenService_GetCurrentMealPlan0_HTTP_Handler(srv KitchenServiceHTTPServer) func(ctx http.Context) error {
@@ -365,16 +377,82 @@ func _KitchenService_ImportRecipeShare0_HTTP_Handler(srv KitchenServiceHTTPServe
 	}
 }
 
+func _KitchenService_CreateCookingHistory0_HTTP_Handler(srv KitchenServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateCookingHistoryRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationKitchenServiceCreateCookingHistory)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateCookingHistory(ctx, req.(*CreateCookingHistoryRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateCookingHistoryReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _KitchenService_ListCookingHistory0_HTTP_Handler(srv KitchenServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListCookingHistoryRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationKitchenServiceListCookingHistory)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListCookingHistory(ctx, req.(*ListCookingHistoryRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListCookingHistoryReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _KitchenService_ListRecentCookingHistory0_HTTP_Handler(srv KitchenServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListRecentCookingHistoryRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationKitchenServiceListRecentCookingHistory)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListRecentCookingHistory(ctx, req.(*ListRecentCookingHistoryRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListRecentCookingHistoryReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type KitchenServiceHTTPClient interface {
 	CompleteShoppingList(ctx context.Context, req *CompleteShoppingListRequest, opts ...http.CallOption) (rsp *CompleteShoppingListReply, err error)
+	// CreateCookingHistory CreateCookingHistory 在烹饪流程结束时落库一条历史记录。
+	CreateCookingHistory(ctx context.Context, req *CreateCookingHistoryRequest, opts ...http.CallOption) (rsp *CreateCookingHistoryReply, err error)
 	CreateRecipeShare(ctx context.Context, req *CreateRecipeShareRequest, opts ...http.CallOption) (rsp *CreateRecipeShareReply, err error)
 	GenerateCurrentMealPlan(ctx context.Context, req *GenerateCurrentMealPlanRequest, opts ...http.CallOption) (rsp *GenerateCurrentMealPlanReply, err error)
 	GenerateShoppingList(ctx context.Context, req *GenerateShoppingListRequest, opts ...http.CallOption) (rsp *GenerateShoppingListReply, err error)
 	GetCurrentMealPlan(ctx context.Context, req *GetCurrentMealPlanRequest, opts ...http.CallOption) (rsp *GetCurrentMealPlanReply, err error)
 	GetCurrentShoppingList(ctx context.Context, req *GetCurrentShoppingListRequest, opts ...http.CallOption) (rsp *GetCurrentShoppingListReply, err error)
 	ImportRecipeShare(ctx context.Context, req *ImportRecipeShareRequest, opts ...http.CallOption) (rsp *ImportRecipeShareReply, err error)
+	// ListCookingHistory ListCookingHistory 分页拉取当前用户的历史记录（"我的"页面使用）。
+	ListCookingHistory(ctx context.Context, req *ListCookingHistoryRequest, opts ...http.CallOption) (rsp *ListCookingHistoryReply, err error)
 	ListInventoryItems(ctx context.Context, req *ListInventoryItemsRequest, opts ...http.CallOption) (rsp *ListInventoryItemsReply, err error)
 	ListInventoryRecommendations(ctx context.Context, req *ListInventoryRecommendationsRequest, opts ...http.CallOption) (rsp *ListInventoryRecommendationsReply, err error)
+	// ListRecentCookingHistory ListRecentCookingHistory 取最近 N 条历史，供首页"最近做过"模块使用，独立路径以便缓存。
+	ListRecentCookingHistory(ctx context.Context, req *ListRecentCookingHistoryRequest, opts ...http.CallOption) (rsp *ListRecentCookingHistoryReply, err error)
 	PatchInventoryItem(ctx context.Context, req *PatchInventoryItemRequest, opts ...http.CallOption) (rsp *PatchInventoryItemReply, err error)
 	PatchShoppingListItem(ctx context.Context, req *PatchShoppingListItemRequest, opts ...http.CallOption) (rsp *PatchShoppingListItemReply, err error)
 	PreviewRecipeShare(ctx context.Context, req *PreviewRecipeShareRequest, opts ...http.CallOption) (rsp *PreviewRecipeShareReply, err error)
@@ -397,6 +475,20 @@ func (c *KitchenServiceHTTPClientImpl) CompleteShoppingList(ctx context.Context,
 	opts = append(opts, http.Operation(OperationKitchenServiceCompleteShoppingList))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CreateCookingHistory CreateCookingHistory 在烹饪流程结束时落库一条历史记录。
+func (c *KitchenServiceHTTPClientImpl) CreateCookingHistory(ctx context.Context, in *CreateCookingHistoryRequest, opts ...http.CallOption) (*CreateCookingHistoryReply, error) {
+	var out CreateCookingHistoryReply
+	pattern := "/api/v1/cooking-history"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationKitchenServiceCreateCookingHistory))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -481,6 +573,20 @@ func (c *KitchenServiceHTTPClientImpl) ImportRecipeShare(ctx context.Context, in
 	return &out, nil
 }
 
+// ListCookingHistory ListCookingHistory 分页拉取当前用户的历史记录（"我的"页面使用）。
+func (c *KitchenServiceHTTPClientImpl) ListCookingHistory(ctx context.Context, in *ListCookingHistoryRequest, opts ...http.CallOption) (*ListCookingHistoryReply, error) {
+	var out ListCookingHistoryReply
+	pattern := "/api/v1/cooking-history"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationKitchenServiceListCookingHistory))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *KitchenServiceHTTPClientImpl) ListInventoryItems(ctx context.Context, in *ListInventoryItemsRequest, opts ...http.CallOption) (*ListInventoryItemsReply, error) {
 	var out ListInventoryItemsReply
 	pattern := "/api/v1/inventory-items"
@@ -499,6 +605,20 @@ func (c *KitchenServiceHTTPClientImpl) ListInventoryRecommendations(ctx context.
 	pattern := "/api/v1/inventory-items/recommendations"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationKitchenServiceListInventoryRecommendations))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListRecentCookingHistory ListRecentCookingHistory 取最近 N 条历史，供首页"最近做过"模块使用，独立路径以便缓存。
+func (c *KitchenServiceHTTPClientImpl) ListRecentCookingHistory(ctx context.Context, in *ListRecentCookingHistoryRequest, opts ...http.CallOption) (*ListRecentCookingHistoryReply, error) {
+	var out ListRecentCookingHistoryReply
+	pattern := "/api/v1/cooking-history/recent"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationKitchenServiceListRecentCookingHistory))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

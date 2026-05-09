@@ -20,6 +20,117 @@ func NewHouseholdUsecase(repo *data.HouseholdRepo) *HouseholdUsecase {
 	return &HouseholdUsecase{repo: repo}
 }
 
+// HouseholdPreferences 与 proto.HouseholdPreferences 字段对齐，作为 biz 层的纯结构。
+type HouseholdPreferences struct {
+	Flavor        []string
+	Scenarios     []string
+	Restrictions  []string
+	MaxDifficulty int
+	MaxMinutes    int
+}
+
+// GetPreferences 读取当前家庭的偏好。读不到时返回零值（不报错）。
+func (u *HouseholdUsecase) GetPreferences(ctx context.Context, actor Actor) (*HouseholdPreferences, error) {
+	hh, err := u.repo.GetHousehold(ctx, actor.HouseholdID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &HouseholdPreferences{}, nil
+		}
+		return nil, err
+	}
+	return preferencesFromJSON(hh.Preferences), nil
+}
+
+// UpdatePreferences 整体替换 preferences。
+func (u *HouseholdUsecase) UpdatePreferences(ctx context.Context, actor Actor, prefs *HouseholdPreferences) (*HouseholdPreferences, error) {
+	if prefs == nil {
+		prefs = &HouseholdPreferences{}
+	}
+	payload := map[string]any{
+		"flavor":         uniqueTrimmedTags(prefs.Flavor),
+		"scenarios":      uniqueTrimmedTags(prefs.Scenarios),
+		"restrictions":   uniqueTrimmedTags(prefs.Restrictions),
+		"max_difficulty": clampInt(prefs.MaxDifficulty, 0, 5),
+		"max_minutes":    clampInt(prefs.MaxMinutes, 0, 600),
+	}
+	if err := u.repo.UpdatePreferences(ctx, actor.HouseholdID, payload); err != nil {
+		return nil, err
+	}
+	return preferencesFromJSON(payload), nil
+}
+
+func preferencesFromJSON(raw map[string]any) *HouseholdPreferences {
+	out := &HouseholdPreferences{}
+	if raw == nil {
+		return out
+	}
+	out.Flavor = uniqueTrimmedTags(jsonAnyToStrings(raw["flavor"]))
+	out.Scenarios = uniqueTrimmedTags(jsonAnyToStrings(raw["scenarios"]))
+	out.Restrictions = uniqueTrimmedTags(jsonAnyToStrings(raw["restrictions"]))
+	out.MaxDifficulty = clampInt(int(coerceJSONNumber(raw["max_difficulty"])), 0, 5)
+	out.MaxMinutes = clampInt(int(coerceJSONNumber(raw["max_minutes"])), 0, 600)
+	return out
+}
+
+func jsonAnyToStrings(value any) []string {
+	switch v := value.(type) {
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	case []string:
+		return append([]string(nil), v...)
+	}
+	return nil
+}
+
+func coerceJSONNumber(value any) float64 {
+	switch v := value.(type) {
+	case float64:
+		return v
+	case float32:
+		return float64(v)
+	case int:
+		return float64(v)
+	case int32:
+		return float64(v)
+	case int64:
+		return float64(v)
+	}
+	return 0
+}
+
+func uniqueTrimmedTags(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		t := strings.TrimSpace(item)
+		if t == "" {
+			continue
+		}
+		if _, ok := seen[t]; ok {
+			continue
+		}
+		seen[t] = struct{}{}
+		out = append(out, t)
+	}
+	return out
+}
+
+func clampInt(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
 func (u *HouseholdUsecase) CreateHousehold(ctx context.Context, actor Actor, name string) (*data.Household, error) {
 	household := &data.Household{
 		BaseModel: data.BaseModel{ID: utils.GetSFID()},

@@ -1,0 +1,9 @@
+{
+  "desc": "AIcook 馋猫厨房 - 小程序搜索引擎收录配置",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

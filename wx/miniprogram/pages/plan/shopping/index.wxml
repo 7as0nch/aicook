@@ -1,0 +1,5 @@
+<view class="placeholder-page">
+  <view class="emoji">🛒</view>
+  <view class="title">购物清单</view>
+  <view class="desc">阶段 5 接入 ShoppingList 接口</view>
+</view>

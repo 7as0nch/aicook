@@ -1,0 +1,26 @@
+<view class="tab-bar">
+  <view class="tab-row">
+    <block wx:for="{{list}}" wx:key="pagePath" wx:for-item="item" wx:for-index="idx">
+      <!-- 在第 3 项前插入中间浮按占位 -->
+      <view wx:if="{{idx === 2}}" class="tab-fab-slot"></view>
+      <view
+        class="tab-item {{selected === idx ? 'active' : ''}}"
+        data-path="{{item.pagePath}}"
+        data-index="{{idx}}"
+        bindtap="switchTab"
+      >
+        <!-- icon 插槽：image src 优先，emoji fallback；后续替换为正式图标 -->
+        <image wx:if="{{item.iconSrc}}" class="tab-icon-img" src="{{item.iconSrc}}" mode="aspectFit"></image>
+        <text wx:else class="tab-icon">{{item.iconFallback}}</text>
+        <text class="tab-label">{{item.text}}</text>
+      </view>
+    </block>
+  </view>
+  <!-- 中间凸起浮按：摄像头（拍照识别） -->
+  <view class="tab-fab" bindtap="onCameraTap">
+    <view class="fab-inner">
+      <!-- icon 插槽：未提供图标时显示 emoji -->
+      <text class="fab-emoji">📷</text>
+    </view>
+  </view>
+</view>

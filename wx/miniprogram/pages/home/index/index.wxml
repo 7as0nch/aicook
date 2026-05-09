@@ -1,0 +1,107 @@
+<view class="home-page">
+  <!-- 顶部 Logo + 搜索 -->
+  <view class="top-bar">
+    <view class="brand">
+      <text class="brand-name">aicook</text>
+      <text class="brand-mascot">🐱</text>
+    </view>
+    <view class="search" bindtap="onSearchTap">
+      <view class="icon-slot size-sm">
+        <text class="icon-slot__emoji">🔍</text>
+      </view>
+      <text class="search-placeholder">搜索菜谱、食材、菜系…</text>
+      <view class="icon-slot size-sm">
+        <text class="icon-slot__emoji">⚙️</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日推荐大卡 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="title-main">今日推荐</text>
+      <text class="title-sub">基于食材智能推荐</text>
+    </view>
+    <view class="today-card" bindtap="onTodayRecipeTap">
+      <view class="today-cover img-placeholder">
+        <image wx:if="{{todayRecipe.cover}}" class="today-cover-img" src="{{todayRecipe.cover}}" mode="aspectFill"></image>
+        <text wx:else class="cover-emoji">{{todayRecipe.coverFallback}}</text>
+      </view>
+      <view class="today-info">
+        <text class="today-title">{{todayRecipe.title}}</text>
+        <view class="today-meta">
+          <text>{{todayRecipe.minutes}}分钟</text>
+          <text class="dot">·</text>
+          <text>{{todayRecipe.servings}}</text>
+        </view>
+        <view class="today-match">
+          <text class="match-percent">{{todayRecipe.matchPercent}}%</text>
+          <text class="match-label">匹配</text>
+        </view>
+        <view class="cta-btn cook-btn" catchtap="onCookNowTap">去采集</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="title-main">快捷入口</text>
+    </view>
+    <view class="quick-grid">
+      <view
+        class="quick-cell"
+        wx:for="{{quickEntries}}"
+        wx:key="id"
+        data-url="{{item.url}}"
+        bindtap="onQuickTap"
+      >
+        <view class="quick-icon-wrap">
+          <view class="icon-slot size-md">
+            <image wx:if="{{item.iconSrc}}" class="icon-slot__img" src="{{item.iconSrc}}" mode="aspectFit"></image>
+            <text wx:else class="icon-slot__emoji">{{item.iconFallback}}</text>
+          </view>
+        </view>
+        <text class="quick-label">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 猜你喜欢 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="title-main">猜你喜欢</text>
+      <text class="title-sub">夹幻精算 / 卖菜菜 / 快手肝</text>
+    </view>
+    <view class="suggested-row">
+      <view
+        class="suggested-card"
+        wx:for="{{suggested}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onSuggestedTap"
+      >
+        <view class="sug-cover img-placeholder">
+          <image wx:if="{{item.cover}}" class="sug-cover-img" src="{{item.cover}}" mode="aspectFill"></image>
+          <text wx:else class="cover-emoji">{{item.coverFallback}}</text>
+        </view>
+        <view class="sug-info">
+          <text class="sug-title">{{item.title}}</text>
+          <view class="sug-meta">
+            <text>{{item.minutes}}分钟·{{item.servings}}</text>
+          </view>
+          <view class="sug-match">
+            <text class="match-percent small">{{item.matchPercent}}%</text>
+            <text class="match-label">匹配</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-spacer"></view>
+</view>
+
+<!-- 全局浮球 + AI 抽屉 -->
+<ai-fab />
+<ai-sheet context="首页" />

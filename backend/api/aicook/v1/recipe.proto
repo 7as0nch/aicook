@@ -40,6 +40,13 @@ service RecipeService {
       delete: "/api/v1/recipes/{id}"
     };
   }
+
+  // ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
+  rpc ListTodayRecipes(ListTodayRecipesRequest) returns (ListTodayRecipesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/recipes/today"
+    };
+  }
 }
 
 message ListRecipesRequest {
@@ -133,4 +140,27 @@ message DeleteRecipeRequest {
 
 message DeleteRecipeReply {
   bool ok = 1;
+}
+
+// --- Today recipes (首页推荐) ---
+
+message TodayRecipeReason {
+  // kind 例如 "meal_plan" / "preference" / "popular" / "recently_cooked"，前端可用于展示徽章。
+  string kind = 1;
+  string label = 2;
+}
+
+message TodayRecipe {
+  Recipe recipe = 1;
+  double score = 2;
+  // reasons 为该菜谱被推荐的多条命中理由，按权重降序排列。
+  repeated TodayRecipeReason reasons = 3;
+}
+
+message ListTodayRecipesRequest {
+  int32 limit = 1;
+}
+
+message ListTodayRecipesReply {
+  repeated TodayRecipe items = 1;
 }

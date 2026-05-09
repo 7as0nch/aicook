@@ -23,9 +23,11 @@ const OperationHouseholdServiceCreateHousehold = "/aicook.v1.HouseholdService/Cr
 const OperationHouseholdServiceCreateKitchenTag = "/aicook.v1.HouseholdService/CreateKitchenTag"
 const OperationHouseholdServiceCreateShareCode = "/aicook.v1.HouseholdService/CreateShareCode"
 const OperationHouseholdServiceDeleteKitchenTag = "/aicook.v1.HouseholdService/DeleteKitchenTag"
+const OperationHouseholdServiceGetHouseholdPreferences = "/aicook.v1.HouseholdService/GetHouseholdPreferences"
 const OperationHouseholdServiceGetKitchenByShareCode = "/aicook.v1.HouseholdService/GetKitchenByShareCode"
 const OperationHouseholdServiceImportSharedRecipes = "/aicook.v1.HouseholdService/ImportSharedRecipes"
 const OperationHouseholdServiceListKitchenTags = "/aicook.v1.HouseholdService/ListKitchenTags"
+const OperationHouseholdServiceUpdateHouseholdPreferences = "/aicook.v1.HouseholdService/UpdateHouseholdPreferences"
 const OperationHouseholdServiceUpdateKitchenTag = "/aicook.v1.HouseholdService/UpdateKitchenTag"
 
 type HouseholdServiceHTTPServer interface {
@@ -33,9 +35,11 @@ type HouseholdServiceHTTPServer interface {
 	CreateKitchenTag(context.Context, *CreateKitchenTagRequest) (*CreateKitchenTagReply, error)
 	CreateShareCode(context.Context, *CreateShareCodeRequest) (*CreateShareCodeReply, error)
 	DeleteKitchenTag(context.Context, *DeleteKitchenTagRequest) (*DeleteKitchenTagReply, error)
+	GetHouseholdPreferences(context.Context, *GetHouseholdPreferencesRequest) (*GetHouseholdPreferencesReply, error)
 	GetKitchenByShareCode(context.Context, *GetKitchenByShareCodeRequest) (*GetKitchenByShareCodeReply, error)
 	ImportSharedRecipes(context.Context, *ImportSharedRecipesRequest) (*ImportSharedRecipesReply, error)
 	ListKitchenTags(context.Context, *ListKitchenTagsRequest) (*ListKitchenTagsReply, error)
+	UpdateHouseholdPreferences(context.Context, *UpdateHouseholdPreferencesRequest) (*UpdateHouseholdPreferencesReply, error)
 	UpdateKitchenTag(context.Context, *UpdateKitchenTagRequest) (*UpdateKitchenTagReply, error)
 }
 
@@ -49,6 +53,8 @@ func RegisterHouseholdServiceHTTPServer(s *http.Server, srv HouseholdServiceHTTP
 	r.POST("/api/v1/kitchen-tags", _HouseholdService_CreateKitchenTag0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/kitchen-tags/{id}", _HouseholdService_UpdateKitchenTag0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/kitchen-tags/{id}", _HouseholdService_DeleteKitchenTag0_HTTP_Handler(srv))
+	r.GET("/api/v1/households/current/preferences", _HouseholdService_GetHouseholdPreferences0_HTTP_Handler(srv))
+	r.PUT("/api/v1/households/current/preferences", _HouseholdService_UpdateHouseholdPreferences0_HTTP_Handler(srv))
 }
 
 func _HouseholdService_CreateHousehold0_HTTP_Handler(srv HouseholdServiceHTTPServer) func(ctx http.Context) error {
@@ -230,14 +236,57 @@ func _HouseholdService_DeleteKitchenTag0_HTTP_Handler(srv HouseholdServiceHTTPSe
 	}
 }
 
+func _HouseholdService_GetHouseholdPreferences0_HTTP_Handler(srv HouseholdServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetHouseholdPreferencesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationHouseholdServiceGetHouseholdPreferences)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetHouseholdPreferences(ctx, req.(*GetHouseholdPreferencesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetHouseholdPreferencesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _HouseholdService_UpdateHouseholdPreferences0_HTTP_Handler(srv HouseholdServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateHouseholdPreferencesRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationHouseholdServiceUpdateHouseholdPreferences)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateHouseholdPreferences(ctx, req.(*UpdateHouseholdPreferencesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateHouseholdPreferencesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type HouseholdServiceHTTPClient interface {
 	CreateHousehold(ctx context.Context, req *CreateHouseholdRequest, opts ...http.CallOption) (rsp *CreateHouseholdReply, err error)
 	CreateKitchenTag(ctx context.Context, req *CreateKitchenTagRequest, opts ...http.CallOption) (rsp *CreateKitchenTagReply, err error)
 	CreateShareCode(ctx context.Context, req *CreateShareCodeRequest, opts ...http.CallOption) (rsp *CreateShareCodeReply, err error)
 	DeleteKitchenTag(ctx context.Context, req *DeleteKitchenTagRequest, opts ...http.CallOption) (rsp *DeleteKitchenTagReply, err error)
+	GetHouseholdPreferences(ctx context.Context, req *GetHouseholdPreferencesRequest, opts ...http.CallOption) (rsp *GetHouseholdPreferencesReply, err error)
 	GetKitchenByShareCode(ctx context.Context, req *GetKitchenByShareCodeRequest, opts ...http.CallOption) (rsp *GetKitchenByShareCodeReply, err error)
 	ImportSharedRecipes(ctx context.Context, req *ImportSharedRecipesRequest, opts ...http.CallOption) (rsp *ImportSharedRecipesReply, err error)
 	ListKitchenTags(ctx context.Context, req *ListKitchenTagsRequest, opts ...http.CallOption) (rsp *ListKitchenTagsReply, err error)
+	UpdateHouseholdPreferences(ctx context.Context, req *UpdateHouseholdPreferencesRequest, opts ...http.CallOption) (rsp *UpdateHouseholdPreferencesReply, err error)
 	UpdateKitchenTag(ctx context.Context, req *UpdateKitchenTagRequest, opts ...http.CallOption) (rsp *UpdateKitchenTagReply, err error)
 }
 
@@ -301,6 +350,19 @@ func (c *HouseholdServiceHTTPClientImpl) DeleteKitchenTag(ctx context.Context, i
 	return &out, nil
 }
 
+func (c *HouseholdServiceHTTPClientImpl) GetHouseholdPreferences(ctx context.Context, in *GetHouseholdPreferencesRequest, opts ...http.CallOption) (*GetHouseholdPreferencesReply, error) {
+	var out GetHouseholdPreferencesReply
+	pattern := "/api/v1/households/current/preferences"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationHouseholdServiceGetHouseholdPreferences))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *HouseholdServiceHTTPClientImpl) GetKitchenByShareCode(ctx context.Context, in *GetKitchenByShareCodeRequest, opts ...http.CallOption) (*GetKitchenByShareCodeReply, error) {
 	var out GetKitchenByShareCodeReply
 	pattern := "/api/v1/households/share/{share_code}"
@@ -334,6 +396,19 @@ func (c *HouseholdServiceHTTPClientImpl) ListKitchenTags(ctx context.Context, in
 	opts = append(opts, http.Operation(OperationHouseholdServiceListKitchenTags))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *HouseholdServiceHTTPClientImpl) UpdateHouseholdPreferences(ctx context.Context, in *UpdateHouseholdPreferencesRequest, opts ...http.CallOption) (*UpdateHouseholdPreferencesReply, error) {
+	var out UpdateHouseholdPreferencesReply
+	pattern := "/api/v1/households/current/preferences"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationHouseholdServiceUpdateHouseholdPreferences))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

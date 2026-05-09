@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "ai-fab": "/components/ai-fab/index",
+    "ai-sheet": "/components/ai-sheet/index"
+  },
+  "navigationBarTitleText": "馋猫厨房",
+  "enablePullDownRefresh": true
+}

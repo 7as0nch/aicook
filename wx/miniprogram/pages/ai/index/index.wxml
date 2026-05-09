@@ -1,0 +1,8 @@
+<view class="ai-page">
+  <view class="placeholder">
+    <view class="emoji">🤖</view>
+    <view class="title">AI 厨艺助理</view>
+    <view class="desc">阶段 6 将接入 SSE 流式聊天</view>
+    <button class="primary-btn" bindtap="onNewChat">开始对话</button>
+  </view>
+</view>

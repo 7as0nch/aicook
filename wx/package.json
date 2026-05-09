@@ -1,0 +1,32 @@
+{
+  "name": "aicook-wx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AIcook 微信小程序 - 基于已有后端 API 的家庭智能厨房助手",
+  "scripts": {
+    "build": "gulp build && npm run build:npm",
+    "build:ts": "gulp build",
+    "build:npm": "node scripts/build-npm.js",
+    "watch": "gulp watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"miniprogram/**/*.{ts,wxs}\"",
+    "lint:fix": "eslint --fix \"miniprogram/**/*.{ts,wxs}\""
+  },
+  "dependencies": {
+    "mobx-miniprogram": "^6.12.3",
+    "mobx-miniprogram-bindings": "^6.0.0",
+    "tdesign-miniprogram": "^1.7.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "glass-easel-miniprogram-adapter": "^0.6.0",
+    "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "miniprogram-api-typings": "^5.1.2",
+    "miniprogram-ci": "^2.1.31",
+    "typescript": "^5.3.3"
+  }
+}

@@ -39,5 +39,12 @@ venv/
 aidesign/
 ios/
 android/
+.swc/
 
 config.yaml
+
+# 微信小程序
+wx/node_modules/
+wx/miniprogram/**/*.js
+wx/miniprogram/**/*.js.map
+wx/miniprogram/miniprogram_npm/

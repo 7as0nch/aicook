@@ -78,6 +78,24 @@ service KitchenService {
   rpc ImportRecipeShare(ImportRecipeShareRequest) returns (ImportRecipeShareReply) {
     option (google.api.http) = {post: "/api/v1/recipe-shares/{share_code}:import"};
   }
+
+  // CreateCookingHistory 在烹饪流程结束时落库一条历史记录。
+  rpc CreateCookingHistory(CreateCookingHistoryRequest) returns (CreateCookingHistoryReply) {
+    option (google.api.http) = {
+      post: "/api/v1/cooking-history"
+      body: "*"
+    };
+  }
+
+  // ListCookingHistory 分页拉取当前用户的历史记录（"我的"页面使用）。
+  rpc ListCookingHistory(ListCookingHistoryRequest) returns (ListCookingHistoryReply) {
+    option (google.api.http) = {get: "/api/v1/cooking-history"};
+  }
+
+  // ListRecentCookingHistory 取最近 N 条历史，供首页"最近做过"模块使用，独立路径以便缓存。
+  rpc ListRecentCookingHistory(ListRecentCookingHistoryRequest) returns (ListRecentCookingHistoryReply) {
+    option (google.api.http) = {get: "/api/v1/cooking-history/recent"};
+  }
 }
 
 // --- Meal plan ---
@@ -302,5 +320,60 @@ message ImportRecipeShareRequest {
 
 message ImportRecipeShareReply {
   Recipe recipe = 1;
+}
+
+// --- Cooking history ---
+
+message CookingHistoryEntry {
+  int64 id = 1;
+  int64 household_id = 2;
+  int64 user_id = 3;
+  int64 recipe_id = 4;
+  // recipe_title_snapshot 在菜谱被删除后仍可正常展示。
+  string recipe_title_snapshot = 5;
+  // recipe_cover_snapshot 为做菜时菜谱封面 URL；服务端按需替换为短期签名 URL。
+  string recipe_cover_snapshot = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp completed_at = 8;
+  int32 duration_seconds = 9;
+  int32 completed_step_count = 10;
+  int32 rating = 11;
+  string note = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message CreateCookingHistoryRequest {
+  int64 recipe_id = 1;
+  // started_at_ms / completed_at_ms 为 Unix 毫秒；completed_at_ms 为 0 时由服务端取当前时间。
+  int64 started_at_ms = 2;
+  int64 completed_at_ms = 3;
+  int32 duration_seconds = 4;
+  int32 completed_step_count = 5;
+  int32 rating = 6;
+  string note = 7;
+}
+
+message CreateCookingHistoryReply {
+  CookingHistoryEntry entry = 1;
+}
+
+message ListCookingHistoryRequest {
+  int32 limit = 1;
+  // before_id 为游标分页，返回 id 比该值更小（更早）的条目，便于按时间倒序翻页。
+  int64 before_id = 2;
+}
+
+message ListCookingHistoryReply {
+  repeated CookingHistoryEntry entries = 1;
+  // next_cursor_id 为 0 时表示没有更多数据。
+  int64 next_cursor_id = 2;
+}
+
+message ListRecentCookingHistoryRequest {
+  int32 limit = 1;
+}
+
+message ListRecentCookingHistoryReply {
+  repeated CookingHistoryEntry entries = 1;
 }
 

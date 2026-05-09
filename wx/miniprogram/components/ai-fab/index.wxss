@@ -1,0 +1,38 @@
+.ai-fab {
+  position: fixed;
+  right: 32rpx;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
+  box-shadow: 0 8rpx 24rpx rgba(255, 107, 26, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+}
+
+.fab-img {
+  width: 80rpx;
+  height: 80rpx;
+}
+
+.fab-emoji-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-emoji {
+  font-size: 56rpx;
+  line-height: 1;
+}
+
+.fab-hat {
+  position: absolute;
+  top: -28rpx;
+  right: -8rpx;
+  font-size: 28rpx;
+  transform: rotate(-12deg);
+}

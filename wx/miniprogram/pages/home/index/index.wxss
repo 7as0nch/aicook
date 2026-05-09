@@ -1,0 +1,228 @@
+.home-page {
+  min-height: 100vh;
+  background: #FFFFFF;
+  padding: 0 24rpx;
+}
+
+/* 顶部 */
+.top-bar {
+  padding: 24rpx 0 16rpx;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.brand-name {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #FF6B1A;
+  letter-spacing: 2rpx;
+}
+
+.brand-mascot {
+  font-size: 36rpx;
+  margin-left: 12rpx;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  background: #F5F6F8;
+  border-radius: 999rpx;
+  padding: 16rpx 24rpx;
+  gap: 12rpx;
+}
+
+.search-placeholder {
+  flex: 1;
+  font-size: 26rpx;
+  color: #BFBFBF;
+}
+
+/* section */
+.section {
+  margin-top: 32rpx;
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.title-main {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+
+.title-sub {
+  font-size: 22rpx;
+  color: #8C8C8C;
+}
+
+/* 今日推荐大卡 */
+.today-card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.today-cover {
+  width: 100%;
+  height: 360rpx;
+  border-radius: 24rpx 24rpx 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.today-cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-emoji {
+  font-size: 120rpx;
+}
+
+.today-info {
+  padding: 24rpx;
+  position: relative;
+}
+
+.today-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin-bottom: 8rpx;
+}
+
+.today-meta {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+  color: #8C8C8C;
+  gap: 8rpx;
+}
+
+.today-meta .dot { margin: 0 4rpx; }
+
+.today-match {
+  display: flex;
+  align-items: baseline;
+  margin-top: 12rpx;
+}
+
+.match-percent {
+  font-size: 32rpx;
+  color: #2DBE7A;
+  font-weight: 700;
+}
+
+.match-percent.small {
+  font-size: 26rpx;
+}
+
+.match-label {
+  font-size: 22rpx;
+  color: #2DBE7A;
+  margin-left: 4rpx;
+}
+
+.cook-btn {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  padding: 16rpx 32rpx;
+  font-size: 26rpx;
+  border-radius: 999rpx;
+}
+
+/* 快捷入口 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+}
+
+.quick-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.quick-icon-wrap {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  background: #FFF6EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8rpx;
+}
+
+.quick-label {
+  font-size: 24rpx;
+  color: #4A4A4A;
+}
+
+/* 猜你喜欢 */
+.suggested-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.suggested-card {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.sug-cover {
+  width: 100%;
+  height: 200rpx;
+}
+
+.sug-cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.sug-info {
+  padding: 16rpx;
+}
+
+.sug-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+  margin-bottom: 6rpx;
+}
+
+.sug-meta {
+  font-size: 22rpx;
+  color: #8C8C8C;
+}
+
+.sug-match {
+  display: flex;
+  align-items: baseline;
+  margin-top: 4rpx;
+}
+
+.bottom-spacer {
+  height: 200rpx;
+}

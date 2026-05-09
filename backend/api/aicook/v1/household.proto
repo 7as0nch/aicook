@@ -60,6 +60,19 @@ service HouseholdService {
       delete: "/api/v1/kitchen-tags/{id}"
     };
   }
+
+  rpc GetHouseholdPreferences(GetHouseholdPreferencesRequest) returns (GetHouseholdPreferencesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/households/current/preferences"
+    };
+  }
+
+  rpc UpdateHouseholdPreferences(UpdateHouseholdPreferencesRequest) returns (UpdateHouseholdPreferencesReply) {
+    option (google.api.http) = {
+      put: "/api/v1/households/current/preferences"
+      body: "*"
+    };
+  }
 }
 
 message CreateHouseholdRequest {
@@ -133,3 +146,31 @@ message DeleteKitchenTagRequest {
 }
 
 message DeleteKitchenTagReply {}
+
+// HouseholdPreferences 家庭口味与饮食偏好；推荐算法直接使用这些标签做匹配。
+message HouseholdPreferences {
+  // 偏爱的口味，如 "麻辣" / "清淡" / "甜"。
+  repeated string flavor = 1;
+  // 喜好的菜系或场景，如 "家常菜" / "下饭菜" / "快手菜"。
+  repeated string scenarios = 2;
+  // 忌口或不能吃的食材，如 "香菜" / "海鲜" / "牛肉"。
+  repeated string restrictions = 3;
+  // 偏好难度，1-5，0 表示无要求。
+  int32 max_difficulty = 4;
+  // 偏好用时，分钟，0 表示无要求。
+  int32 max_minutes = 5;
+}
+
+message GetHouseholdPreferencesRequest {}
+
+message GetHouseholdPreferencesReply {
+  HouseholdPreferences preferences = 1;
+}
+
+message UpdateHouseholdPreferencesRequest {
+  HouseholdPreferences preferences = 1;
+}
+
+message UpdateHouseholdPreferencesReply {
+  HouseholdPreferences preferences = 1;
+}

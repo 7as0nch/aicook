@@ -1,0 +1,8 @@
+<view class="ai-fab" style="bottom: {{bottom}};" bindtap="onTap">
+  <!-- icon 插槽：image src 优先，emoji fallback -->
+  <image wx:if="{{iconSrc}}" class="fab-img" src="{{iconSrc}}" mode="aspectFit"></image>
+  <view wx:else class="fab-emoji-wrap">
+    <text class="fab-emoji">🐱</text>
+    <text class="fab-hat">👨‍🍳</text>
+  </view>
+</view>

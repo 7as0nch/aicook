@@ -1,0 +1,206 @@
+.plan-page {
+  min-height: 100vh;
+  background: #FFF6EE;
+  padding: 24rpx;
+}
+
+.week-card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.week-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.week-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+
+.week-action {
+  color: #8C8C8C;
+  font-size: 28rpx;
+}
+
+.week-range {
+  display: block;
+  font-size: 22rpx;
+  color: #8C8C8C;
+  margin: 4rpx 0 16rpx;
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8rpx;
+}
+
+.day-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 0;
+}
+
+.day-week {
+  font-size: 22rpx;
+  color: #8C8C8C;
+  margin-bottom: 6rpx;
+}
+
+.day-num-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.day-num {
+  font-size: 26rpx;
+  color: #1A1A1A;
+}
+
+.day-cell.active .day-num-wrap {
+  background: #FF6B1A;
+}
+
+.day-cell.active .day-num {
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* 今日计划 */
+.today-section {
+  margin-top: 24rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.today-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.today-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+
+.today-summary {
+  font-size: 22rpx;
+  color: #8C8C8C;
+}
+
+.meal-block {
+  margin-bottom: 16rpx;
+}
+
+.meal-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+  gap: 8rpx;
+}
+
+.meal-label {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1A1A1A;
+}
+
+.meal-action {
+  font-size: 22rpx;
+  color: #8C8C8C;
+}
+
+.meal-recipe-row {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #F5F6F8;
+  gap: 16rpx;
+}
+
+.meal-recipe-row:last-child { border-bottom: none; }
+
+.r-cover {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.r-cover-img { width: 100%; height: 100%; }
+
+.r-info { flex: 1; }
+
+.r-title {
+  display: block;
+  font-size: 26rpx;
+  color: #1A1A1A;
+  margin-bottom: 4rpx;
+}
+
+.r-meta {
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  color: #8C8C8C;
+  gap: 8rpx;
+}
+
+.r-tag {
+  background: #FFF6EE;
+  color: #FF6B1A;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+}
+
+.r-arrow {
+  color: #BFBFBF;
+  font-size: 28rpx;
+}
+
+.ai-cta {
+  margin-top: 24rpx;
+  gap: 8rpx;
+}
+
+.shopping-link {
+  margin-top: 16rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.shopping-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1A1A1A;
+}
+
+.shopping-arrow {
+  font-size: 28rpx;
+  color: #BFBFBF;
+}
+
+.bottom-spacer { height: 200rpx; }

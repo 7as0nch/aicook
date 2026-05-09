@@ -1,0 +1,84 @@
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100rpx + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #FFFFFF;
+  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.04);
+  z-index: 100;
+}
+
+.tab-row {
+  display: flex;
+  align-items: center;
+  height: 100rpx;
+  position: relative;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #999999;
+  height: 100rpx;
+}
+
+.tab-item.active {
+  color: #FF6B1A;
+}
+
+.tab-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.tab-icon-img {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.tab-label {
+  font-size: 22rpx;
+  margin-top: 4rpx;
+}
+
+/* 中间浮按占位（占据 flex 空间） */
+.tab-fab-slot {
+  flex: 1;
+}
+
+/* 凸起浮按 */
+.tab-fab {
+  position: absolute;
+  left: 50%;
+  bottom: calc(20rpx + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(255, 107, 26, 0.32);
+  z-index: 101;
+}
+
+.fab-inner {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-emoji {
+  font-size: 56rpx;
+  line-height: 1;
+}

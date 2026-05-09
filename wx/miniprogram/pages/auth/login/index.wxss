@@ -1,0 +1,24 @@
+.login-page { min-height: 100vh; padding: 80rpx var(--spacing-lg); background: var(--color-bg-page); }
+.brand { text-align: center; margin-top: 80rpx; }
+.brand .emoji { font-size: 160rpx; }
+.brand .title { font-size: var(--font-xxl); font-weight: 600; margin-top: var(--spacing-md); }
+.brand .subtitle { font-size: var(--font-sm); color: var(--color-text-secondary); margin-top: var(--spacing-xs); }
+.form { margin-top: 80rpx; }
+.input {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  padding: 24rpx var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-md);
+}
+.primary-btn {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-md);
+  padding: 24rpx;
+  font-size: var(--font-lg);
+  text-align: center;
+  margin-top: var(--spacing-md);
+}
+.primary-btn[disabled] { opacity: 0.6; }
+.link { text-align: center; margin-top: var(--spacing-lg); color: var(--color-primary); font-size: var(--font-sm); }
