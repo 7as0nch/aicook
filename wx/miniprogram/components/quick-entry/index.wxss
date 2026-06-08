@@ -1,0 +1,51 @@
+.qe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.qe__icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+}
+
+.qe__icon--orange {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.qe__icon--green {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.qe__icon--blue {
+  background: #E6F4FF;
+  color: var(--color-info);
+}
+
+.qe__icon--gray {
+  background: var(--color-bg-soft);
+  color: var(--color-text-regular);
+}
+
+.qe__icon-img {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.qe__icon-emoji {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.qe__label {
+  font-size: 24rpx;
+  color: var(--color-text-regular);
+}

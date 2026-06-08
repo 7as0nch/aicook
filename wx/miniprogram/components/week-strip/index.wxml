@@ -1,0 +1,18 @@
+<view class="ws">
+  <view class="ws__head">
+    <view class="ws__title">本周</view>
+    <view class="ws__range">{{days[0].date}} - {{days[6].date}}</view>
+  </view>
+  <view class="ws__row">
+    <view
+      wx:for="{{days}}"
+      wx:key="date"
+      class="ws__day {{item.isSelected ? 'ws__day--active' : ''}}"
+      bindtap="onTap"
+      data-date="{{item.date}}"
+    >
+      <view class="ws__week">{{item.weekLabel}}</view>
+      <view class="ws__num">{{item.dayLabel}}</view>
+    </view>
+  </view>
+</view>

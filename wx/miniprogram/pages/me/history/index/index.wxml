@@ -1,0 +1,52 @@
+<view class="hist">
+  <custom-navbar title="烹饪历史" />
+
+
+  <!-- 连续打卡卡片 -->
+  <view class="hist__streak-card">
+    <view class="hist__streak-flame">
+      <image class="hist__streak-flame-icon" src="/assets/icons/flame.svg" mode="aspectFit" />
+    </view>
+    <view class="hist__streak-body">
+      <text class="hist__streak-num">{{streakDays}}</text>
+      <text class="hist__streak-unit">天</text>
+      <text class="hist__streak-label">连续打卡</text>
+    </view>
+    <view class="hist__streak-meta">
+      <text>累计 {{totalCount}} 次</text>
+      <text class="hist__streak-tip">{{streakDays > 0 ? '继续保持！' : '今天去做一道菜吧～'}}</text>
+    </view>
+  </view>
+
+  <!-- 分组列表 -->
+  <block wx:for="{{groups}}" wx:key="title" wx:for-item="grp">
+    <view class="hist__group-title">{{grp.title}}</view>
+    <view class="hist__group-card">
+      <block wx:for="{{grp.items}}" wx:key="id" wx:for-item="it">
+        <view wx:if="{{index > 0}}" class="hist__divider"></view>
+        <view class="hist__item" data-id="{{it.recipe.id}}" bindtap="onItemTap">
+          <view class="hist__item-cover">
+            <image wx:if="{{it.recipe.cover_image_url}}" class="hist__item-cover-img" src="{{it.recipe.cover_image_url}}" mode="aspectFill" />
+          </view>
+          <view class="hist__item-body">
+            <text class="hist__item-name">{{it.recipe.title || '未命名菜谱'}}</text>
+            <text class="hist__item-meta">{{it.displayTime}} · {{it.durationLabel}}</text>
+            <text wx:if="{{it.ratingStars}}" class="hist__item-stars">{{it.ratingStars}}</text>
+            <text wx:if="{{it.note}}" class="hist__item-note">{{it.note}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+  </block>
+
+  <view wx:if="{{!groups.length && !loading}}" class="hist__empty">
+    <image class="hist__empty-icon" src="/assets/icons/inbox.svg" mode="aspectFit" />
+    <text class="hist__empty-text">还没有烹饪记录</text>
+    <text class="hist__empty-sub">完成一道菜后会自动记录到这里</text>
+  </view>
+
+  <view wx:if="{{loading && !groups.length}}" class="hist__loading">加载中…</view>
+  <view wx:elif="{{!hasMore && groups.length}}" class="hist__end">— 已显示全部 —</view>
+
+  <view class="hist__spacer"></view>
+</view>

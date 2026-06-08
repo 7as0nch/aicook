@@ -1,0 +1,96 @@
+<view class="ed">
+  <custom-navbar title="编辑菜谱">
+    <view slot="right" class="ed__nav-save {{saving ? 'ed__nav-save--saving' : ''}}" bindtap="onSave">
+      <text>{{saving ? '保存中…' : '保存'}}</text>
+    </view>
+  </custom-navbar>
+
+  <scroll-view scroll-y class="ed__scroll">
+    <!-- 标题 + 简介 -->
+    <view class="ed__card">
+      <view class="ed__field">
+        <text class="ed__label">菜谱名称</text>
+        <input class="ed__input" placeholder="给菜谱起个名字" value="{{title}}" bindinput="onTitleInput" />
+      </view>
+      <view class="ed__field">
+        <text class="ed__label">简介</text>
+        <textarea class="ed__textarea" placeholder="简单介绍一下这道菜" value="{{summary}}" bindinput="onSummaryInput" auto-height />
+      </view>
+      <view class="ed__row-two">
+        <view class="ed__field">
+          <text class="ed__label">预计时长（分钟）</text>
+          <input class="ed__input" type="number" value="{{totalMinutes}}" bindinput="onMinutesInput" />
+        </view>
+        <view class="ed__field">
+          <text class="ed__label">难度</text>
+          <view class="ed__diff">
+            <view
+              wx:for="{{[1,2,3,4,5]}}"
+              wx:key="*this"
+              class="ed__diff-dot {{difficulty >= item ? 'ed__diff-dot--on' : ''}}"
+              data-v="{{item}}"
+              bindtap="onDifficultyTap"
+            ></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 食材 -->
+    <view class="ed__card">
+      <view class="ed__section-head">
+        <text class="ed__section-title">食材</text>
+        <text class="ed__section-sub">共 {{ingredients.length}} 项</text>
+      </view>
+      <view
+        wx:for="{{ingredients}}"
+        wx:for-item="ing"
+        wx:for-index="i"
+        wx:key="_key"
+        class="ed__ing"
+      >
+        <input class="ed__ing-name" placeholder="食材名" value="{{ing.name}}" data-idx="{{i}}" bindinput="onIngNameInput" />
+        <input class="ed__ing-amount" placeholder="数量" value="{{ing.amount_text}}" data-idx="{{i}}" bindinput="onIngAmountInput" />
+        <view class="ed__ing-del" data-idx="{{i}}" catchtap="onRemoveIngredient">
+          <image src="/assets/icons/trash.svg" class="ed__ing-del-icon" mode="aspectFit" />
+        </view>
+      </view>
+      <view class="ed__add-btn" bindtap="onAddIngredient">
+        <image src="/assets/icons/plus.svg" class="ed__add-icon" mode="aspectFit" />
+        <text>添加食材</text>
+      </view>
+    </view>
+
+    <!-- 步骤 -->
+    <view class="ed__card">
+      <view class="ed__section-head">
+        <text class="ed__section-title">步骤</text>
+        <text class="ed__section-sub">共 {{steps.length}} 步</text>
+      </view>
+      <view
+        wx:for="{{steps}}"
+        wx:for-item="step"
+        wx:for-index="i"
+        wx:key="_key"
+        class="ed__step"
+      >
+        <view class="ed__step-no">{{i + 1}}</view>
+        <textarea
+          class="ed__step-desc"
+          placeholder="描述步骤..."
+          value="{{step.description}}"
+          data-idx="{{i}}"
+          bindinput="onStepDescInput"
+          auto-height
+        />
+        <view class="ed__step-del" data-idx="{{i}}" catchtap="onRemoveStep">×</view>
+      </view>
+      <view class="ed__add-btn" bindtap="onAddStep">
+        <image src="/assets/icons/plus.svg" class="ed__add-icon" mode="aspectFit" />
+        <text>添加步骤</text>
+      </view>
+    </view>
+
+    <view class="ed__spacer"></view>
+  </scroll-view>
+</view>

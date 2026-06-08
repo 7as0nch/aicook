@@ -52,6 +52,15 @@ func (r *AuthRepo) FindUserByUsername(ctx context.Context, username string) (*Us
 	return &user, nil
 }
 
+// FindUserByWxOpenid 通过微信 openid 查找用户；不存在返回 gorm.ErrRecordNotFound
+func (r *AuthRepo) FindUserByWxOpenid(ctx context.Context, openid string) (*User, error) {
+	var user User
+	if err := r.db.WithContext(ctx).Where("wx_openid = ?", openid).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *AuthRepo) GetUser(ctx context.Context, userID int64) (*User, error) {
 	var user User
 	if err := r.db.WithContext(ctx).First(&user, "id = ?", userID).Error; err != nil {

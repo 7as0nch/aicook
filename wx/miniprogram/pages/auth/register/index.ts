@@ -10,6 +10,10 @@ Page({
     loading: false,
   },
 
+  onBack() {
+    wx.navigateBack({ delta: 1 }).catch(() => wx.reLaunch({ url: '/pages/auth/login/index' }));
+  },
+
   onInput(e: WechatMiniprogram.Input) {
     const field = e.currentTarget.dataset.field as 'username' | 'password' | 'display_name' | 'household_name';
     this.setData({ [field]: e.detail.value });

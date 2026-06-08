@@ -28,3 +28,4 @@ type ShoppingListItem = legacy.ShoppingListItem
 type InventoryItem = legacy.InventoryItem
 type RecipeShare = legacy.RecipeShare
 type CookingHistory = legacy.CookingHistory
+type RecipeFavorite = legacy.RecipeFavorite

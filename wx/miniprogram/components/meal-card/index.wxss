@@ -1,0 +1,121 @@
+.mc {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow-card);
+}
+
+.mc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.mc__head-left {
+  display: flex;
+  align-items: center;
+}
+
+.mc__icon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 16rpx;
+  background: var(--color-primary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  margin-right: 16rpx;
+}
+
+.mc__title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.mc__sub {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  margin-top: 4rpx;
+}
+
+.mc__add {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mc__dishes {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.mc__dish {
+  display: flex;
+  align-items: center;
+  background: var(--color-primary-bg);
+  border-radius: 16rpx;
+  padding: 12rpx;
+}
+
+.mc__dish-cover {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 12rpx;
+  background: var(--gradient-peach);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.mc__dish-img { width: 100%; height: 100%; }
+
+.mc__dish-ph {
+  font-size: 32rpx;
+  opacity: 0.5;
+}
+
+.mc__dish-body {
+  flex: 1;
+}
+
+.mc__dish-title {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.mc__dish-meta {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  margin-top: 2rpx;
+}
+
+.mc__dish-cal {
+  background: #FFFFFF;
+  color: var(--color-primary);
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 9999rpx;
+  flex-shrink: 0;
+}
+
+.mc__dish-cal--ph {
+  color: var(--color-text-secondary);
+}

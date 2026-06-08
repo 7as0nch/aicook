@@ -38,6 +38,16 @@ export interface AuthReply {
   households?: HouseholdSummary[];
 }
 
+export interface HouseholdMemberDetail {
+  id: Int64Like;
+  user_id: Int64Like;
+  role: string;
+  display_name: string;
+  avatar_url?: string;
+  emoji?: string;
+  flavor_tags?: string[];
+}
+
 export interface KitchenTag {
   id: Int64Like;
   household_id: Int64Like;
@@ -77,8 +87,18 @@ export interface Recipe {
   tools?: string[];
   gallery_image_urls?: string[];
   metadata?: Record<string, unknown>;
+  favored?: boolean;                   // 当前用户是否已收藏（后端在返回时 join 计算）
   created_at?: Timestamp;
   updated_at?: Timestamp;
+}
+
+export interface RecipeFavorite {
+  id: Int64Like;
+  household_id: Int64Like;
+  user_id: Int64Like;
+  recipe_id: Int64Like;
+  recipe?: Recipe;                     // 后端按需返回嵌套
+  created_at?: Timestamp;
 }
 
 export interface RecipeIngredient {

@@ -1,108 +1,365 @@
-.me-page {
+.me {
   min-height: 100vh;
-  background: #FFF6EE;
-  padding: 24rpx;
+  background: #FAFAF8;
+  padding: 0 48rpx 220rpx;
 }
 
-.user-card {
+/* ========== 头 ========== */
+.me__head {
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  padding: 32rpx 24rpx;
+  justify-content: space-between;
+  padding: 32rpx 0 24rpx;
 }
 
-.avatar {
-  width: 120rpx;
-  height: 120rpx;
+.me__title {
+  font-size: 46rpx;
+  font-weight: 700;
+  color: #1F1B16;
+  line-height: 1;
+}
+
+.me__bell {
+  width: 68rpx;
+  height: 68rpx;
   border-radius: 50%;
   background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(255, 107, 26, 0.16);
 }
 
-.avatar-emoji {
-  font-size: 64rpx;
+.me__bell-icon {
+  width: 40rpx;
+  height: 40rpx;
 }
 
-.user-info { flex: 1; }
-
-.user-name {
-  display: block;
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1A1A1A;
-  margin-bottom: 8rpx;
+/* ========== 用户卡 ========== */
+.me__user-card {
+  background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
+  border-radius: 40rpx;
+  padding: 30rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
 }
 
-.user-meta {
+.me__user-row {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  margin-bottom: 8rpx;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
 }
 
-.badge.level {
-  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
-  color: #FFFFFF;
-  padding: 2rpx 16rpx;
-  border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-}
-
-.user-house {
-  font-size: 24rpx;
-  color: #8C8C8C;
-}
-
-.streak {
+.me__avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #FFEEDC;
   display: flex;
   align-items: center;
-  gap: 6rpx;
-  font-size: 22rpx;
-  color: #FF6B1A;
-}
-
-/* 菜单 */
-.menu-list {
-  margin-top: 24rpx;
-  padding: 0;
+  justify-content: center;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.menu-item {
+.me__avatar-img { width: 100%; height: 100%; }
+
+.me__avatar-emoji {
+  font-size: 60rpx;
+  line-height: 1;
+}
+
+.me__user-body {
+  flex: 1;
+}
+
+.me__user-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  line-height: 1.2;
+}
+
+.me__user-id {
+  font-size: 25rpx;
+  color: #9B978F;
+  margin-top: 6rpx;
+}
+
+.me__user-edit {
+  background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
+  border-radius: 30rpx;
+  padding: 10rpx 24rpx;
+  font-size: 23rpx;
+  font-weight: 500;
+  color: #6E6A62;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.me__user-divider {
+  height: 2rpx;
+  background: #EFEDE8;
+  margin: 0 -6rpx 16rpx;
+}
+
+.me__stats {
   display: flex;
   align-items: center;
-  padding: 28rpx 24rpx;
-  border-bottom: 1rpx solid #F5F6F8;
-  gap: 16rpx;
+  padding: 4rpx 0;
 }
 
-.menu-item:last-child { border-bottom: none; }
-.menu-item.hover { background: #F5F6F8; }
+.me__stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-.menu-text {
+.me__stat-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1F1B16;
+  line-height: 1.1;
+}
+
+.me__stat-label {
+  font-size: 22rpx;
+  color: #9B978F;
+  margin-top: 4rpx;
+}
+
+.me__stat-div {
+  width: 1rpx;
+  height: 56rpx;
+  background: #EFEDE8;
+  transform: scaleX(0.5);
+}
+
+/* ========== 温馨小厨房 ========== */
+.me__kitchen-card {
+  background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
+  border-radius: 40rpx;
+  padding: 30rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+}
+
+.me__kitchen-icon-wrap {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 28rpx;
+  background: #FFF6EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.me__kitchen-icon {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.me__kitchen-body {
+  flex: 1;
+}
+
+.me__kitchen-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  line-height: 1.2;
+}
+
+.me__kitchen-sub {
+  font-size: 23rpx;
+  color: #9B978F;
+  margin-top: 6rpx;
+}
+
+.me__kitchen-cta {
+  display: flex;
+  align-items: center;
+  background: #FFF6EE;
+  color: #EF6E00;
+  font-size: 25rpx;
+  font-weight: 500;
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+}
+
+.me__kitchen-arrow {
+  width: 22rpx;
+  height: 22rpx;
+  margin-left: 6rpx;
+}
+
+/* ========== 家庭口味 ========== */
+.me__family-card {
+  background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
+  border-radius: 40rpx;
+  padding: 26rpx 30rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+}
+
+.me__family-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.me__family-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F1B16;
+}
+
+.me__family-sub {
+  font-size: 23rpx;
+  color: #9B978F;
+}
+
+.me__member {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+}
+
+.me__member-emoji {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: #FFF6EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  margin-right: 16rpx;
+}
+
+.me__member-name {
+  font-size: 27rpx;
+  font-weight: 500;
+  color: #1F1B16;
+  margin-right: 16rpx;
+  min-width: 64rpx;
+}
+
+.me__member-tags {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.me__member-tag {
+  background: #FFF6EE;
+  color: #A9743A;
+  font-size: 21rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 14rpx;
+}
+
+.me__member-edit {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.me__member-edit-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.me__add-member {
+  background: #FFF6EE;
+  color: #EF6E00;
+  text-align: center;
+  font-size: 25rpx;
+  font-weight: 500;
+  padding: 18rpx 0;
+  border-radius: 20rpx;
+  margin-top: 8rpx;
+}
+
+/* ========== 设置卡 ========== */
+.me__settings-card,
+.me__extra-card {
+  background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
+  border-radius: 40rpx;
+  padding: 4rpx 30rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+}
+
+.me__set-row {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 0;
+}
+
+.me__set-icon {
+  width: 42rpx;
+  height: 42rpx;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.me__set-icon--emoji {
+  font-size: 36rpx;
+  text-align: center;
+  line-height: 42rpx;
+}
+
+.me__set-text {
   flex: 1;
   font-size: 28rpx;
-  color: #1A1A1A;
+  color: #1F1B16;
 }
 
-.menu-arrow {
-  font-size: 28rpx;
-  color: #BFBFBF;
+.me__set-arrow {
+  width: 32rpx;
+  height: 32rpx;
 }
 
-.logout-btn {
-  margin-top: 32rpx;
+.me__set-divider {
+  height: 2rpx;
+  background: #F4F2EE;
+  margin-left: 66rpx;
+}
+
+/* ========== 退出登录 ========== */
+.me__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #FFFFFF;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  text-align: center;
-  color: #FF4D4F;
-  font-size: 28rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  border: 2rpx solid #F2D8D2;
+  border-radius: 28rpx;
+  height: 92rpx;
+  color: #E5604A;
+  font-size: 29rpx;
+  font-weight: 600;
 }
 
-.bottom-spacer { height: 200rpx; }
+.me__logout-icon {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 12rpx;
+}
+
+.me__spacer { height: 100rpx; }

@@ -128,6 +128,31 @@ func (s *HouseholdService) UpdateHouseholdPreferences(ctx context.Context, req *
 	return &v1.UpdateHouseholdPreferencesReply{Preferences: toProtoPreferences(prefs)}, nil
 }
 
+func (s *HouseholdService) ListHouseholdMembers(ctx context.Context, req *v1.ListHouseholdMembersRequest) (*v1.ListHouseholdMembersReply, error) {
+	actor := biz.ActorFromContext(ctx)
+	hhID := req.GetHouseholdId()
+	if hhID == 0 {
+		hhID = actor.HouseholdID
+	}
+	members, err := s.usecase.ListMembers(ctx, actor, hhID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*v1.HouseholdMemberDetail, 0, len(members))
+	for _, m := range members {
+		out = append(out, &v1.HouseholdMemberDetail{
+			Id:          m.ID,
+			UserId:      m.UserID,
+			Role:        m.Role,
+			DisplayName: m.DisplayName,
+			AvatarUrl:   m.AvatarURL,
+			Emoji:       m.Emoji,
+			FlavorTags:  append([]string(nil), m.FlavorTags...),
+		})
+	}
+	return &v1.ListHouseholdMembersReply{Members: out}, nil
+}
+
 func toProtoPreferences(p *biz.HouseholdPreferences) *v1.HouseholdPreferences {
 	if p == nil {
 		return &v1.HouseholdPreferences{}

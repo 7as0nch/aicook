@@ -1,13 +1,49 @@
-<view class="login-page">
-  <view class="brand">
-    <view class="emoji">🐱</view>
-    <view class="title">馋猫厨房</view>
-    <view class="subtitle">家庭智能厨房助手</view>
+<view class="auth">
+  <view class="auth__top">
+    <view class="auth__brand">aicook</view>
+    <view class="auth__mascot">
+      <image class="auth__mascot-img" src="/assets/mascot/bao-smile.png" mode="aspectFit" />
+    </view>
+    <text class="auth__welcome">欢迎回来</text>
+    <text class="auth__sub">登录你的家庭智能厨房助手</text>
   </view>
-  <view class="form">
-    <input class="input" placeholder="用户名" value="{{username}}" bindinput="onUsernameInput" />
-    <input class="input" placeholder="密码" password value="{{password}}" bindinput="onPasswordInput" />
-    <button class="primary-btn" disabled="{{loading}}" bindtap="onLoginTap">{{loading ? '登录中…' : '登录'}}</button>
-    <view class="link" bindtap="onGoRegister">没有账号？去注册</view>
+
+  <view class="auth__form">
+    <view class="auth__field">
+      <text class="auth__label">账号</text>
+      <input
+        class="auth__input"
+        placeholder="请输入用户名"
+        value="{{username}}"
+        bindinput="onUsernameInput"
+      />
+    </view>
+    <view class="auth__field">
+      <text class="auth__label">密码</text>
+      <input
+        class="auth__input"
+        placeholder="请输入密码"
+        password
+        value="{{password}}"
+        bindinput="onPasswordInput"
+      />
+    </view>
+
+    <view class="auth__btn {{loading ? 'auth__btn--loading' : ''}}" bindtap="onLoginTap">
+      <text>{{loading ? '登录中…' : '登录'}}</text>
+    </view>
+
+    <view class="auth__divider">
+      <view class="auth__divider-line"></view>
+      <text class="auth__divider-text">或</text>
+      <view class="auth__divider-line"></view>
+    </view>
+
+    <view class="auth__wx-btn {{loading ? 'auth__wx-btn--loading' : ''}}" bindtap="onWxLogin">
+      <image class="auth__wx-icon" src="/assets/icons/wechat.svg" mode="aspectFit" />
+      <text>微信一键登录</text>
+    </view>
+
+    <view class="auth__link" bindtap="onGoRegister">还没有账号？立即注册</view>
   </view>
 </view>

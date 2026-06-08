@@ -1,0 +1,5 @@
+<view class="mc {{active ? 'mc--active' : ''}}" bindtap="onTap">
+  <view wx:if="{{!icon}}" class="mc__dot" style="background: {{dotColor}}"></view>
+  <text wx:if="{{icon}}" class="mc__icon">{{icon}}</text>
+  <text class="mc__label">{{label}}</text>
+</view>

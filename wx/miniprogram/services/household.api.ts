@@ -3,6 +3,7 @@ import { request } from './http';
 import type {
   HouseholdSummary,
   HouseholdPreferences,
+  HouseholdMemberDetail,
   Int64Like,
   KitchenTag,
   Recipe,
@@ -86,6 +87,13 @@ export const householdApi = {
       method: 'PUT',
       data: { preferences },
       loading: '保存中',
+    });
+  },
+
+  listMembers(householdId: Int64Like) {
+    return request<{ members: HouseholdMemberDetail[] }>({
+      url: `/api/v1/households/${householdId}/members`,
+      method: 'GET',
     });
   },
 };

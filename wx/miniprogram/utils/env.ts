@@ -7,9 +7,11 @@ interface EnvConfig {
   envVersion: 'develop' | 'trial' | 'release';
 }
 
+// 开发环境默认指向本机后端；真机调试可通过开发者工具 → 项目 → 详情 → 本地设置 →
+// 勾选「不校验合法域名」即可访问 http://172.16.1.76。
 let current: EnvConfig = {
-  apiBase: 'https://dev.aicook.example.com',
-  rawHost: 'https://dev.aicook.example.com',
+  apiBase: 'http://172.16.1.76:8000',
+  rawHost: 'http://172.16.1.76:8000',
   envVersion: 'develop',
 };
 
@@ -44,8 +46,8 @@ export function initEnv(): void {
     case 'develop':
     default:
       current = {
-        apiBase: 'https://dev.aicook.example.com',
-        rawHost: 'https://dev.aicook.example.com',
+        apiBase: 'http://172.16.1.76:8000',
+        rawHost: 'http://172.16.1.76:8000',
         envVersion: 'develop',
       };
       break;

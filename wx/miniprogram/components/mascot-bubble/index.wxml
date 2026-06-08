@@ -1,0 +1,14 @@
+<view class="mb mb--{{layout}}">
+  <view class="mb__avatar mb__avatar--{{size}}">
+    <image
+      class="mb__img"
+      src="{{srcMap[state] || srcMap.default}}"
+      mode="aspectFit"
+      bind:load="onImgLoad"
+      bind:error="onImgError"
+      style="opacity: {{imageLoaded ? 1 : 0}}"
+    />
+    <text wx:if="{{!imageLoaded}}" class="mb__emoji">{{emojiMap[state] || emojiMap.default}}</text>
+  </view>
+  <view wx:if="{{text}}" class="mb__bubble">{{text}}</view>
+</view>

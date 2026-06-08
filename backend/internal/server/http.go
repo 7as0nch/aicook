@@ -5,6 +5,8 @@ import (
 	nethttp "net/http"
 	"time"
 
+	gca "github.com/7as0nch/gocommon/auth"
+	gcm "github.com/7as0nch/gocommon/middleware"
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/auth"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
@@ -12,7 +14,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/selector"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	svc "github.com/chengjiang/aicook/backend/internal/service"
@@ -47,7 +49,7 @@ func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratosht
 	return server
 }
 
-func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService, chatHandler *AIChatHandler) *kratoshttp.Server {
+func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService, chatHandler *AIChatHandler, wxLoginHandler *WxLoginHandler) *kratoshttp.Server {
 	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second
@@ -65,9 +67,9 @@ func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRep
 			recovery.Recovery(),
 			logging.Server(logger),
 			selector.Server(
-				auth.Server(authRepo.KeyFunc(), auth.WithClaims(func() jwt.Claims { return &auth.JwtClaims{} })),
+				gca.Server(authRepo.KeyFunc(), gca.WithClaims(func() jwt.Claims { return &auth.JwtClaims{} })),
 			).Match(func(ctx context.Context, operation string) bool {
-				return auth.NewWhiteListMatcher(publicOperations)(ctx, operation)
+				return gcm.NewWhiteListMatcher(publicOperations)(ctx, operation)
 			}).Build(),
 		),
 	}
@@ -95,6 +97,7 @@ func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo auth.AuthRep
 		_, _ = w.Write([]byte("ok"))
 	})
 	chatHandler.Register(mux)
+	wxLoginHandler.Register(mux)
 	server.HandlePrefix("/", mux)
 	return server
 }

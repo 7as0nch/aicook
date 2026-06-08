@@ -1,10 +1,35 @@
-<view class="register-page">
-  <view class="title">注册新账号</view>
-  <view class="form">
-    <input class="input" placeholder="用户名 *" data-field="username" bindinput="onInput" />
-    <input class="input" placeholder="密码 *" password data-field="password" bindinput="onInput" />
-    <input class="input" placeholder="昵称 *" data-field="display_name" bindinput="onInput" />
-    <input class="input" placeholder="家庭名称（可选）" data-field="household_name" bindinput="onInput" />
-    <button class="primary-btn" disabled="{{loading}}" bindtap="onSubmit">{{loading ? '注册中…' : '注册'}}</button>
+<view class="auth">
+  <view class="auth__top">
+    <view class="auth__back" bindtap="onBack">
+      <image class="auth__back-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+    </view>
+    <view class="auth__mascot">
+      <image class="auth__mascot-img" src="/assets/mascot/bao-wink.png" mode="aspectFit" />
+    </view>
+    <text class="auth__welcome">创建账号</text>
+    <text class="auth__sub">加入 aicook，开启智能烹饪之旅</text>
+  </view>
+
+  <view class="auth__form">
+    <view class="auth__field">
+      <text class="auth__label">用户名 *</text>
+      <input class="auth__input" placeholder="6-20 位字母/数字" data-field="username" bindinput="onInput" />
+    </view>
+    <view class="auth__field">
+      <text class="auth__label">密码 *</text>
+      <input class="auth__input" placeholder="至少 6 位" password data-field="password" bindinput="onInput" />
+    </view>
+    <view class="auth__field">
+      <text class="auth__label">昵称 *</text>
+      <input class="auth__input" placeholder="例如：爱做饭的阿喵" data-field="display_name" bindinput="onInput" />
+    </view>
+    <view class="auth__field">
+      <text class="auth__label">家庭名称（可选）</text>
+      <input class="auth__input" placeholder="例如：温馨小厨房" data-field="household_name" bindinput="onInput" />
+    </view>
+
+    <view class="auth__btn {{loading ? 'auth__btn--loading' : ''}}" bindtap="onSubmit">
+      <text>{{loading ? '注册中…' : '注册并登录'}}</text>
+    </view>
   </view>
 </view>

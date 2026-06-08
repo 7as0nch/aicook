@@ -28,6 +28,11 @@ App({
       authStore.refreshMe().catch((err) => {
         console.warn('[app] refreshMe failed', err);
       });
+    } else {
+      // 未登录：延迟跳到登录页（避免和 tabbar 初始化冲突）
+      setTimeout(() => {
+        wx.reLaunch({ url: '/pages/auth/login/index' });
+      }, 50);
     }
 
     // 4. 监听网络变化（弱网提示）

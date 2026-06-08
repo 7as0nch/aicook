@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
+	gca "github.com/7as0nch/gocommon/auth"
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/biz"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
@@ -92,7 +92,7 @@ func (s *KnowledgeService) QueryKnowledgeBase(ctx context.Context, req *v1.Query
 }
 
 func requireAuthClaims(ctx context.Context) error {
-	if _, ok := auth.FromContext(ctx); !ok {
+	if _, ok := gca.FromContext(ctx); !ok {
 		return kerrors.Unauthorized("UNAUTHORIZED", "unauthorized")
 	}
 	return nil

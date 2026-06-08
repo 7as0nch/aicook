@@ -29,6 +29,7 @@ const (
 	HouseholdService_DeleteKitchenTag_FullMethodName           = "/aicook.v1.HouseholdService/DeleteKitchenTag"
 	HouseholdService_GetHouseholdPreferences_FullMethodName    = "/aicook.v1.HouseholdService/GetHouseholdPreferences"
 	HouseholdService_UpdateHouseholdPreferences_FullMethodName = "/aicook.v1.HouseholdService/UpdateHouseholdPreferences"
+	HouseholdService_ListHouseholdMembers_FullMethodName       = "/aicook.v1.HouseholdService/ListHouseholdMembers"
 )
 
 // HouseholdServiceClient is the client API for HouseholdService service.
@@ -45,6 +46,8 @@ type HouseholdServiceClient interface {
 	DeleteKitchenTag(ctx context.Context, in *DeleteKitchenTagRequest, opts ...grpc.CallOption) (*DeleteKitchenTagReply, error)
 	GetHouseholdPreferences(ctx context.Context, in *GetHouseholdPreferencesRequest, opts ...grpc.CallOption) (*GetHouseholdPreferencesReply, error)
 	UpdateHouseholdPreferences(ctx context.Context, in *UpdateHouseholdPreferencesRequest, opts ...grpc.CallOption) (*UpdateHouseholdPreferencesReply, error)
+	// ListHouseholdMembers 返回指定家庭的成员列表（含基本信息 + 口味偏好）。
+	ListHouseholdMembers(ctx context.Context, in *ListHouseholdMembersRequest, opts ...grpc.CallOption) (*ListHouseholdMembersReply, error)
 }
 
 type householdServiceClient struct {
@@ -155,6 +158,16 @@ func (c *householdServiceClient) UpdateHouseholdPreferences(ctx context.Context,
 	return out, nil
 }
 
+func (c *householdServiceClient) ListHouseholdMembers(ctx context.Context, in *ListHouseholdMembersRequest, opts ...grpc.CallOption) (*ListHouseholdMembersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListHouseholdMembersReply)
+	err := c.cc.Invoke(ctx, HouseholdService_ListHouseholdMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HouseholdServiceServer is the server API for HouseholdService service.
 // All implementations should embed UnimplementedHouseholdServiceServer
 // for forward compatibility.
@@ -169,6 +182,8 @@ type HouseholdServiceServer interface {
 	DeleteKitchenTag(context.Context, *DeleteKitchenTagRequest) (*DeleteKitchenTagReply, error)
 	GetHouseholdPreferences(context.Context, *GetHouseholdPreferencesRequest) (*GetHouseholdPreferencesReply, error)
 	UpdateHouseholdPreferences(context.Context, *UpdateHouseholdPreferencesRequest) (*UpdateHouseholdPreferencesReply, error)
+	// ListHouseholdMembers 返回指定家庭的成员列表（含基本信息 + 口味偏好）。
+	ListHouseholdMembers(context.Context, *ListHouseholdMembersRequest) (*ListHouseholdMembersReply, error)
 }
 
 // UnimplementedHouseholdServiceServer should be embedded to have
@@ -207,6 +222,9 @@ func (UnimplementedHouseholdServiceServer) GetHouseholdPreferences(context.Conte
 }
 func (UnimplementedHouseholdServiceServer) UpdateHouseholdPreferences(context.Context, *UpdateHouseholdPreferencesRequest) (*UpdateHouseholdPreferencesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateHouseholdPreferences not implemented")
+}
+func (UnimplementedHouseholdServiceServer) ListHouseholdMembers(context.Context, *ListHouseholdMembersRequest) (*ListHouseholdMembersReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListHouseholdMembers not implemented")
 }
 func (UnimplementedHouseholdServiceServer) testEmbeddedByValue() {}
 
@@ -408,6 +426,24 @@ func _HouseholdService_UpdateHouseholdPreferences_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HouseholdService_ListHouseholdMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListHouseholdMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HouseholdServiceServer).ListHouseholdMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HouseholdService_ListHouseholdMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HouseholdServiceServer).ListHouseholdMembers(ctx, req.(*ListHouseholdMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HouseholdService_ServiceDesc is the grpc.ServiceDesc for HouseholdService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -454,6 +490,10 @@ var HouseholdService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateHouseholdPreferences",
 			Handler:    _HouseholdService_UpdateHouseholdPreferences_Handler,
+		},
+		{
+			MethodName: "ListHouseholdMembers",
+			Handler:    _HouseholdService_ListHouseholdMembers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

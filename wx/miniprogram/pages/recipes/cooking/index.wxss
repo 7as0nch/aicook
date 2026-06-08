@@ -1,4 +1,215 @@
-.placeholder-page { min-height: 100vh; padding: var(--spacing-md); text-align: center; padding-top: 240rpx; }
-.placeholder-page .emoji { font-size: 120rpx; }
-.placeholder-page .title { font-size: var(--font-lg); margin-top: var(--spacing-md); }
-.placeholder-page .desc { color: var(--color-text-secondary); font-size: var(--font-sm); margin-top: var(--spacing-sm); }
+.ck {
+  min-height: 100vh;
+  background: #FFFFFF;
+  padding-bottom: 200rpx;
+}
+
+.ck__navbar {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 24rpx;
+  padding-top: env(safe-area-inset-top);
+  box-sizing: content-box;
+  background: linear-gradient(180deg, #FFF6EE 0%, #FFFFFF 100%);
+  gap: 16rpx;
+}
+
+.ck__nav-btn,
+.ck__nav-ai {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(31, 27, 22, 0.06);
+}
+
+.ck__nav-icon { width: 36rpx; height: 36rpx; }
+
+.ck__nav-ai-icon { width: 40rpx; height: 40rpx; }
+
+.ck__nav-body {
+  flex: 1;
+  text-align: center;
+}
+
+.ck__nav-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F1B16;
+}
+
+.ck__nav-sub {
+  display: block;
+  font-size: 22rpx;
+  color: #9B978F;
+  margin-top: 4rpx;
+}
+
+.ck__progress {
+  height: 6rpx;
+  background: #F4F2EE;
+  margin: 8rpx 24rpx 0;
+  border-radius: 9999rpx;
+  overflow: hidden;
+}
+
+.ck__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFB366 0%, #FF7A00 100%);
+  transition: width 0.3s;
+}
+
+.ck__body {
+  padding: 32rpx;
+}
+
+.ck__media {
+  border-radius: 32rpx;
+  overflow: hidden;
+  height: 360rpx;
+  margin-bottom: 32rpx;
+  background: linear-gradient(135deg, #FFE4CC 0%, #FFCCAA 100%);
+}
+
+.ck__media-img { width: 100%; height: 100%; }
+
+.ck__step-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1F1B16;
+  margin-bottom: 16rpx;
+}
+
+.ck__step-desc {
+  font-size: 32rpx;
+  line-height: 1.6;
+  color: #1F1B16;
+  margin-bottom: 32rpx;
+}
+
+.ck__timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx;
+  background: #FFF6EE;
+  border-radius: 32rpx;
+  margin: 32rpx 0;
+}
+
+.ck__timer-circle {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 32rpx rgba(255, 122, 0, 0.18);
+}
+
+.ck__timer-time {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #FF7A00;
+  font-variant-numeric: tabular-nums;
+}
+
+.ck__timer-label {
+  font-size: 24rpx;
+  color: #9B978F;
+  margin-top: 4rpx;
+}
+
+.ck__timer-actions {
+  margin-top: 24rpx;
+}
+
+.ck__play-btn {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 48rpx;
+  background: #FF7A00;
+  color: #FFFFFF;
+  border-radius: 9999rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.ck__play-icon { width: 28rpx; height: 28rpx; filter: brightness(0) invert(1); }
+
+.ck__tip {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  margin-top: 24rpx;
+}
+
+.ck__tip--warn {
+  background: #FFF4E5;
+  color: #B45309;
+}
+
+.ck__tip--ai {
+  background: #EEF6FF;
+  color: #1E40AF;
+}
+
+.ck__tip-label {
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.ck__tip text:not(.ck__tip-label) {
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+
+.ck__bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1rpx solid #F4F2EE;
+  display: flex;
+  gap: 16rpx;
+}
+
+.ck__bottom-btn {
+  flex: 1;
+  height: 96rpx;
+  border-radius: 9999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.ck__bottom-btn--ghost {
+  background: #F4F5F7;
+  color: #5C544A;
+}
+
+.ck__bottom-btn--primary {
+  background: #FF7A00;
+  color: #FFFFFF;
+  box-shadow: 0 8rpx 24rpx rgba(255, 122, 0, 0.32);
+}
+
+.ck__bottom-btn--disabled {
+  opacity: 0.4;
+}
+
+.ck__spacer { height: 80rpx; }

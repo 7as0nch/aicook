@@ -5,8 +5,17 @@ import { observable, action } from 'mobx-miniprogram';
 import { chatStream, ChatSendRequest, SSEEvent, SSETask } from '../services/sse';
 import { aiApi } from '../services/ai.api';
 import { nextClientId } from '../utils/id';
-import type { AISession, Int64Like } from '../types/api';
+import type { AISession, Int64Like, Source } from '../types/api';
 import type { ChatMessage, ChatSegment } from '../types/chat';
+
+export interface SendOptions {
+  scene?: string;
+  recipe_id?: number;
+  quote_context?: Record<string, unknown>;
+  attachments?: unknown[];
+  context?: Record<string, unknown>;
+  title?: string;
+}
 
 export const chatStore = observable({
   session: null as AISession | null,
@@ -14,6 +23,7 @@ export const chatStore = observable({
   streaming: false as boolean,
   reasoningEnabled: false as boolean,
   webSearchEnabled: false as boolean,
+  imageRecipeEnabled: false as boolean,
   // 持有当前流任务，便于停止生成
   _currentTask: null as SSETask | null,
 
@@ -36,16 +46,20 @@ export const chatStore = observable({
   }),
 
   // 发送一条消息（流式）
-  send: action(function (this: typeof chatStore, text: string, opts?: Partial<ChatSendRequest>) {
+  send: action(function (this: typeof chatStore, text: string, opts?: SendOptions) {
     if (this.streaming) {
       console.warn('[chatStore] still streaming, ignore');
+      return;
+    }
+    const trimmed = (text || '').trim();
+    if (!trimmed && !opts?.attachments?.length) {
       return;
     }
     const userMsg: ChatMessage = {
       client_id: nextClientId(),
       session_id: this.session?.id,
       role: 'user',
-      segments: [{ kind: 'text', content: text }],
+      segments: trimmed ? [{ kind: 'text', content: trimmed }] : [],
       status: 'done',
       created_at_ms: Date.now(),
     };
@@ -60,25 +74,29 @@ export const chatStore = observable({
     this.messages = [...this.messages, userMsg, assistantMsg];
     this.streaming = true;
 
-    const task = chatStream(
-      {
-        session_id: this.session?.id ? String(this.session.id) : undefined,
-        text,
-        scene: this.session?.scene,
-        reasoning_enabled: this.reasoningEnabled,
-        web_search_enabled: this.webSearchEnabled,
-        ...opts,
+    const body: ChatSendRequest = {
+      session_id: this.session?.id ? String(this.session.id) : undefined,
+      text: trimmed,
+      scene: opts?.scene || this.session?.scene,
+      recipe_id: opts?.recipe_id,
+      title: opts?.title,
+      context: opts?.context,
+      attachments: opts?.attachments,
+      quote_context: opts?.quote_context,
+      reasoning_enabled: this.reasoningEnabled,
+      web_search_enabled: this.webSearchEnabled,
+      image_recipe_enabled: this.imageRecipeEnabled,
+    };
+
+    const task = chatStream(body, {
+      onEvent: (ev) => onSSEEvent(this, assistantMsg.client_id, ev),
+      onDone: () => {
+        markDone(this, assistantMsg.client_id);
       },
-      {
-        onEvent: (ev) => onSSEEvent(this, assistantMsg.client_id, ev),
-        onDone: () => {
-          markDone(this, assistantMsg.client_id);
-        },
-        onError: (err) => {
-          appendError(this, assistantMsg.client_id, err.message);
-        },
+      onError: (err) => {
+        appendError(this, assistantMsg.client_id, err.message);
       },
-    );
+    });
     this._currentTask = task;
   }),
 
@@ -103,18 +121,42 @@ export const chatStore = observable({
   toggleWebSearch: action(function (this: typeof chatStore) {
     this.webSearchEnabled = !this.webSearchEnabled;
   }),
+
+  toggleImageRecipe: action(function (this: typeof chatStore) {
+    this.imageRecipeEnabled = !this.imageRecipeEnabled;
+  }),
+
+  toggleReasoningCollapsed: action(function (this: typeof chatStore, client_id: string) {
+    const idx = this.messages.findIndex((m) => m.client_id === client_id);
+    if (idx < 0) return;
+    const msg = this.messages[idx];
+    this.messages[idx] = { ...msg, reasoning_collapsed: !msg.reasoning_collapsed };
+    this.messages = [...this.messages];
+  }),
 });
 
 // ---- 内部辅助 ----
 
 function toClientMessage(m: import('../types/api').AIMessage): ChatMessage {
-  const seg: ChatSegment = { kind: 'text', content: m.content || '' };
+  const segs: ChatSegment[] = [];
+  if (m.content) {
+    segs.push({ kind: 'text', content: m.content });
+  }
+  if (m.response_sources && m.response_sources.length > 0) {
+    segs.push({
+      kind: 'sources',
+      sources: m.response_sources.map((s) => ({
+        title: s.title || '',
+        snippet: s.snippet,
+      })),
+    });
+  }
   return {
     client_id: nextClientId(),
     server_id: m.id,
     session_id: m.ai_session_id,
     role: (m.role as ChatMessage['role']) || 'assistant',
-    segments: m.content ? [seg] : [],
+    segments: segs,
     status: 'done',
     created_at_ms: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
   };
@@ -133,59 +175,137 @@ function patchMsg(store: typeof chatStore, client_id: string, patch: (msg: ChatM
 }
 
 function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): void {
+  // 后端字段：content / seq / part_type / call_id / message_id / run_id + metadata
+  const data = (ev.data || {}) as Record<string, unknown>;
   switch (ev.event) {
+    case 'start': {
+      // 首次发送时后端回写 session_id，要存回 store 以便后续追加消息
+      const sid = data.session_id as string | undefined;
+      const scene = data.scene as string | undefined;
+      const title = data.title as string | undefined;
+      if (sid && !store.session) {
+        store.session = { id: sid, scene, title } as AISession;
+      } else if (sid && store.session && !store.session.id) {
+        store.session = { ...store.session, id: sid };
+      }
+      break;
+    }
     case 'answer_delta': {
-      const data = ev.data as { text?: string };
-      patchMsg(store, client_id, (msg) => appendText(msg, data?.text || ''));
+      patchMsg(store, client_id, (msg) => appendText(msg, String(data.content || '')));
       break;
     }
     case 'reasoning_delta': {
-      const data = ev.data as { text?: string };
-      patchMsg(store, client_id, (msg) => appendReasoning(msg, data?.text || ''));
+      patchMsg(store, client_id, (msg) => appendReasoning(msg, String(data.content || '')));
       break;
     }
-    case 'tool_call': {
-      const data = ev.data as { tool_name?: string; arguments?: string; result?: string };
+    case 'agent_delta': {
+      const text = String(data.content || '');
+      if (!text) break;
       patchMsg(store, client_id, (msg) => ({
         ...msg,
-        segments: [...msg.segments, {
-          kind: 'tool_call' as const,
-          tool_name: data?.tool_name || '',
-          arguments: data?.arguments,
-          result: data?.result,
-        }],
-      }));
-      break;
-    }
-    case 'recipe_card': {
-      const data = ev.data as { recipe_id?: Int64Like; title?: string; summary?: string; cover_image_url?: string };
-      patchMsg(store, client_id, (msg) => ({
-        ...msg,
-        segments: [...msg.segments, {
-          kind: 'recipe_card' as const,
-          recipe_id: data?.recipe_id,
-          title: data?.title || '',
-          summary: data?.summary,
-          cover_image_url: data?.cover_image_url,
-        }],
+        segments: [...msg.segments, { kind: 'agent', content: text }],
       }));
       break;
     }
     case 'status_delta': {
-      const data = ev.data as { message?: string };
+      const text = String(data.content || '');
+      if (!text) break;
       patchMsg(store, client_id, (msg) => ({
         ...msg,
-        segments: [...msg.segments, { kind: 'status' as const, message: data?.message || '' }],
+        segments: [...msg.segments, { kind: 'status', message: text }],
+      }));
+      break;
+    }
+    case 'tool_call': {
+      patchMsg(store, client_id, (msg) => ({
+        ...msg,
+        segments: [
+          ...msg.segments,
+          {
+            kind: 'tool_call',
+            tool_name: String(data.tool_name || data.name || ''),
+            arguments: data.arguments ? String(data.arguments) : undefined,
+            result: data.result ? String(data.result) : undefined,
+          },
+        ],
+      }));
+      break;
+    }
+    case 'recipe_card': {
+      const meta = data as {
+        recipe_id?: Int64Like;
+        title?: string;
+        summary?: string;
+        cover_image_url?: string;
+        draft?: Record<string, unknown>;
+      };
+      patchMsg(store, client_id, (msg) => ({
+        ...msg,
+        segments: [
+          ...msg.segments,
+          {
+            kind: 'recipe_card',
+            recipe_id: meta.recipe_id,
+            title: meta.title || '生成的菜谱',
+            summary: meta.summary,
+            cover_image_url: meta.cover_image_url,
+            draft: meta.draft,
+          },
+        ],
+      }));
+      break;
+    }
+    case 'approval': {
+      patchMsg(store, client_id, (msg) => ({
+        ...msg,
+        segments: [
+          ...msg.segments,
+          {
+            kind: 'approval',
+            call_id: data.call_id ? String(data.call_id) : undefined,
+            prompt: String(data.prompt || data.content || '需要确认'),
+            options: (data.options as Array<{ label: string; value: string }>) || undefined,
+          },
+        ],
       }));
       break;
     }
     case 'done': {
-      markDone(store, client_id);
+      // 写入完整回复来源 + server_id
+      const sources = (data.reply_sources as Source[] | undefined) || [];
+      const assistantId = data.assistant_message_id as string | undefined;
+      const sessionId = data.session_id as string | undefined;
+      patchMsg(store, client_id, (msg) => {
+        const next: ChatMessage = { ...msg, status: 'done' };
+        if (assistantId) next.server_id = assistantId;
+        if (sessionId) next.session_id = sessionId;
+        if (sources.length > 0) {
+          next.segments = [
+            ...msg.segments,
+            {
+              kind: 'sources',
+              sources: sources.map((s) => ({
+                title: s.title || '',
+                snippet: s.snippet,
+              })),
+            },
+          ];
+        }
+        return next;
+      });
+      // 同步 session_id（若是新建会话）
+      if (sessionId && store.session && !store.session.id) {
+        store.session = { ...store.session, id: sessionId };
+      } else if (sessionId && !store.session) {
+        store.session = { id: sessionId } as AISession;
+      }
+      store.streaming = false;
+      store._currentTask = null;
       break;
     }
     case 'error': {
-      const data = ev.data as { message?: string };
-      appendError(store, client_id, data?.message || '出错了');
+      const msg = String(data.message || '出错了');
+      appendError(store, client_id, msg);
       break;
     }
     default:
@@ -227,8 +347,9 @@ function appendError(store: typeof chatStore, client_id: string, message: string
   patchMsg(store, client_id, (msg) => ({
     ...msg,
     status: 'error',
-    segments: [...msg.segments, { kind: 'error' as const, message }],
+    segments: [...msg.segments, { kind: 'error', message }],
   }));
   store.streaming = false;
   store._currentTask = null;
+  wx.showToast({ title: message || 'AI 出错了', icon: 'none', duration: 2500 });
 }

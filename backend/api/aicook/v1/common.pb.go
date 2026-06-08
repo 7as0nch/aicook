@@ -783,8 +783,10 @@ type Recipe struct {
 	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	GalleryImageUrls   []string               `protobuf:"bytes,21,rep,name=gallery_image_urls,json=galleryImageUrls,proto3" json:"gallery_image_urls,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// 当前用户是否已收藏此菜谱（由后端按需 join 计算）。
+	Favored       bool `protobuf:"varint,22,opt,name=favored,proto3" json:"favored,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Recipe) Reset() {
@@ -962,6 +964,13 @@ func (x *Recipe) GetGalleryImageUrls() []string {
 		return x.GalleryImageUrls
 	}
 	return nil
+}
+
+func (x *Recipe) GetFavored() bool {
+	if x != nil {
+		return x.Favored
+	}
+	return false
 }
 
 type RecipeIngredient struct {
@@ -2066,7 +2075,7 @@ const file_api_aicook_v1_common_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc1\x06\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xdb\x06\n" +
 	"\x06Recipe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
 	"\fhousehold_id\x18\x02 \x01(\x03R\vhouseholdId\x12\"\n" +
@@ -2095,7 +2104,8 @@ const file_api_aicook_v1_common_proto_rawDesc = "" +
 	"created_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12,\n" +
-	"\x12gallery_image_urls\x18\x15 \x03(\tR\x10galleryImageUrlsB\x16\n" +
+	"\x12gallery_image_urls\x18\x15 \x03(\tR\x10galleryImageUrls\x12\x18\n" +
+	"\afavored\x18\x16 \x01(\bR\afavoredB\x16\n" +
 	"\x14_source_household_idB\x18\n" +
 	"\x16_forked_from_recipe_id\"\xec\x01\n" +
 	"\x10RecipeIngredient\x12\x0e\n" +

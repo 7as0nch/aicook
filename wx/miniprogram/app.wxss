@@ -4,10 +4,11 @@
 page {
   background-color: var(--color-bg-page);
   color: var(--color-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC',
-    'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Helvetica Neue', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 view, text, image, button, input, textarea {
@@ -34,6 +35,11 @@ button::after {
 /* 通用安全区底部占位 */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 通用安全区顶部占位（自定义 navbar 必加） */
+.safe-top {
+  padding-top: calc(env(safe-area-inset-top) + 88rpx);
 }
 
 /* 文本省略 */
@@ -82,9 +88,9 @@ button::after {
 
 /* 主按钮 */
 .cta-btn {
-  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
+  background: var(--gradient-primary);
   color: #FFFFFF;
-  border-radius: 999rpx;
+  border-radius: 9999rpx;
   padding: 24rpx 48rpx;
   font-size: 32rpx;
   font-weight: 600;
@@ -92,23 +98,38 @@ button::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(255, 107, 26, 0.24);
+  box-shadow: 0 4rpx 16rpx rgba(255, 122, 0, 0.24);
 }
 
 .cta-btn[disabled],
 .cta-btn.disabled { opacity: 0.6; }
 
+/* 次要按钮：白底 + 绿色描边 */
+.cta-btn-secondary {
+  background: #FFFFFF;
+  color: var(--color-success);
+  border: 2rpx solid var(--color-success);
+  border-radius: 9999rpx;
+  padding: 22rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* 通用卡片 */
 .card {
   background: #FFFFFF;
   border-radius: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-card);
   padding: 24rpx;
 }
 
 /* 图片占位（image 加载前/失败兜底） */
 .img-placeholder {
-  background: #F5F6F8;
+  background: #F4F5F7;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -27,7 +27,23 @@ export interface GetMeReply {
   households?: HouseholdSummary[];
 }
 
+export interface WxLoginReq {
+  code: string;
+  nickname?: string;
+  avatar_url?: string;
+}
+
 export const authApi = {
+  wxLogin(data: WxLoginReq) {
+    return request<AuthReply>({
+      url: '/api/v1/auth/wx-login',
+      method: 'POST',
+      data,
+      auth: 'none',
+      loading: '登录中',
+    });
+  },
+
   register(data: RegisterReq) {
     return request<AuthReply>({
       url: '/api/v1/auth/register',

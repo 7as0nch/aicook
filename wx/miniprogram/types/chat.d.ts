@@ -22,6 +22,9 @@ export type ChatSegment =
   | ToolCallSegment
   | RecipeCardSegment
   | StatusSegment
+  | AgentSegment
+  | ApprovalSegment
+  | SourcesSegment
   | ErrorSegment;
 
 export interface TextSegment {
@@ -48,6 +51,30 @@ export interface RecipeCardSegment {
   summary?: string;
   cover_image_url?: string;
   recipe?: Recipe;
+  // 完整草稿数据（编辑并保存用）
+  draft?: Record<string, unknown>;
+}
+
+export interface AgentSegment {
+  kind: 'agent';
+  content: string;       // Agent 正在做什么（搜索中、查询食材中）
+}
+
+export interface ApprovalSegment {
+  kind: 'approval';
+  call_id?: string;
+  prompt: string;
+  options?: Array<{ label: string; value: string }>;
+}
+
+export interface SourcesSegment {
+  kind: 'sources';
+  sources: Array<{
+    title: string;
+    url?: string;
+    snippet?: string;
+    site_name?: string;
+  }>;
 }
 
 export interface StatusSegment {

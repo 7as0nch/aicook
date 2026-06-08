@@ -8,6 +8,9 @@ import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 import "api/aicook/v1/common.proto";
 
+// 注意：路由注册顺序很关键 —— 固定路径（today/favorites/:draft）必须放在 {id} 通配之前，
+// 否则 kratos 路由会把 today / favorites 当成 id 去解析，触发 400 invalid syntax。
+// recipe_http.pb.go 中 RegisterRecipeServiceHTTPServer 已手动按此顺序排好，regen 时务必检查。
 service RecipeService {
   rpc ListRecipes(ListRecipesRequest) returns (ListRecipesReply) {
     option (google.api.http) = {
@@ -15,9 +18,16 @@ service RecipeService {
     };
   }
 
-  rpc GetRecipeDetail(GetRecipeDetailRequest) returns (GetRecipeDetailReply) {
+  // ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
+  rpc ListTodayRecipes(ListTodayRecipesRequest) returns (ListTodayRecipesReply) {
     option (google.api.http) = {
-      get: "/api/v1/recipes/{id}"
+      get: "/api/v1/recipes/today"
+    };
+  }
+
+  rpc ListMyFavorites(ListMyFavoritesRequest) returns (ListMyFavoritesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/recipes/favorites"
     };
   }
 
@@ -25,6 +35,25 @@ service RecipeService {
     option (google.api.http) = {
       post: "/api/v1/recipes:draft"
       body: "*"
+    };
+  }
+
+  rpc AddRecipeFavorite(AddRecipeFavoriteRequest) returns (AddRecipeFavoriteReply) {
+    option (google.api.http) = {
+      post: "/api/v1/recipes/{recipe_id}/favorite"
+      body: "*"
+    };
+  }
+
+  rpc RemoveRecipeFavorite(RemoveRecipeFavoriteRequest) returns (RemoveRecipeFavoriteReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/recipes/{recipe_id}/favorite"
+    };
+  }
+
+  rpc GetRecipeDetail(GetRecipeDetailRequest) returns (GetRecipeDetailReply) {
+    option (google.api.http) = {
+      get: "/api/v1/recipes/{id}"
     };
   }
 
@@ -38,13 +67,6 @@ service RecipeService {
   rpc DeleteRecipe(DeleteRecipeRequest) returns (DeleteRecipeReply) {
     option (google.api.http) = {
       delete: "/api/v1/recipes/{id}"
-    };
-  }
-
-  // ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
-  rpc ListTodayRecipes(ListTodayRecipesRequest) returns (ListTodayRecipesReply) {
-    option (google.api.http) = {
-      get: "/api/v1/recipes/today"
     };
   }
 }
@@ -163,4 +185,34 @@ message ListTodayRecipesRequest {
 
 message ListTodayRecipesReply {
   repeated TodayRecipe items = 1;
+}
+
+// --- Favorites ---
+
+message AddRecipeFavoriteRequest {
+  int64 recipe_id = 1;
+}
+
+message AddRecipeFavoriteReply {
+  Recipe recipe = 1;
+  bool favored = 2;
+}
+
+message RemoveRecipeFavoriteRequest {
+  int64 recipe_id = 1;
+}
+
+message RemoveRecipeFavoriteReply {
+  bool ok = 1;
+}
+
+message ListMyFavoritesRequest {
+  int32 limit = 1;
+  // 上一页最后一项 id，下一页从此向前翻
+  int64 before_id = 2;
+}
+
+message ListMyFavoritesReply {
+  repeated Recipe recipes = 1;
+  int64 total = 2;
 }

@@ -1,0 +1,33 @@
+.mc {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 22rpx;
+  border-radius: 9999rpx;
+  background: #F4F5F7;
+  color: #6E6A62;
+  font-size: 24rpx;
+  line-height: 1.2;
+}
+
+.mc--active {
+  background: #FFF6EE;
+  color: #EF6E00;
+  border: 2rpx solid #FF7A00;
+  padding: 10rpx 20rpx;
+}
+
+.mc__dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mc__icon {
+  font-size: 24rpx;
+}
+
+.mc__label {
+  font-weight: 500;
+}

@@ -40,8 +40,12 @@ aidesign/
 ios/
 android/
 .swc/
+logs/
 
 config.yaml
+
+# Figma MCP 临时下载目录
+.figma-tmp/
 
 # 微信小程序
 wx/node_modules/

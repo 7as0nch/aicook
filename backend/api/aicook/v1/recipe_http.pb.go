@@ -19,31 +19,41 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationRecipeServiceAddRecipeFavorite = "/aicook.v1.RecipeService/AddRecipeFavorite"
 const OperationRecipeServiceCreateRecipeDraft = "/aicook.v1.RecipeService/CreateRecipeDraft"
 const OperationRecipeServiceDeleteRecipe = "/aicook.v1.RecipeService/DeleteRecipe"
 const OperationRecipeServiceGetRecipeDetail = "/aicook.v1.RecipeService/GetRecipeDetail"
+const OperationRecipeServiceListMyFavorites = "/aicook.v1.RecipeService/ListMyFavorites"
 const OperationRecipeServiceListRecipes = "/aicook.v1.RecipeService/ListRecipes"
 const OperationRecipeServiceListTodayRecipes = "/aicook.v1.RecipeService/ListTodayRecipes"
+const OperationRecipeServiceRemoveRecipeFavorite = "/aicook.v1.RecipeService/RemoveRecipeFavorite"
 const OperationRecipeServiceUpdateRecipe = "/aicook.v1.RecipeService/UpdateRecipe"
 
 type RecipeServiceHTTPServer interface {
+	AddRecipeFavorite(context.Context, *AddRecipeFavoriteRequest) (*AddRecipeFavoriteReply, error)
 	CreateRecipeDraft(context.Context, *CreateRecipeDraftRequest) (*CreateRecipeDraftReply, error)
 	DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error)
 	GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error)
+	ListMyFavorites(context.Context, *ListMyFavoritesRequest) (*ListMyFavoritesReply, error)
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesReply, error)
 	// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
 	ListTodayRecipes(context.Context, *ListTodayRecipesRequest) (*ListTodayRecipesReply, error)
+	RemoveRecipeFavorite(context.Context, *RemoveRecipeFavoriteRequest) (*RemoveRecipeFavoriteReply, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error)
 }
 
 func RegisterRecipeServiceHTTPServer(s *http.Server, srv RecipeServiceHTTPServer) {
 	r := s.Route("/")
+	// 注意：固定路径必须在 {id} 通配之前注册，否则 today/favorites 会被 {id} 吃掉。
 	r.GET("/api/v1/recipes", _RecipeService_ListRecipes0_HTTP_Handler(srv))
-	r.GET("/api/v1/recipes/{id}", _RecipeService_GetRecipeDetail0_HTTP_Handler(srv))
+	r.GET("/api/v1/recipes/today", _RecipeService_ListTodayRecipes0_HTTP_Handler(srv))
+	r.GET("/api/v1/recipes/favorites", _RecipeService_ListMyFavorites0_HTTP_Handler(srv))
 	r.POST("/api/v1/recipes:draft", _RecipeService_CreateRecipeDraft0_HTTP_Handler(srv))
+	r.POST("/api/v1/recipes/{recipe_id}/favorite", _RecipeService_AddRecipeFavorite0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/recipes/{recipe_id}/favorite", _RecipeService_RemoveRecipeFavorite0_HTTP_Handler(srv))
+	r.GET("/api/v1/recipes/{id}", _RecipeService_GetRecipeDetail0_HTTP_Handler(srv))
 	r.PUT("/api/v1/recipes/{id}", _RecipeService_UpdateRecipe0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/recipes/{id}", _RecipeService_DeleteRecipe0_HTTP_Handler(srv))
-	r.GET("/api/v1/recipes/today", _RecipeService_ListTodayRecipes0_HTTP_Handler(srv))
 }
 
 func _RecipeService_ListRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
@@ -175,13 +185,82 @@ func _RecipeService_ListTodayRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) 
 	}
 }
 
+func _RecipeService_AddRecipeFavorite0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AddRecipeFavoriteRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceAddRecipeFavorite)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AddRecipeFavorite(ctx, req.(*AddRecipeFavoriteRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AddRecipeFavoriteReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_RemoveRecipeFavorite0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RemoveRecipeFavoriteRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceRemoveRecipeFavorite)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RemoveRecipeFavorite(ctx, req.(*RemoveRecipeFavoriteRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RemoveRecipeFavoriteReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_ListMyFavorites0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMyFavoritesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceListMyFavorites)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMyFavorites(ctx, req.(*ListMyFavoritesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMyFavoritesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type RecipeServiceHTTPClient interface {
+	AddRecipeFavorite(ctx context.Context, req *AddRecipeFavoriteRequest, opts ...http.CallOption) (rsp *AddRecipeFavoriteReply, err error)
 	CreateRecipeDraft(ctx context.Context, req *CreateRecipeDraftRequest, opts ...http.CallOption) (rsp *CreateRecipeDraftReply, err error)
 	DeleteRecipe(ctx context.Context, req *DeleteRecipeRequest, opts ...http.CallOption) (rsp *DeleteRecipeReply, err error)
 	GetRecipeDetail(ctx context.Context, req *GetRecipeDetailRequest, opts ...http.CallOption) (rsp *GetRecipeDetailReply, err error)
+	ListMyFavorites(ctx context.Context, req *ListMyFavoritesRequest, opts ...http.CallOption) (rsp *ListMyFavoritesReply, err error)
 	ListRecipes(ctx context.Context, req *ListRecipesRequest, opts ...http.CallOption) (rsp *ListRecipesReply, err error)
 	// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
 	ListTodayRecipes(ctx context.Context, req *ListTodayRecipesRequest, opts ...http.CallOption) (rsp *ListTodayRecipesReply, err error)
+	RemoveRecipeFavorite(ctx context.Context, req *RemoveRecipeFavoriteRequest, opts ...http.CallOption) (rsp *RemoveRecipeFavoriteReply, err error)
 	UpdateRecipe(ctx context.Context, req *UpdateRecipeRequest, opts ...http.CallOption) (rsp *UpdateRecipeReply, err error)
 }
 
@@ -191,6 +270,19 @@ type RecipeServiceHTTPClientImpl struct {
 
 func NewRecipeServiceHTTPClient(client *http.Client) RecipeServiceHTTPClient {
 	return &RecipeServiceHTTPClientImpl{client}
+}
+
+func (c *RecipeServiceHTTPClientImpl) AddRecipeFavorite(ctx context.Context, in *AddRecipeFavoriteRequest, opts ...http.CallOption) (*AddRecipeFavoriteReply, error) {
+	var out AddRecipeFavoriteReply
+	pattern := "/api/v1/recipes/{recipe_id}/favorite"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationRecipeServiceAddRecipeFavorite))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (c *RecipeServiceHTTPClientImpl) CreateRecipeDraft(ctx context.Context, in *CreateRecipeDraftRequest, opts ...http.CallOption) (*CreateRecipeDraftReply, error) {
@@ -232,6 +324,19 @@ func (c *RecipeServiceHTTPClientImpl) GetRecipeDetail(ctx context.Context, in *G
 	return &out, nil
 }
 
+func (c *RecipeServiceHTTPClientImpl) ListMyFavorites(ctx context.Context, in *ListMyFavoritesRequest, opts ...http.CallOption) (*ListMyFavoritesReply, error) {
+	var out ListMyFavoritesReply
+	pattern := "/api/v1/recipes/favorites"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationRecipeServiceListMyFavorites))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *RecipeServiceHTTPClientImpl) ListRecipes(ctx context.Context, in *ListRecipesRequest, opts ...http.CallOption) (*ListRecipesReply, error) {
 	var out ListRecipesReply
 	pattern := "/api/v1/recipes"
@@ -253,6 +358,19 @@ func (c *RecipeServiceHTTPClientImpl) ListTodayRecipes(ctx context.Context, in *
 	opts = append(opts, http.Operation(OperationRecipeServiceListTodayRecipes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *RecipeServiceHTTPClientImpl) RemoveRecipeFavorite(ctx context.Context, in *RemoveRecipeFavoriteRequest, opts ...http.CallOption) (*RemoveRecipeFavoriteReply, error) {
+	var out RemoveRecipeFavoriteReply
+	pattern := "/api/v1/recipes/{recipe_id}/favorite"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationRecipeServiceRemoveRecipeFavorite))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -48,6 +48,52 @@ func (r *HouseholdRepo) GetHousehold(ctx context.Context, householdID int64) (*H
 	return &household, nil
 }
 
+// HouseholdMemberWithUser 是 ListHouseholdMembers 返回的 JOIN 结果。
+type HouseholdMemberWithUser struct {
+	MemberID    int64
+	UserID      int64
+	Role        string
+	DisplayName string
+	Username    string
+	AvatarURL   string
+	CreatedAt   int64 // unix ms
+}
+
+// ListMembers 返回家庭成员列表（含用户信息）。按 created_at 升序，owner/admin 总在前。
+func (r *HouseholdRepo) ListMembers(ctx context.Context, householdID int64) ([]*HouseholdMemberWithUser, error) {
+	type row struct {
+		MemberID    int64
+		UserID      int64
+		Role        string
+		DisplayName string
+		Username    string
+		CreatedAt   int64
+	}
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Table("household_members AS hm").
+		Select("hm.id AS member_id, hm.user_id AS user_id, hm.role AS role, u.display_name AS display_name, u.username AS username, EXTRACT(EPOCH FROM hm.created_at) * 1000 AS created_at").
+		Joins("LEFT JOIN users u ON u.id = hm.user_id AND u.deleted_at IS NULL").
+		Where("hm.household_id = ? AND hm.deleted_at IS NULL", householdID).
+		Order("CASE hm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, hm.created_at ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*HouseholdMemberWithUser, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, &HouseholdMemberWithUser{
+			MemberID:    r.MemberID,
+			UserID:      r.UserID,
+			Role:        r.Role,
+			DisplayName: r.DisplayName,
+			Username:    r.Username,
+			CreatedAt:   r.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
 func (r *HouseholdRepo) FindByShareCode(ctx context.Context, shareCode string) (*Household, error) {
 	var household Household
 	if err := r.db.WithContext(ctx).Where("share_code = ?", shareCode).First(&household).Error; err != nil {

@@ -1,56 +1,108 @@
-<view class="snap-page">
-  <!-- 顶部操作栏 -->
-  <view class="snap-header">
-    <view class="header-btn" bindtap="onBack">
-      <text class="icon-slot__emoji">‹</text>
+<view class="snap">
+  <!-- 取景器 -->
+  <view class="snap__viewfinder">
+    <camera
+      wx:if="{{!captured}}"
+      class="snap__camera"
+      device-position="{{devicePosition}}"
+      flash="{{flashOn ? 'on' : 'off'}}"
+      binderror="onCameraError"
+    />
+    <image wx:else class="snap__captured" src="{{capturedPath}}" mode="aspectFill" />
+
+    <view class="snap__overlay"></view>
+
+    <!-- 4 角括号 -->
+    <view class="snap__bracket snap__bracket--tl">
+      <view class="snap__bracket-h"></view>
+      <view class="snap__bracket-v"></view>
     </view>
-    <view class="header-btn" bindtap="onFlashToggle">
-      <text class="icon-slot__emoji">{{flashOn ? '⚡' : '🔆'}}</text>
+    <view class="snap__bracket snap__bracket--tr">
+      <view class="snap__bracket-h"></view>
+      <view class="snap__bracket-v"></view>
+    </view>
+    <view class="snap__bracket snap__bracket--bl">
+      <view class="snap__bracket-h"></view>
+      <view class="snap__bracket-v"></view>
+    </view>
+    <view class="snap__bracket snap__bracket--br">
+      <view class="snap__bracket-h"></view>
+      <view class="snap__bracket-v"></view>
+    </view>
+
+    <!-- 扫描线（识别中） -->
+    <view wx:if="{{recognizing}}" class="snap__scanline"></view>
+
+    <!-- 状态提示 -->
+    <view wx:if="{{recognizing}}" class="snap__status-pill">
+      <view class="snap__status-dot"></view>
+      <text>识别中… 请保持画面清晰</text>
+    </view>
+    <view wx:elif="{{error}}" class="snap__status-pill snap__status-pill--err">
+      <text>⚠ {{error}}</text>
+    </view>
+    <view wx:elif="{{!captured}}" class="snap__status-pill">
+      <text>对准冰箱食材，点击下方拍照</text>
+    </view>
+
+    <!-- 顶部按钮 -->
+    <view class="snap__topbar" style="top: {{statusBarHeight + 6}}px">
+      <view class="snap__top-btn" bindtap="onBack">
+        <image class="snap__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+      </view>
+      <view class="snap__top-title">食材识别</view>
+      <view class="snap__top-actions">
+        <view class="snap__top-btn" bindtap="onFlashToggle">
+          <text class="snap__top-emoji">{{flashOn ? '⚡' : '⚡'}}</text>
+        </view>
+        <view class="snap__top-btn" bindtap="onCameraSwitch">
+          <text class="snap__top-emoji">⟳</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部拍照按钮（未识别时） -->
+    <view wx:if="{{!recognized && !captured}}" class="snap__shutter" bindtap="onShutterTap">
+      <view class="snap__shutter-inner"></view>
+    </view>
+    <view wx:if="{{captured && !recognizing}}" class="snap__retake" bindtap="onRetake">
+      <text>重拍</text>
     </view>
   </view>
 
-  <!-- 预览区 -->
-  <view class="preview-area">
-    <view wx:if="{{!captured}}" class="preview-empty">
-      <view class="icon-slot size-xl">
-        <text class="icon-slot__emoji">📸</text>
-      </view>
-      <text class="empty-tip">把摄像头对准冰箱里的食材</text>
-      <text class="empty-sub">2-3 秒内完成识别</text>
-    </view>
-    <view wx:else class="preview-loaded">
-      <view class="preview-mock">
-        <text class="cover-emoji">🥬🍅🥚</text>
-      </view>
-      <view wx:if="{{recognizing}}" class="recog-overlay">
-        <text class="recog-text">识别中… 2-3秒内完成</text>
+  <!-- 底部 sheet：识别结果 -->
+  <view class="snap__sheet">
+    <view class="snap__handle"></view>
+    <view class="snap__sheet-head">
+      <text class="snap__sheet-title">识别结果</text>
+      <view class="snap__count-chip">{{chips.length}} 种</view>
+      <view class="snap__edit" bindtap="onChipAdd">
+        <image class="snap__edit-icon" src="/assets/icons/edit.png" mode="aspectFit" />
+        <text>编辑</text>
       </view>
     </view>
-  </view>
 
-  <!-- 识别结果 -->
-  <view wx:if="{{chips.length}}" class="result-block">
-    <view class="result-title">
-      <text>识别结果</text>
-      <text class="result-count">({{chips.length}})</text>
+    <view class="snap__chips">
+      <view
+        wx:for="{{chips}}"
+        wx:key="id"
+        class="snap__chip"
+        data-name="{{item.name}}"
+        bindtap="onChipClose"
+      >
+        <text class="snap__chip-emoji">{{item.emoji}}</text>
+        <text class="snap__chip-name">{{item.name}}</text>
+      </view>
+      <view class="snap__chip snap__chip--add" bindtap="onChipAdd">+ 添加</view>
     </view>
-    <view class="chip-row">
-      <view class="result-chip" wx:for="{{chips}}" wx:key="id">{{item.name}}</view>
-    </view>
-  </view>
 
-  <!-- 主操作 -->
-  <view class="snap-actions">
-    <view wx:if="{{!captured}}" class="cta-btn capture-btn" bindtap="onCaptureTap">
-      <text>拍照识别</text>
+    <view wx:if="{{!chips.length && !recognizing}}" class="snap__empty">点击拍照后等待识别…</view>
+
+    <view class="snap__cta {{!chips.length ? 'snap__cta--disabled' : ''}}" bindtap="onGenerateTap">
+      <text class="snap__cta-icon">✨</text>
+      <text>生成推荐菜谱</text>
     </view>
-    <view wx:else class="cta-btn capture-btn {{recognizing ? 'disabled' : ''}}" bindtap="onGenerateTap">
-      <view class="icon-slot size-sm"><text class="icon-slot__emoji">✨</text></view>
-      <text>生成推荐</text>
-    </view>
-    <text wx:if="{{captured && !recognizing}}" class="action-tip">AI 根据您的食材生成菜谱</text>
+
+    <text wx:if="{{chips.length}}" class="snap__hint">AI 将基于以上 {{chips.length}} 种食材为你智能推荐</text>
   </view>
 </view>
-
-<ai-fab bottom="60rpx" />
-<ai-sheet context="拍照识别食材" />

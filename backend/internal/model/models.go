@@ -48,6 +48,10 @@ type User struct {
 	Status      string `gorm:"size:20;default:'active'" json:"status"`
 	// AvatarAssetID 指向 media_assets.id；空表示未设置头像。
 	AvatarAssetID *int64 `gorm:"type:bigint;index" json:"avatar_asset_id,string,omitempty"`
+	// WxOpenid 微信小程序登录的 openid；空表示该用户未通过微信登录绑定。
+	WxOpenid string `gorm:"size:64;uniqueIndex" json:"-"`
+	// WxUnionid 跨小程序/公众号 unionid，可空。
+	WxUnionid string `gorm:"size:64;index" json:"-"`
 }
 
 // HouseholdMember 支持一个用户加入多个厨房，并为角色扩展预留空间。
@@ -361,4 +365,13 @@ type CookingHistory struct {
 // TableName 显式指定，避免 GORM 推断为 cooking_histories（英语复数规则差异）。
 func (CookingHistory) TableName() string {
 	return "cooking_history"
+}
+
+// RecipeFavorite 收藏菜谱：一个用户对同一菜谱只允许一条有效收藏记录。
+// 表上 (household_id, user_id, recipe_id) 在 deleted_at IS NULL 时唯一。
+type RecipeFavorite struct {
+	BaseModel
+	HouseholdID int64 `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	UserID      int64 `gorm:"type:bigint;not null;index" json:"user_id,string"`
+	RecipeID    int64 `gorm:"type:bigint;not null;index" json:"recipe_id,string"`
 }

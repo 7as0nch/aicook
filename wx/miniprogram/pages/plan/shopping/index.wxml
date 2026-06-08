@@ -1,5 +1,58 @@
-<view class="placeholder-page">
-  <view class="emoji">🛒</view>
-  <view class="title">购物清单</view>
-  <view class="desc">阶段 5 接入 ShoppingList 接口</view>
+<view class="shop">
+  <custom-navbar title="采购清单" />
+
+  <!-- 进度卡 -->
+  <view wx:if="{{total > 0}}" class="shop__progress-card">
+    <view class="shop__progress-head">
+      <view>
+        <text class="shop__progress-num">{{completed}}/{{total}}</text>
+        <text class="shop__progress-label"> 项已购买</text>
+      </view>
+      <view class="shop__progress-pct">{{progress}}%</view>
+    </view>
+    <view class="shop__progress-bar">
+      <view class="shop__progress-fill" style="width: {{progress}}%"></view>
+    </view>
+  </view>
+
+  <!-- 分组列表 -->
+  <view wx:for="{{groups}}" wx:key="category" wx:for-item="grp" class="shop__group">
+    <view class="shop__group-title">{{grp.category}}</view>
+    <view class="shop__group-card">
+      <view
+        wx:for="{{grp.items}}"
+        wx:key="id"
+        wx:for-item="it"
+        class="shop__item {{it.checked ? 'shop__item--checked' : ''}}"
+        data-id="{{it.id}}"
+        bindtap="onToggleItem"
+      >
+        <view class="shop__check {{it.checked ? 'shop__check--on' : ''}}">
+          <view wx:if="{{it.checked}}" class="shop__check-tick"></view>
+        </view>
+        <view class="shop__item-body">
+          <text class="shop__item-name">{{it.ingredient_name}}</text>
+          <text wx:if="{{it.required_text || it.missing_text}}" class="shop__item-meta">{{it.missing_text || it.required_text}}</text>
+          <text wx:if="{{it.source_recipe_title}}" class="shop__item-source">来自: {{it.source_recipe_title}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空态 -->
+  <view wx:if="{{empty && !loading}}" class="shop__empty">
+    <image class="shop__empty-icon" src="/assets/icons/cart.svg" mode="aspectFit" />
+    <text class="shop__empty-text">还没有采购清单</text>
+    <text class="shop__empty-sub">从本周计划自动生成</text>
+    <view class="shop__empty-cta" bindtap="onGenerate">生成清单</view>
+  </view>
+
+  <view wx:if="{{loading && !groups.length}}" class="shop__loading">加载中…</view>
+
+  <!-- 底部完成 -->
+  <view wx:if="{{total > 0 && completed === total}}" class="shop__bottom">
+    <view class="shop__complete-btn" bindtap="onCompleteList">全部完成</view>
+  </view>
+
+  <view class="shop__spacer"></view>
 </view>

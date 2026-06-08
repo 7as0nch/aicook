@@ -110,6 +110,8 @@ message Recipe {
   google.protobuf.Timestamp created_at = 17;
   google.protobuf.Timestamp updated_at = 18;
   repeated string gallery_image_urls = 21;
+  // 当前用户是否已收藏此菜谱（由后端按需 join 计算）。
+  bool favored = 22;
 }
 
 message RecipeIngredient {

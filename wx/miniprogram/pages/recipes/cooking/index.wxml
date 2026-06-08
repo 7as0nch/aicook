@@ -1,5 +1,67 @@
-<view class="placeholder-page">
-  <view class="emoji">🍳</view>
-  <view class="title">做菜步骤 #{{id}}</view>
-  <view class="desc">阶段 4 实现步骤导航 + 计时器</view>
+<view class="ck">
+  <custom-navbar showBack="{{false}}" bg="#FFF6EE">
+    <view slot="left" class="ck__nav-back" bindtap="onExit">
+      <image class="ck__nav-back-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+    </view>
+    <view slot="title" class="ck__nav-body">
+      <text class="ck__nav-title">{{detail.recipe.title || '做菜'}}</text>
+      <text class="ck__nav-sub">第 {{stepIndex + 1}} / {{totalSteps}} 步</text>
+    </view>
+    <view slot="right" class="ck__nav-ai" bindtap="onAskAI">
+      <image class="ck__nav-ai-icon" src="/assets/icons/robot.svg" mode="aspectFit" />
+    </view>
+  </custom-navbar>
+
+  <!-- 进度条 -->
+  <view class="ck__progress">
+    <view class="ck__progress-fill" style="width: {{((stepIndex + 1) / totalSteps) * 100}}%"></view>
+  </view>
+
+  <!-- 主体 -->
+  <view wx:if="{{currentStep}}" class="ck__body">
+    <view wx:if="{{currentStep.media_url}}" class="ck__media">
+      <image class="ck__media-img" src="{{currentStep.media_url}}" mode="aspectFill" />
+    </view>
+    <view wx:if="{{currentStep.title}}" class="ck__step-title">{{currentStep.title}}</view>
+    <view class="ck__step-desc">{{currentStep.description}}</view>
+
+    <!-- 倒计时 -->
+    <view wx:if="{{timerTotalSeconds > 0}}" class="ck__timer">
+      <view class="ck__timer-circle">
+        <view class="ck__timer-time">{{(timerRemaining / 60 | 0) < 10 ? '0' : ''}}{{(timerRemaining / 60) | 0}}:{{(timerRemaining % 60) < 10 ? '0' : ''}}{{timerRemaining % 60}}</view>
+        <view class="ck__timer-label">剩余</view>
+      </view>
+      <view class="ck__timer-actions">
+        <view class="ck__play-btn" bindtap="onPlayPause">
+          <image class="ck__play-icon" src="{{timerRunning ? '/assets/icons/play.svg' : '/assets/icons/play.svg'}}" mode="aspectFit" />
+          <text>{{timerRunning ? '暂停' : '开始计时'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{currentStep.safety_tips}}" class="ck__tip ck__tip--warn">
+      <text class="ck__tip-label">⚠ 注意</text>
+      <text>{{currentStep.safety_tips}}</text>
+    </view>
+
+    <view wx:if="{{currentStep.ai_hint}}" class="ck__tip ck__tip--ai">
+      <text class="ck__tip-label">💡 AI 提示</text>
+      <text>{{currentStep.ai_hint}}</text>
+    </view>
+  </view>
+
+  <view class="ck__spacer"></view>
+
+  <!-- 底部 -->
+  <view class="ck__bottom">
+    <view class="ck__bottom-btn ck__bottom-btn--ghost {{stepIndex <= 0 ? 'ck__bottom-btn--disabled' : ''}}" bindtap="onPrev">
+      <text>上一步</text>
+    </view>
+    <view class="ck__bottom-btn ck__bottom-btn--primary" bindtap="onNext">
+      <text>{{stepIndex >= totalSteps - 1 ? '完成 ✓' : '下一步 →'}}</text>
+    </view>
+  </view>
 </view>
+
+<ai-sheet context="做菜中" />
+

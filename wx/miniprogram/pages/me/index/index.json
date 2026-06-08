@@ -1,7 +1,8 @@
 {
   "usingComponents": {
     "ai-fab": "/components/ai-fab/index",
-    "ai-sheet": "/components/ai-sheet/index"
+    "ai-sheet": "/components/ai-sheet/index",
+    "stat-cell": "/components/stat-cell/index"
   },
   "navigationBarTitleText": "我的"
 }

@@ -73,6 +73,13 @@ service HouseholdService {
       body: "*"
     };
   }
+
+  // ListHouseholdMembers 返回指定家庭的成员列表（含基本信息 + 口味偏好）。
+  rpc ListHouseholdMembers(ListHouseholdMembersRequest) returns (ListHouseholdMembersReply) {
+    option (google.api.http) = {
+      get: "/api/v1/households/{household_id}/members"
+    };
+  }
 }
 
 message CreateHouseholdRequest {
@@ -173,4 +180,27 @@ message UpdateHouseholdPreferencesRequest {
 
 message UpdateHouseholdPreferencesReply {
   HouseholdPreferences preferences = 1;
+}
+
+// ListHouseholdMembers ----------------------------------------------------
+
+message ListHouseholdMembersRequest {
+  int64 household_id = 1;
+}
+
+// HouseholdMemberDetail 比 HouseholdMember 更丰富，包含 join 的用户信息和默认口味标签。
+message HouseholdMemberDetail {
+  int64 id = 1;
+  int64 user_id = 2;
+  string role = 3;                        // owner / admin / member
+  string display_name = 4;
+  string avatar_url = 5;
+  // emoji 用作家庭口味卡里的头像兜底（保存在 user.metadata 里；缺省时按 role/性别推断）。
+  string emoji = 6;
+  // flavor_tags 个人口味；缺省时取 household_preferences.flavor 兜底。
+  repeated string flavor_tags = 7;
+}
+
+message ListHouseholdMembersReply {
+  repeated HouseholdMemberDetail members = 1;
 }

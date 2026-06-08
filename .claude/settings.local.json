@@ -5,7 +5,9 @@
       "Bash(npm run *)",
       "Bash(npx tsc *)",
       "Bash(go build *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\workspace\\\\goproject\\\\my\\\\aicook\" -Force)",
+      "Bash(Select-Object Mode, Name)"
     ]
   }
 }

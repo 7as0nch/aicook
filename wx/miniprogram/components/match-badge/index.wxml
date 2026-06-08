@@ -1,0 +1,5 @@
+<view class="mb mb--{{size}}">
+  <text class="mb__dot">●</text>
+  <text class="mb__pct">{{percent}}%</text>
+  <text class="mb__label">{{label}}</text>
+</view>

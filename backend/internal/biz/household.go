@@ -41,6 +41,63 @@ func (u *HouseholdUsecase) GetPreferences(ctx context.Context, actor Actor) (*Ho
 	return preferencesFromJSON(hh.Preferences), nil
 }
 
+// MemberDetail 包含家庭成员展示需要的信息（用于"我的"页家庭口味区）。
+type MemberDetail struct {
+	ID          int64
+	UserID      int64
+	Role        string
+	DisplayName string
+	Username    string
+	AvatarURL   string
+	Emoji       string
+	FlavorTags  []string
+}
+
+// ListMembers 列出指定家庭的成员。家庭口味缺省时用 household 维度的偏好兜底。
+func (u *HouseholdUsecase) ListMembers(ctx context.Context, actor Actor, householdID int64) ([]*MemberDetail, error) {
+	if householdID <= 0 {
+		householdID = actor.HouseholdID
+	}
+	// 只允许查自己所在的家庭
+	if householdID != actor.HouseholdID {
+		return nil, errors.New("forbidden: household_id mismatch")
+	}
+	rows, err := u.repo.ListMembers(ctx, householdID)
+	if err != nil {
+		return nil, err
+	}
+	// 拉家庭口味做兜底
+	var fallbackFlavor []string
+	if hh, err := u.repo.GetHousehold(ctx, householdID); err == nil && hh != nil {
+		prefs := preferencesFromJSON(hh.Preferences)
+		fallbackFlavor = prefs.Flavor
+	}
+	out := make([]*MemberDetail, 0, len(rows))
+	for _, r := range rows {
+		emoji := defaultEmojiByRole(r.Role, r.MemberID)
+		out = append(out, &MemberDetail{
+			ID:          r.MemberID,
+			UserID:      r.UserID,
+			Role:        r.Role,
+			DisplayName: strings.TrimSpace(r.DisplayName),
+			Username:    strings.TrimSpace(r.Username),
+			Emoji:       emoji,
+			FlavorTags:  append([]string(nil), fallbackFlavor...),
+		})
+	}
+	return out, nil
+}
+
+// defaultEmojiByRole 根据角色/成员 id 给一个默认 emoji（user metadata 里有 avatar_emoji 时取真实的）。
+func defaultEmojiByRole(role string, id int64) string {
+	pool := []string{"🐱", "😺", "👵", "👴", "👶", "👩‍🍳", "👨‍🍳"}
+	if id <= 0 {
+		return "🐱"
+	}
+	idx := int(id%int64(len(pool)) + int64(len(pool))) % len(pool)
+	return pool[idx]
+}
+
 // UpdatePreferences 整体替换 preferences。
 func (u *HouseholdUsecase) UpdatePreferences(ctx context.Context, actor Actor, prefs *HouseholdPreferences) (*HouseholdPreferences, error) {
 	if prefs == nil {

@@ -12,6 +12,19 @@ message Bootstrap {
   OSS oss = 3;
   Inference inference = 4;
   AI ai = 5;
+  Auth auth = 6;
+  Log log = 7;
+}
+
+message Auth {
+  string jwt_secret = 1;                   // JWT HMAC 签名密钥；为空时回退到本地开发默认值
+  google.protobuf.Duration token_ttl = 2;  // token 有效期；<=0 时回退为 24h
+}
+
+message Log {
+  string path = 1;      // 日志目录，为空时默认 ./logs
+  string filename = 2;  // 日志文件名，为空时默认 aicook.log
+  string level = 3;     // 日志级别 debug/info/warn/error，为空时默认 info
 }
 
 message Server {

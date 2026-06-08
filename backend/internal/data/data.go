@@ -34,6 +34,7 @@ var ProviderSet = wire.NewSet(
 	NewKitchenOpsRepo,
 	NewCookingProgressStore,
 	NewCookingHistoryRepo,
+	NewRecipeFavoriteRepo,
 )
 
 func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {

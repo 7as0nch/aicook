@@ -1,0 +1,23 @@
+<view
+  class="cnav {{fixed ? 'cnav--fixed' : ''}} {{border ? 'cnav--border' : ''}}"
+  style="background: {{bg}}; height: {{totalHeight}}px;"
+>
+  <view class="cnav__status" style="height: {{statusBarHeight}}px;"></view>
+  <view class="cnav__bar" style="height: {{navBarHeight}}px;">
+    <view class="cnav__left">
+      <slot name="left"></slot>
+      <view wx:if="{{showBack}}" class="cnav__back" bindtap="onBack">
+        <image class="cnav__back-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+      </view>
+    </view>
+    <view class="cnav__center" style="color: {{color}};">
+      <slot name="title">
+        <text class="cnav__title">{{title}}</text>
+      </slot>
+    </view>
+    <view class="cnav__right">
+      <slot name="right"></slot>
+    </view>
+  </view>
+</view>
+<view wx:if="{{fixed}}" class="cnav__placeholder" style="height: {{totalHeight}}px;"></view>

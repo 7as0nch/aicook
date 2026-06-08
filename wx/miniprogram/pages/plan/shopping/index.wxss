@@ -1,4 +1,230 @@
-.placeholder-page { min-height: 100vh; padding: var(--spacing-md); text-align: center; padding-top: 240rpx; }
-.placeholder-page .emoji { font-size: 120rpx; }
-.placeholder-page .title { font-size: var(--font-lg); margin-top: var(--spacing-md); }
-.placeholder-page .desc { color: var(--color-text-secondary); font-size: var(--font-sm); margin-top: var(--spacing-sm); }
+.shop {
+  min-height: 100vh;
+  background: #FAFAF8;
+  padding-bottom: 200rpx;
+}
+
+.shop__navbar {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 32rpx;
+  padding-top: env(safe-area-inset-top);
+  box-sizing: content-box;
+  background: #FFFFFF;
+  gap: 16rpx;
+  border-bottom: 1rpx solid #F4F2EE;
+}
+
+.shop__nav-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #FFF6EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shop__nav-icon { width: 36rpx; height: 36rpx; }
+
+.shop__nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  margin-right: 72rpx;
+}
+
+.shop__progress-card {
+  margin: 24rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(31, 27, 22, 0.06);
+}
+
+.shop__progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16rpx;
+}
+
+.shop__progress-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1F1B16;
+}
+
+.shop__progress-label {
+  font-size: 24rpx;
+  color: #9B978F;
+}
+
+.shop__progress-pct {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #FF7A00;
+}
+
+.shop__progress-bar {
+  height: 12rpx;
+  background: #F4F5F7;
+  border-radius: 9999rpx;
+  overflow: hidden;
+}
+
+.shop__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFB366 0%, #FF7A00 100%);
+  transition: width 0.3s;
+}
+
+.shop__group {
+  margin: 24rpx;
+}
+
+.shop__group-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  margin-bottom: 12rpx;
+  padding-left: 8rpx;
+}
+
+.shop__group-card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(31, 27, 22, 0.06);
+}
+
+.shop__item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #F4F2EE;
+}
+
+.shop__item:last-child { border-bottom: none; }
+
+.shop__check {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #BFBFBF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shop__check--on {
+  background: #FF7A00;
+  border-color: #FF7A00;
+}
+
+.shop__check-tick {
+  width: 16rpx;
+  height: 8rpx;
+  border-left: 3rpx solid #FFFFFF;
+  border-bottom: 3rpx solid #FFFFFF;
+  transform: rotate(-45deg) translate(2rpx, -2rpx);
+}
+
+.shop__item-body { flex: 1; }
+
+.shop__item-name {
+  display: block;
+  font-size: 30rpx;
+  color: #1F1B16;
+  font-weight: 500;
+}
+
+.shop__item--checked .shop__item-name {
+  text-decoration: line-through;
+  color: #9B978F;
+}
+
+.shop__item-meta {
+  display: block;
+  font-size: 24rpx;
+  color: #9B978F;
+  margin-top: 4rpx;
+}
+
+.shop__item-source {
+  display: block;
+  font-size: 22rpx;
+  color: #BFBFBF;
+  margin-top: 4rpx;
+}
+
+.shop__empty {
+  margin-top: 200rpx;
+  text-align: center;
+  padding: 0 48rpx;
+}
+
+.shop__empty-icon { width: 160rpx; height: 160rpx; opacity: 0.4; }
+
+.shop__empty-text {
+  display: block;
+  margin-top: 24rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1F1B16;
+}
+
+.shop__empty-sub {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #9B978F;
+}
+
+.shop__empty-cta {
+  display: inline-block;
+  margin-top: 40rpx;
+  padding: 20rpx 64rpx;
+  background: #FF7A00;
+  color: #FFFFFF;
+  border-radius: 9999rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 24rpx rgba(255, 122, 0, 0.32);
+}
+
+.shop__loading {
+  margin-top: 200rpx;
+  text-align: center;
+  color: #9B978F;
+  font-size: 26rpx;
+}
+
+.shop__bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1rpx solid #F4F2EE;
+}
+
+.shop__complete-btn {
+  height: 96rpx;
+  background: #2DBE7A;
+  color: #FFFFFF;
+  border-radius: 9999rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shop__spacer { height: 40rpx; }

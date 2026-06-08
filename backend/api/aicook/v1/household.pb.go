@@ -1076,6 +1076,189 @@ func (x *UpdateHouseholdPreferencesReply) GetPreferences() *HouseholdPreferences
 	return nil
 }
 
+type ListHouseholdMembersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HouseholdId   int64                  `protobuf:"varint,1,opt,name=household_id,json=householdId,proto3" json:"household_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListHouseholdMembersRequest) Reset() {
+	*x = ListHouseholdMembersRequest{}
+	mi := &file_api_aicook_v1_household_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListHouseholdMembersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListHouseholdMembersRequest) ProtoMessage() {}
+
+func (x *ListHouseholdMembersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_household_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListHouseholdMembersRequest.ProtoReflect.Descriptor instead.
+func (*ListHouseholdMembersRequest) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_household_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListHouseholdMembersRequest) GetHouseholdId() int64 {
+	if x != nil {
+		return x.HouseholdId
+	}
+	return 0
+}
+
+// HouseholdMemberDetail 比 HouseholdMember 更丰富，包含 join 的用户信息和默认口味标签。
+type HouseholdMemberDetail struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Role        string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"` // owner / admin / member
+	DisplayName string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	AvatarUrl   string                 `protobuf:"bytes,5,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	// emoji 用作家庭口味卡里的头像兜底（保存在 user.metadata 里；缺省时按 role/性别推断）。
+	Emoji string `protobuf:"bytes,6,opt,name=emoji,proto3" json:"emoji,omitempty"`
+	// flavor_tags 个人口味；缺省时取 household_preferences.flavor 兜底。
+	FlavorTags    []string `protobuf:"bytes,7,rep,name=flavor_tags,json=flavorTags,proto3" json:"flavor_tags,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HouseholdMemberDetail) Reset() {
+	*x = HouseholdMemberDetail{}
+	mi := &file_api_aicook_v1_household_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HouseholdMemberDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HouseholdMemberDetail) ProtoMessage() {}
+
+func (x *HouseholdMemberDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_household_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HouseholdMemberDetail.ProtoReflect.Descriptor instead.
+func (*HouseholdMemberDetail) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_household_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *HouseholdMemberDetail) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *HouseholdMemberDetail) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *HouseholdMemberDetail) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *HouseholdMemberDetail) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *HouseholdMemberDetail) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
+}
+
+func (x *HouseholdMemberDetail) GetEmoji() string {
+	if x != nil {
+		return x.Emoji
+	}
+	return ""
+}
+
+func (x *HouseholdMemberDetail) GetFlavorTags() []string {
+	if x != nil {
+		return x.FlavorTags
+	}
+	return nil
+}
+
+type ListHouseholdMembersReply struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Members       []*HouseholdMemberDetail `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListHouseholdMembersReply) Reset() {
+	*x = ListHouseholdMembersReply{}
+	mi := &file_api_aicook_v1_household_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListHouseholdMembersReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListHouseholdMembersReply) ProtoMessage() {}
+
+func (x *ListHouseholdMembersReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_household_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListHouseholdMembersReply.ProtoReflect.Descriptor instead.
+func (*ListHouseholdMembersReply) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_household_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ListHouseholdMembersReply) GetMembers() []*HouseholdMemberDetail {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
 var File_api_aicook_v1_household_proto protoreflect.FileDescriptor
 
 const file_api_aicook_v1_household_proto_rawDesc = "" +
@@ -1141,8 +1324,21 @@ const file_api_aicook_v1_household_proto_rawDesc = "" +
 	"!UpdateHouseholdPreferencesRequest\x12A\n" +
 	"\vpreferences\x18\x01 \x01(\v2\x1f.aicook.v1.HouseholdPreferencesR\vpreferences\"d\n" +
 	"\x1fUpdateHouseholdPreferencesReply\x12A\n" +
-	"\vpreferences\x18\x01 \x01(\v2\x1f.aicook.v1.HouseholdPreferencesR\vpreferences2\xf8\n" +
+	"\vpreferences\x18\x01 \x01(\v2\x1f.aicook.v1.HouseholdPreferencesR\vpreferences\"@\n" +
+	"\x1bListHouseholdMembersRequest\x12!\n" +
+	"\fhousehold_id\x18\x01 \x01(\x03R\vhouseholdId\"\xcd\x01\n" +
+	"\x15HouseholdMemberDetail\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x12\n" +
+	"\x04role\x18\x03 \x01(\tR\x04role\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x1d\n" +
 	"\n" +
+	"avatar_url\x18\x05 \x01(\tR\tavatarUrl\x12\x14\n" +
+	"\x05emoji\x18\x06 \x01(\tR\x05emoji\x12\x1f\n" +
+	"\vflavor_tags\x18\a \x03(\tR\n" +
+	"flavorTags\"W\n" +
+	"\x19ListHouseholdMembersReply\x12:\n" +
+	"\amembers\x18\x01 \x03(\v2 .aicook.v1.HouseholdMemberDetailR\amembers2\x92\f\n" +
 	"\x10HouseholdService\x12t\n" +
 	"\x0fCreateHousehold\x12!.aicook.v1.CreateHouseholdRequest\x1a\x1f.aicook.v1.CreateHouseholdReply\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/v1/households\x12\x7f\n" +
 	"\x0fCreateShareCode\x12!.aicook.v1.CreateShareCodeRequest\x1a\x1f.aicook.v1.CreateShareCodeReply\"(\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/api/v1/households/share-code\x12\x96\x01\n" +
@@ -1153,7 +1349,8 @@ const file_api_aicook_v1_household_proto_rawDesc = "" +
 	"\x10UpdateKitchenTag\x12\".aicook.v1.UpdateKitchenTagRequest\x1a .aicook.v1.UpdateKitchenTagReply\"$\x82\xd3\xe4\x93\x02\x1e:\x01*2\x19/api/v1/kitchen-tags/{id}\x12{\n" +
 	"\x10DeleteKitchenTag\x12\".aicook.v1.DeleteKitchenTagRequest\x1a .aicook.v1.DeleteKitchenTagReply\"!\x82\xd3\xe4\x93\x02\x1b*\x19/api/v1/kitchen-tags/{id}\x12\x9d\x01\n" +
 	"\x17GetHouseholdPreferences\x12).aicook.v1.GetHouseholdPreferencesRequest\x1a'.aicook.v1.GetHouseholdPreferencesReply\".\x82\xd3\xe4\x93\x02(\x12&/api/v1/households/current/preferences\x12\xa9\x01\n" +
-	"\x1aUpdateHouseholdPreferences\x12,.aicook.v1.UpdateHouseholdPreferencesRequest\x1a*.aicook.v1.UpdateHouseholdPreferencesReply\"1\x82\xd3\xe4\x93\x02+:\x01*\x1a&/api/v1/households/current/preferencesB7Z5github.com/chengjiang/aicook/backend/api/aicook/v1;v1b\x06proto3"
+	"\x1aUpdateHouseholdPreferences\x12,.aicook.v1.UpdateHouseholdPreferencesRequest\x1a*.aicook.v1.UpdateHouseholdPreferencesReply\"1\x82\xd3\xe4\x93\x02+:\x01*\x1a&/api/v1/households/current/preferences\x12\x97\x01\n" +
+	"\x14ListHouseholdMembers\x12&.aicook.v1.ListHouseholdMembersRequest\x1a$.aicook.v1.ListHouseholdMembersReply\"1\x82\xd3\xe4\x93\x02+\x12)/api/v1/households/{household_id}/membersB7Z5github.com/chengjiang/aicook/backend/api/aicook/v1;v1b\x06proto3"
 
 var (
 	file_api_aicook_v1_household_proto_rawDescOnce sync.Once
@@ -1167,7 +1364,7 @@ func file_api_aicook_v1_household_proto_rawDescGZIP() []byte {
 	return file_api_aicook_v1_household_proto_rawDescData
 }
 
-var file_api_aicook_v1_household_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_api_aicook_v1_household_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_api_aicook_v1_household_proto_goTypes = []any{
 	(*CreateHouseholdRequest)(nil),            // 0: aicook.v1.CreateHouseholdRequest
 	(*CreateHouseholdReply)(nil),              // 1: aicook.v1.CreateHouseholdReply
@@ -1191,49 +1388,55 @@ var file_api_aicook_v1_household_proto_goTypes = []any{
 	(*GetHouseholdPreferencesReply)(nil),      // 19: aicook.v1.GetHouseholdPreferencesReply
 	(*UpdateHouseholdPreferencesRequest)(nil), // 20: aicook.v1.UpdateHouseholdPreferencesRequest
 	(*UpdateHouseholdPreferencesReply)(nil),   // 21: aicook.v1.UpdateHouseholdPreferencesReply
-	(*HouseholdSummary)(nil),                  // 22: aicook.v1.HouseholdSummary
-	(*Recipe)(nil),                            // 23: aicook.v1.Recipe
-	(*KitchenTag)(nil),                        // 24: aicook.v1.KitchenTag
+	(*ListHouseholdMembersRequest)(nil),       // 22: aicook.v1.ListHouseholdMembersRequest
+	(*HouseholdMemberDetail)(nil),             // 23: aicook.v1.HouseholdMemberDetail
+	(*ListHouseholdMembersReply)(nil),         // 24: aicook.v1.ListHouseholdMembersReply
+	(*HouseholdSummary)(nil),                  // 25: aicook.v1.HouseholdSummary
+	(*Recipe)(nil),                            // 26: aicook.v1.Recipe
+	(*KitchenTag)(nil),                        // 27: aicook.v1.KitchenTag
 }
 var file_api_aicook_v1_household_proto_depIdxs = []int32{
-	22, // 0: aicook.v1.CreateHouseholdReply.household:type_name -> aicook.v1.HouseholdSummary
-	22, // 1: aicook.v1.CreateShareCodeReply.household:type_name -> aicook.v1.HouseholdSummary
-	23, // 2: aicook.v1.SharedRecipePreview.recipe:type_name -> aicook.v1.Recipe
-	22, // 3: aicook.v1.GetKitchenByShareCodeReply.household:type_name -> aicook.v1.HouseholdSummary
+	25, // 0: aicook.v1.CreateHouseholdReply.household:type_name -> aicook.v1.HouseholdSummary
+	25, // 1: aicook.v1.CreateShareCodeReply.household:type_name -> aicook.v1.HouseholdSummary
+	26, // 2: aicook.v1.SharedRecipePreview.recipe:type_name -> aicook.v1.Recipe
+	25, // 3: aicook.v1.GetKitchenByShareCodeReply.household:type_name -> aicook.v1.HouseholdSummary
 	5,  // 4: aicook.v1.GetKitchenByShareCodeReply.recipes:type_name -> aicook.v1.SharedRecipePreview
-	23, // 5: aicook.v1.ImportSharedRecipesReply.recipes:type_name -> aicook.v1.Recipe
-	24, // 6: aicook.v1.ImportSharedRecipesReply.kitchen_tag:type_name -> aicook.v1.KitchenTag
-	24, // 7: aicook.v1.ListKitchenTagsReply.tags:type_name -> aicook.v1.KitchenTag
-	24, // 8: aicook.v1.CreateKitchenTagReply.tag:type_name -> aicook.v1.KitchenTag
-	24, // 9: aicook.v1.UpdateKitchenTagReply.tag:type_name -> aicook.v1.KitchenTag
+	26, // 5: aicook.v1.ImportSharedRecipesReply.recipes:type_name -> aicook.v1.Recipe
+	27, // 6: aicook.v1.ImportSharedRecipesReply.kitchen_tag:type_name -> aicook.v1.KitchenTag
+	27, // 7: aicook.v1.ListKitchenTagsReply.tags:type_name -> aicook.v1.KitchenTag
+	27, // 8: aicook.v1.CreateKitchenTagReply.tag:type_name -> aicook.v1.KitchenTag
+	27, // 9: aicook.v1.UpdateKitchenTagReply.tag:type_name -> aicook.v1.KitchenTag
 	17, // 10: aicook.v1.GetHouseholdPreferencesReply.preferences:type_name -> aicook.v1.HouseholdPreferences
 	17, // 11: aicook.v1.UpdateHouseholdPreferencesRequest.preferences:type_name -> aicook.v1.HouseholdPreferences
 	17, // 12: aicook.v1.UpdateHouseholdPreferencesReply.preferences:type_name -> aicook.v1.HouseholdPreferences
-	0,  // 13: aicook.v1.HouseholdService.CreateHousehold:input_type -> aicook.v1.CreateHouseholdRequest
-	2,  // 14: aicook.v1.HouseholdService.CreateShareCode:input_type -> aicook.v1.CreateShareCodeRequest
-	4,  // 15: aicook.v1.HouseholdService.GetKitchenByShareCode:input_type -> aicook.v1.GetKitchenByShareCodeRequest
-	7,  // 16: aicook.v1.HouseholdService.ImportSharedRecipes:input_type -> aicook.v1.ImportSharedRecipesRequest
-	9,  // 17: aicook.v1.HouseholdService.ListKitchenTags:input_type -> aicook.v1.ListKitchenTagsRequest
-	11, // 18: aicook.v1.HouseholdService.CreateKitchenTag:input_type -> aicook.v1.CreateKitchenTagRequest
-	13, // 19: aicook.v1.HouseholdService.UpdateKitchenTag:input_type -> aicook.v1.UpdateKitchenTagRequest
-	15, // 20: aicook.v1.HouseholdService.DeleteKitchenTag:input_type -> aicook.v1.DeleteKitchenTagRequest
-	18, // 21: aicook.v1.HouseholdService.GetHouseholdPreferences:input_type -> aicook.v1.GetHouseholdPreferencesRequest
-	20, // 22: aicook.v1.HouseholdService.UpdateHouseholdPreferences:input_type -> aicook.v1.UpdateHouseholdPreferencesRequest
-	1,  // 23: aicook.v1.HouseholdService.CreateHousehold:output_type -> aicook.v1.CreateHouseholdReply
-	3,  // 24: aicook.v1.HouseholdService.CreateShareCode:output_type -> aicook.v1.CreateShareCodeReply
-	6,  // 25: aicook.v1.HouseholdService.GetKitchenByShareCode:output_type -> aicook.v1.GetKitchenByShareCodeReply
-	8,  // 26: aicook.v1.HouseholdService.ImportSharedRecipes:output_type -> aicook.v1.ImportSharedRecipesReply
-	10, // 27: aicook.v1.HouseholdService.ListKitchenTags:output_type -> aicook.v1.ListKitchenTagsReply
-	12, // 28: aicook.v1.HouseholdService.CreateKitchenTag:output_type -> aicook.v1.CreateKitchenTagReply
-	14, // 29: aicook.v1.HouseholdService.UpdateKitchenTag:output_type -> aicook.v1.UpdateKitchenTagReply
-	16, // 30: aicook.v1.HouseholdService.DeleteKitchenTag:output_type -> aicook.v1.DeleteKitchenTagReply
-	19, // 31: aicook.v1.HouseholdService.GetHouseholdPreferences:output_type -> aicook.v1.GetHouseholdPreferencesReply
-	21, // 32: aicook.v1.HouseholdService.UpdateHouseholdPreferences:output_type -> aicook.v1.UpdateHouseholdPreferencesReply
-	23, // [23:33] is the sub-list for method output_type
-	13, // [13:23] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	23, // 13: aicook.v1.ListHouseholdMembersReply.members:type_name -> aicook.v1.HouseholdMemberDetail
+	0,  // 14: aicook.v1.HouseholdService.CreateHousehold:input_type -> aicook.v1.CreateHouseholdRequest
+	2,  // 15: aicook.v1.HouseholdService.CreateShareCode:input_type -> aicook.v1.CreateShareCodeRequest
+	4,  // 16: aicook.v1.HouseholdService.GetKitchenByShareCode:input_type -> aicook.v1.GetKitchenByShareCodeRequest
+	7,  // 17: aicook.v1.HouseholdService.ImportSharedRecipes:input_type -> aicook.v1.ImportSharedRecipesRequest
+	9,  // 18: aicook.v1.HouseholdService.ListKitchenTags:input_type -> aicook.v1.ListKitchenTagsRequest
+	11, // 19: aicook.v1.HouseholdService.CreateKitchenTag:input_type -> aicook.v1.CreateKitchenTagRequest
+	13, // 20: aicook.v1.HouseholdService.UpdateKitchenTag:input_type -> aicook.v1.UpdateKitchenTagRequest
+	15, // 21: aicook.v1.HouseholdService.DeleteKitchenTag:input_type -> aicook.v1.DeleteKitchenTagRequest
+	18, // 22: aicook.v1.HouseholdService.GetHouseholdPreferences:input_type -> aicook.v1.GetHouseholdPreferencesRequest
+	20, // 23: aicook.v1.HouseholdService.UpdateHouseholdPreferences:input_type -> aicook.v1.UpdateHouseholdPreferencesRequest
+	22, // 24: aicook.v1.HouseholdService.ListHouseholdMembers:input_type -> aicook.v1.ListHouseholdMembersRequest
+	1,  // 25: aicook.v1.HouseholdService.CreateHousehold:output_type -> aicook.v1.CreateHouseholdReply
+	3,  // 26: aicook.v1.HouseholdService.CreateShareCode:output_type -> aicook.v1.CreateShareCodeReply
+	6,  // 27: aicook.v1.HouseholdService.GetKitchenByShareCode:output_type -> aicook.v1.GetKitchenByShareCodeReply
+	8,  // 28: aicook.v1.HouseholdService.ImportSharedRecipes:output_type -> aicook.v1.ImportSharedRecipesReply
+	10, // 29: aicook.v1.HouseholdService.ListKitchenTags:output_type -> aicook.v1.ListKitchenTagsReply
+	12, // 30: aicook.v1.HouseholdService.CreateKitchenTag:output_type -> aicook.v1.CreateKitchenTagReply
+	14, // 31: aicook.v1.HouseholdService.UpdateKitchenTag:output_type -> aicook.v1.UpdateKitchenTagReply
+	16, // 32: aicook.v1.HouseholdService.DeleteKitchenTag:output_type -> aicook.v1.DeleteKitchenTagReply
+	19, // 33: aicook.v1.HouseholdService.GetHouseholdPreferences:output_type -> aicook.v1.GetHouseholdPreferencesReply
+	21, // 34: aicook.v1.HouseholdService.UpdateHouseholdPreferences:output_type -> aicook.v1.UpdateHouseholdPreferencesReply
+	24, // 35: aicook.v1.HouseholdService.ListHouseholdMembers:output_type -> aicook.v1.ListHouseholdMembersReply
+	25, // [25:36] is the sub-list for method output_type
+	14, // [14:25] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_api_aicook_v1_household_proto_init() }
@@ -1250,7 +1453,7 @@ func file_api_aicook_v1_household_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_aicook_v1_household_proto_rawDesc), len(file_api_aicook_v1_household_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

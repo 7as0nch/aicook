@@ -1,87 +1,136 @@
-<view class="plan-page">
-  <!-- 本周日历 -->
-  <view class="card week-card">
-    <view class="week-head">
-      <text class="week-title">本周计划</text>
-      <text class="week-action">···</text>
+<view class="plan">
+  <view class="plan__head">
+    <view class="plan__head-titles">
+      <text class="plan__title">用餐计划</text>
+      <text class="plan__subtitle">一日三餐 · 一键生成采购清单</text>
     </view>
-    <text class="week-range">{{weekRange}}</text>
-    <view class="day-row">
+    <view class="plan__cart-btn" bindtap="onShoppingTap">
+      <image class="plan__cart-icon" src="/assets/icons/cart.svg" mode="aspectFit" />
+    </view>
+  </view>
+
+  <view class="plan__week-card">
+    <view class="plan__week-head">
+      <text class="plan__week-title">本周</text>
+      <text class="plan__week-range">{{weekRangeLabel}}</text>
+    </view>
+    <view class="plan__week-days">
       <view
-        class="day-cell {{item.isToday ? 'active' : ''}}"
-        wx:for="{{days}}"
+        wx:for="{{weekDays}}"
         wx:key="date"
+        class="plan__day {{item.date === selectedDate ? 'plan__day--active' : ''}}"
         data-date="{{item.date}}"
         bindtap="onDayTap"
       >
-        <text class="day-week">{{item.weekday}}</text>
-        <view class="day-num-wrap">
-          <text class="day-num">{{item.date}}</text>
-        </view>
+        <view class="plan__day-name">{{item.label}}</view>
+        <view class="plan__day-num">{{item.day}}</view>
       </view>
     </view>
   </view>
 
-  <!-- 今日计划 -->
-  <view class="today-section">
-    <view class="today-head">
-      <text class="today-title">{{todayLabel}}</text>
-      <text class="today-summary">{{todaySummary}}</text>
-    </view>
-
-    <view class="meal-block" wx:for="{{meals}}" wx:for-item="meal" wx:key="id">
-      <view class="meal-head">
-        <view class="icon-slot size-sm">
-          <text class="icon-slot__emoji">{{meal.iconFallback}}</text>
-        </view>
-        <text class="meal-label">{{meal.label}}</text>
-        <text class="meal-action">{{meal.recipes.length}} 道菜 ›</text>
+  <view class="plan__meal-card">
+    <view class="plan__meal-head">
+      <view class="plan__meal-emoji">🥐</view>
+      <view class="plan__meal-titles">
+        <text class="plan__meal-name">早餐</text>
+        <text class="plan__meal-time">07:30 · {{breakfast.length}} 道</text>
       </view>
-      <view class="meal-recipes">
-        <view
-          class="meal-recipe-row"
-          wx:for="{{meal.recipes}}"
-          wx:for-item="r"
-          wx:key="id"
-          data-id="{{r.id}}"
-          bindtap="onRecipeTap"
-        >
-          <view class="r-cover img-placeholder">
-            <image wx:if="{{r.cover}}" class="r-cover-img" src="{{r.cover}}" mode="aspectFill"></image>
-            <text wx:else class="cover-emoji small">{{r.coverFallback}}</text>
-          </view>
-          <view class="r-info">
-            <text class="r-title">{{r.title}}</text>
-            <view class="r-meta">
-              <text>{{r.minutes}}分钟</text>
-              <text wx:if="{{r.tag}}" class="r-tag">{{r.tag}}</text>
-            </view>
-          </view>
-          <text class="r-arrow">›</text>
-        </view>
+      <view class="plan__meal-add" data-type="breakfast" bindtap="onMealAdd">
+        <image class="plan__meal-add-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
       </view>
     </view>
+    <view wx:if="{{breakfast.length}}" class="plan__meal-divider"></view>
+    <block wx:for="{{breakfast}}" wx:key="id" wx:for-item="dish">
+      <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
+      <view class="plan__dish-row" data-id="{{dish.id}}" bindtap="onDishTap">
+        <view class="plan__dish-img">
+          <image wx:if="{{dish.cover_image_url}}" src="{{dish.cover_image_url}}" mode="aspectFill" class="plan__dish-img-i" />
+        </view>
+        <view class="plan__dish-body">
+          <text class="plan__dish-name">{{dish.title || '未命名'}}</text>
+          <text class="plan__dish-meta">{{dish.category || '快手'}} · {{dish.total_minutes || 15}} 分钟</text>
+        </view>
+        <view class="plan__dish-cal">{{dish.calories || 210}} 千卡</view>
+      </view>
+    </block>
+    <view wx:if="{{!breakfast.length}}" class="plan__empty-tip">暂无早餐，点击右上 + 添加</view>
   </view>
 
-  <!-- AI 生成 CTA -->
-  <view class="ai-cta cta-btn" bindtap="onAIGenerateTap">
-    <view class="icon-slot size-sm">
-      <text class="icon-slot__emoji">✨</text>
+  <view class="plan__meal-card">
+    <view class="plan__meal-head">
+      <view class="plan__meal-emoji">🍱</view>
+      <view class="plan__meal-titles">
+        <text class="plan__meal-name">午餐</text>
+        <text class="plan__meal-time">12:00 · {{lunch.length}} 道</text>
+      </view>
+      <view class="plan__meal-add" data-type="lunch" bindtap="onMealAdd">
+        <image class="plan__meal-add-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
+      </view>
     </view>
-    <text>AI 生成本周计划</text>
+    <view wx:if="{{lunch.length}}" class="plan__meal-divider"></view>
+    <block wx:for="{{lunch}}" wx:key="id" wx:for-item="dish">
+      <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
+      <view class="plan__dish-row" data-id="{{dish.id}}" bindtap="onDishTap">
+        <view class="plan__dish-img">
+          <image wx:if="{{dish.cover_image_url}}" src="{{dish.cover_image_url}}" mode="aspectFill" class="plan__dish-img-i" />
+        </view>
+        <view class="plan__dish-body">
+          <text class="plan__dish-name">{{dish.title || '未命名'}}</text>
+          <text class="plan__dish-meta">{{dish.category || '家常菜'}} · {{dish.total_minutes || 30}} 分钟</text>
+        </view>
+        <view class="plan__dish-cal">{{dish.calories || 420}} 千卡</view>
+      </view>
+    </block>
+    <view wx:if="{{!lunch.length}}" class="plan__empty-tip">暂无午餐，点击右上 + 添加</view>
   </view>
 
-  <!-- 购物清单入口 -->
-  <view class="shopping-link" bindtap="onShoppingTap">
-    <view class="icon-slot size-sm">
-      <text class="icon-slot__emoji">🛒</text>
+  <view class="plan__meal-card">
+    <view class="plan__meal-head">
+      <view class="plan__meal-emoji">🍲</view>
+      <view class="plan__meal-titles">
+        <text class="plan__meal-name">晚餐</text>
+        <text class="plan__meal-time">18:30 · {{dinner.length}} 道</text>
+      </view>
+      <view class="plan__meal-add" data-type="dinner" bindtap="onMealAdd">
+        <image class="plan__meal-add-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
+      </view>
     </view>
-    <text class="shopping-text">查看购物清单</text>
-    <text class="shopping-arrow">›</text>
+    <view wx:if="{{dinner.length}}" class="plan__meal-divider"></view>
+    <block wx:for="{{dinner}}" wx:key="id" wx:for-item="dish">
+      <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
+      <view class="plan__dish-row" data-id="{{dish.id}}" bindtap="onDishTap">
+        <view class="plan__dish-img">
+          <image wx:if="{{dish.cover_image_url}}" src="{{dish.cover_image_url}}" mode="aspectFill" class="plan__dish-img-i" />
+        </view>
+        <view class="plan__dish-body">
+          <text class="plan__dish-name">{{dish.title || '未命名'}}</text>
+          <text class="plan__dish-meta">{{dish.category || '快手菜'}} · {{dish.total_minutes || 15}} 分钟</text>
+        </view>
+        <view class="plan__dish-cal">{{dish.calories || 180}} 千卡</view>
+      </view>
+    </block>
+    <view wx:if="{{!dinner.length}}" class="plan__empty-tip">暂无晚餐，点击右上 + 添加</view>
   </view>
 
-  <view class="bottom-spacer"></view>
+  <view class="plan__shopping-card" bindtap="onShoppingTap">
+    <view class="plan__shopping-head">
+      <image class="plan__shopping-cart" src="/assets/icons/cart.svg" mode="aspectFit" />
+      <text class="plan__shopping-title">本周采购清单</text>
+      <text class="plan__shopping-count">已采购 {{shoppingCheckedCount}} / {{shoppingTotal}}</text>
+      <image class="plan__shopping-arrow" src="/assets/icons/right.png" mode="aspectFit" />
+    </view>
+    <view class="plan__shopping-progress">
+      <view class="plan__shopping-progress-fill" style="width: {{shoppingProgressPct}}%"></view>
+    </view>
+    <text class="plan__shopping-preview">{{shoppingPreviewText || '暂无采购项'}}</text>
+  </view>
+
+  <view class="plan__ai-btn" bindtap="onGeneratePlan">
+    <text>✨ AI 一键生成本周计划</text>
+  </view>
+
+  <view class="plan__spacer"></view>
 </view>
 
 <ai-fab />
-<ai-sheet context="周计划" />
+<ai-sheet context="计划" />

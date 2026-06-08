@@ -1,0 +1,11 @@
+{
+  "usingComponents": {
+    "ingredient-pill": "/components/ingredient-pill/index",
+    "sort-tabs": "/components/sort-tabs/index",
+    "recipe-card": "/components/recipe-card/index",
+    "ai-fab": "/components/ai-fab/index",
+    "ai-sheet": "/components/ai-sheet/index"
+  },
+  "navigationBarTitleText": "今日推荐",
+  "enablePullDownRefresh": false
+}

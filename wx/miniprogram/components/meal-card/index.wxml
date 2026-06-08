@@ -1,0 +1,40 @@
+<view class="mc">
+  <view class="mc__head">
+    <view class="mc__head-left">
+      <view class="mc__icon">{{typeEmojiMap[type] || '🍴'}}</view>
+      <view class="mc__title-block">
+        <view class="mc__title">{{title || typeTitleMap[type] || '一餐'}}</view>
+        <view class="mc__sub">
+          <text wx:if="{{time}}">{{time}}</text>
+          <text wx:if="{{time && dishes.length}}"> · </text>
+          <text wx:if="{{dishes.length}}">{{dishes.length}}道</text>
+        </view>
+      </view>
+    </view>
+    <view class="mc__add" bindtap="onAdd">+</view>
+  </view>
+  <view class="mc__dishes">
+    <view
+      wx:for="{{dishes}}"
+      wx:key="index"
+      class="mc__dish"
+      bindtap="onDishTap"
+      data-index="{{index}}"
+    >
+      <view class="mc__dish-cover">
+        <image wx:if="{{item.cover_image_url}}" class="mc__dish-img" src="{{item.cover_image_url}}" mode="aspectFill" />
+        <view wx:else class="mc__dish-ph">🍳</view>
+      </view>
+      <view class="mc__dish-body">
+        <view class="mc__dish-title">{{item.title || '未命名菜品'}}</view>
+        <view class="mc__dish-meta">
+          <text wx:if="{{item.category}}">{{item.category}}</text>
+          <text wx:if="{{item.category && item.total_minutes}}"> · </text>
+          <text wx:if="{{item.total_minutes}}">{{item.total_minutes}}分钟</text>
+        </view>
+      </view>
+      <view wx:if="{{item.calories}}" class="mc__dish-cal">{{item.calories}} 千卡</view>
+      <view wx:else class="mc__dish-cal mc__dish-cal--ph">约 — 千卡</view>
+    </view>
+  </view>
+</view>

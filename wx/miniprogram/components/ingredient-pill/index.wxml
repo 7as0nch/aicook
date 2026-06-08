@@ -1,0 +1,11 @@
+<view
+  class="pill {{selected ? 'pill--selected' : ''}} {{addVariant ? 'pill--add' : ''}} pill--{{size}}"
+  bindtap="onTap"
+>
+  <text wx:if="{{addVariant}}" class="pill__text">+ 添加</text>
+  <block wx:else>
+    <text wx:if="{{emoji}}" class="pill__emoji">{{emoji}}</text>
+    <text class="pill__text">{{name}}</text>
+    <view wx:if="{{closable}}" class="pill__close" catchtap="onCloseTap">×</view>
+  </block>
+</view>

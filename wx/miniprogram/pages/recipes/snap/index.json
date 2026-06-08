@@ -1,10 +1,9 @@
 {
   "usingComponents": {
-    "ai-fab": "/components/ai-fab/index",
-    "ai-sheet": "/components/ai-sheet/index"
+    "ingredient-pill": "/components/ingredient-pill/index",
+    "mascot-bubble": "/components/mascot-bubble/index"
   },
-  "navigationBarTitleText": "拍照识别",
-  "navigationBarBackgroundColor": "#1A1A1A",
-  "navigationBarTextStyle": "white",
+  "navigationBarTitleText": "食材识别",
+  "navigationStyle": "custom",
   "backgroundColor": "#1A1A1A"
 }

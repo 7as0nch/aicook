@@ -1,0 +1,26 @@
+.mb {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-success);
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.mb--sm { font-size: 22rpx; }
+
+.mb__dot {
+  margin-right: 6rpx;
+  font-size: 18rpx;
+}
+
+.mb__pct {
+  font-weight: 600;
+  margin-right: 4rpx;
+}
+
+.mb__label {
+  color: var(--color-text-secondary);
+  font-size: 22rpx;
+}
+
+.mb--sm .mb__label { font-size: 20rpx; }

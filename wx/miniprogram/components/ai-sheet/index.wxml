@@ -1,84 +1,196 @@
-<view class="ai-sheet-mask {{visible ? 'visible' : ''}}" bindtap="onMaskTap" catchtouchmove="onSheetTap">
-  <view class="ai-sheet {{fullscreen ? 'fullscreen' : ''}}" catchtap="onSheetTap">
-    <!-- 头部 -->
-    <view class="sheet-header">
-      <view class="sheet-title">
-        <view class="title-icon">🐱</view>
-        <text class="title-text">厨艺助理 AI</text>
-      </view>
-      <view class="header-actions">
-        <view class="header-btn" bindtap="onToggleFullscreen">{{fullscreen ? '⤓' : '⤢'}}</view>
-        <view class="header-btn" bindtap="onClose">×</view>
-      </view>
-    </view>
+<view class="ais-mask {{visible ? 'ais-mask--visible' : ''}}" bindtap="onMaskTap">
+  <view
+    class="ais {{expanded ? 'ais--expanded' : ''}} {{dragging ? 'ais--dragging' : ''}}"
+    style="{{sheetStyle}}"
+    catchtap="onSheetTap"
+  >
+    <!-- 拖拽区：包含 handle + head 整个顶部，方便用户从任何位置拖动 -->
+    <view
+      class="ais__top"
+      bindtouchstart="onDragStart"
+      catchtouchmove="onDragMove"
+      bindtouchend="onDragEnd"
+      bindtouchcancel="onDragEnd"
+    >
+      <view class="ais__handle"></view>
 
-    <!-- 上下文标签 -->
-    <view wx:if="{{context}}" class="context-tag">
-      <text class="context-label">当前上下文：</text>
-      <text class="context-value">{{context}}</text>
-    </view>
-
-    <!-- 内容区 -->
-    <scroll-view class="sheet-body" scroll-y>
-      <!-- 问候卡片 -->
-      <view class="greeting">
-        <view class="greeting-bubble">
-          <text class="greeting-emoji">👋</text>
-          <text class="greeting-text">你好！我是你的厨艺助理</text>
+      <view class="ais__head">
+        <view class="ais__title">
+          <mascot-bubble state="smile" size="sm" />
+          <view class="ais__title-text">
+            <text class="ais__title-main">厨艺助理 AI</text>
+            <view class="ais__title-sub">
+              <text class="ais__dot">●</text>
+              <text>在线 · 随时为你出主意</text>
+            </view>
+          </view>
         </view>
-        <text class="greeting-desc">你可以问我 / 我帮你做：</text>
+        <view class="ais__head-actions">
+          <view class="ais__icon-btn {{historyVisible ? 'ais__icon-btn--active' : ''}}" catchtap="onOpenHistory">
+            <image class="ais__icon-btn-img" src="/assets/icons/clock.png" mode="aspectFit" />
+          </view>
+          <view class="ais__icon-btn" catchtap="onToggleExpand">{{expanded ? '▾' : '⤢'}}</view>
+          <view class="ais__icon-btn" catchtap="onClose">×</view>
+        </view>
       </view>
+    </view>
 
-      <!-- 4 快捷问题 -->
-      <view class="quick-grid">
+    <!-- 历史浮窗（mini popover，相对 ais 容器） -->
+    <view wx:if="{{historyVisible}}" class="ais__history-pop">
+      <view class="ais__history-arrow"></view>
+      <view class="ais__history-head">
+        <text class="ais__history-title">最近会话</text>
+        <text class="ais__history-new" catchtap="onNewFromHistory">+ 新建</text>
+      </view>
+      <view wx:if="{{historyLoading && !historyList.length}}" class="ais__history-empty">加载中…</view>
+      <view wx:elif="{{!historyList.length}}" class="ais__history-empty">暂无历史</view>
+      <scroll-view scroll-y class="ais__history-list">
         <view
-          wx:for="{{quickQuestions}}"
+          wx:for="{{historyList}}"
           wx:key="id"
-          class="quick-card"
+          class="ais__history-row"
           data-id="{{item.id}}"
-          bindtap="onQuickTap"
+          catchtap="onPickHistory"
         >
-          <text class="quick-icon">{{item.icon}}</text>
-          <text class="quick-text">{{item.text}}</text>
+          <view class="ais__history-row-body">
+            <text class="ais__history-row-title">{{item.title}}</text>
+            <text class="ais__history-row-meta">{{item.sceneLabel}}</text>
+          </view>
+          <text class="ais__history-row-time">{{item.timeLabel}}</text>
+        </view>
+      </scroll-view>
+    </view>
+    <view wx:if="{{historyVisible}}" class="ais__history-mask" catchtap="onCloseHistory"></view>
+
+    <scroll-view class="ais__body" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}" scroll-into-view="{{scrollToView}}">
+      <!-- 上次会话恢复卡（24h 内有未关闭的会话时显示） -->
+      <view wx:if="{{resumeCard && !messages.length}}" class="ais__resume">
+        <view class="ais__resume-info">
+          <view class="ais__resume-label">检测到你上次还有会话</view>
+          <view class="ais__resume-title">{{resumeCard.title}}</view>
+          <view class="ais__resume-time">{{resumeCard.timeLabel}}</view>
+        </view>
+        <view class="ais__resume-actions">
+          <view class="ais__resume-dismiss" catchtap="onDismissResume">新开</view>
+          <view class="ais__resume-cta" catchtap="onResumeLast">继续 ›</view>
         </view>
       </view>
 
-      <!-- 推荐问题 -->
-      <view class="suggest-block">
-        <text class="suggest-title">你也可以试试问我：</text>
-        <view class="suggest-item">西红柿炒蛋怎么做更好吃？</view>
-        <view class="suggest-item">鸡胸肉怎样腌制？</view>
-        <view class="suggest-item">如何改造低脂晚餐？</view>
-      </view>
+      <!-- 空态（无消息）：mascot greeting + 2x2 quick + 3 suggestions -->
+      <block wx:if="{{!messages.length}}">
+        <view class="ais__greet">
+          <mascot-bubble
+            state="default"
+            size="md"
+            text="你好！我是你的厨艺助理 👋 不知道吃什么？拍张冰箱照，我来帮你出主意～"
+          />
+        </view>
+
+        <view class="ais__quick">
+          <view
+            wx:for="{{quickActions}}"
+            wx:key="id"
+            class="ais__quick-card"
+            data-id="{{item.id}}"
+            bindtap="onQuickTap"
+          >
+            <view class="ais__quick-icon">
+              <image class="ais__quick-icon-img" src="{{item.iconSrc}}" mode="aspectFit" />
+            </view>
+            <view class="ais__quick-text">
+              <text class="ais__quick-label">{{item.label}}</text>
+              <text class="ais__quick-desc">{{item.desc}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="ais__suggest-head">
+          <text>✦ 你也可以这样问我</text>
+        </view>
+        <view class="ais__suggest-list">
+          <view
+            wx:for="{{suggestions}}"
+            wx:key="*this"
+            class="ais__suggest-item"
+            data-text="{{item}}"
+            bindtap="onSuggestionTap"
+          >
+            <text class="ais__suggest-text">{{item}}</text>
+            <text class="ais__suggest-arrow">›</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 有消息态：消息列表 -->
+      <block wx:else>
+        <view
+          wx:for="{{messages}}"
+          wx:key="client_id"
+          wx:for-item="msg"
+          id="m-{{msg.client_id}}"
+          class="ais__msg ais__msg--{{msg.role}}"
+        >
+          <view wx:if="{{msg.role === 'assistant'}}" class="ais__msg-avatar">
+            <image class="ais__msg-avatar-img" src="/assets/mascot/bao-default.png" mode="aspectFit" />
+          </view>
+          <view class="ais__msg-bubble">
+            <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
+              <view wx:if="{{seg.kind === 'text'}}" class="ais__msg-text">{{seg.content}}</view>
+              <view wx:elif="{{seg.kind === 'reasoning'}}" class="ais__msg-reason">
+                <view class="ais__msg-reason-dot"></view>
+                <text>{{seg.content}}</text>
+              </view>
+              <view wx:elif="{{seg.kind === 'tool_call'}}" class="ais__msg-tool">
+                <view class="ais__msg-tool-dot"></view>
+                <text>调用 {{seg.tool_name}}</text>
+              </view>
+              <view wx:elif="{{seg.kind === 'agent'}}" class="ais__msg-agent">
+                <view class="ais__msg-agent-dot"></view>
+                <text>{{seg.content}}</text>
+              </view>
+              <view wx:elif="{{seg.kind === 'status'}}" class="ais__msg-status">{{seg.message}}</view>
+              <view wx:elif="{{seg.kind === 'recipe_card'}}" class="ais__msg-recipe" data-id="{{seg.recipe_id}}" bindtap="onRecipeCardTap">
+                <view class="ais__msg-recipe-title">{{seg.title}}</view>
+                <view wx:if="{{seg.summary}}" class="ais__msg-recipe-sum">{{seg.summary}}</view>
+                <view class="ais__msg-recipe-cta">查看详情 ›</view>
+              </view>
+              <view wx:elif="{{seg.kind === 'error'}}" class="ais__msg-error">⚠ {{seg.message}}</view>
+            </block>
+            <view wx:if="{{msg.status === 'streaming' && !msg.segments.length}}" class="ais__msg-typing">
+              <view class="ais__msg-typing-dot"></view>
+              <view class="ais__msg-typing-dot"></view>
+              <view class="ais__msg-typing-dot"></view>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{streaming}}" class="ais__stop" bindtap="onAbort">停止生成</view>
+      </block>
     </scroll-view>
 
-    <!-- 能力开关 -->
-    <view class="capability-bar">
-      <view class="cap-chip {{reasoningEnabled ? 'active' : ''}}" bindtap="onToggleReasoning">
-        <text>🧠 深度思考</text>
-      </view>
-      <view class="cap-chip {{webSearchEnabled ? 'active' : ''}}" bindtap="onToggleWebSearch">
-        <text>🌐 联网搜索</text>
-      </view>
-      <view class="cap-chip">
-        <text>📝 图文菜谱</text>
-      </view>
+    <!-- mode chip -->
+    <view class="ais__modes">
+      <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:tap="onToggleReasoning" />
+      <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:tap="onToggleWebSearch" />
+      <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:tap="onToggleImageRecipe" />
     </view>
 
-    <!-- 输入区 -->
-    <view class="input-bar">
-      <view class="input-wrap">
-        <view class="input-icon">🎤</view>
-        <input
-          class="input-text"
-          placeholder="说点什么…"
-          value="{{text}}"
-          bindinput="onInputChange"
-          confirm-type="send"
-          bindconfirm="onSendTap"
-        />
-        <view class="input-icon">📷</view>
-        <view class="input-icon send" bindtap="onSendTap">+</view>
+    <!-- 输入条 -->
+    <view class="ais__input">
+      <view class="ais__input-mic {{recording ? 'ais__input-mic--rec' : ''}}" bindtap="onMicTap">
+        <image class="ais__input-mic-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+      </view>
+      <input
+        class="ais__input-field"
+        placeholder="说点什么，或长按语音…"
+        value="{{text}}"
+        bindinput="onInputChange"
+        confirm-type="send"
+        bindconfirm="onSendTap"
+      />
+      <view wx:if="{{streaming}}" class="ais__input-stop" bindtap="onAbort">■</view>
+      <view wx:else class="ais__input-send" bindtap="onSendTap">
+        <image class="ais__input-send-icon" src="/assets/icons/send.svg" mode="aspectFit" />
       </view>
     </view>
   </view>

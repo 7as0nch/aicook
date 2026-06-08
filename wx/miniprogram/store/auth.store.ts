@@ -2,7 +2,7 @@
 // 职责：存放 token / 当前用户 / 当前家庭 / 我的家庭列表；提供 login/register/logout/switchHousehold/refreshMe 动作。
 // 持久化：写到 wx.storage(STORAGE_KEYS.AUTH)；冷启动 app.ts onLaunch 调用 restoreFromStorage()。
 import { observable, action } from 'mobx-miniprogram';
-import { authApi, LoginReq, RegisterReq, UpdateProfileReq } from '../services/auth.api';
+import { authApi, LoginReq, RegisterReq, UpdateProfileReq, WxLoginReq } from '../services/auth.api';
 import { persistAuth, clearAuth as clearAuthStorage, getCurrentToken } from '../services/http';
 import { getItem, STORAGE_KEYS } from '../utils/storage';
 import { emit, EVENTS } from '../utils/eventbus';
@@ -26,6 +26,7 @@ interface AuthStore {
   restoreFromStorage(): void;
   persist(): void;
   login(req: LoginReq): Promise<AuthReply>;
+  loginByWx(req: WxLoginReq): Promise<AuthReply>;
   register(req: RegisterReq): Promise<AuthReply>;
   refreshMe(): Promise<void>;
   switchHousehold(household_id: Int64Like): Promise<void>;
@@ -77,6 +78,22 @@ export const authStore: AuthStore = observable({
     this.loading = true;
     try {
       const reply = await authApi.login(req);
+      this.token = reply.token;
+      this.user = reply.user;
+      this.currentHousehold = reply.current_household;
+      this.households = reply.households || [];
+      this.persist();
+      emit(EVENTS.AUTH_LOGIN, reply.user);
+      return reply;
+    } finally {
+      this.loading = false;
+    }
+  }),
+
+  loginByWx: action(async function (this: AuthStore, req: WxLoginReq) {
+    this.loading = true;
+    try {
+      const reply = await authApi.wxLogin(req);
       this.token = reply.token;
       this.user = reply.user;
       this.currentHousehold = reply.current_household;

@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "custom-navbar": "/components/custom-navbar/index",
+    "ingredient-pill": "/components/ingredient-pill/index",
+    "recipe-card": "/components/recipe-card/index"
+  }
+}

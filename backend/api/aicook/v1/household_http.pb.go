@@ -26,6 +26,7 @@ const OperationHouseholdServiceDeleteKitchenTag = "/aicook.v1.HouseholdService/D
 const OperationHouseholdServiceGetHouseholdPreferences = "/aicook.v1.HouseholdService/GetHouseholdPreferences"
 const OperationHouseholdServiceGetKitchenByShareCode = "/aicook.v1.HouseholdService/GetKitchenByShareCode"
 const OperationHouseholdServiceImportSharedRecipes = "/aicook.v1.HouseholdService/ImportSharedRecipes"
+const OperationHouseholdServiceListHouseholdMembers = "/aicook.v1.HouseholdService/ListHouseholdMembers"
 const OperationHouseholdServiceListKitchenTags = "/aicook.v1.HouseholdService/ListKitchenTags"
 const OperationHouseholdServiceUpdateHouseholdPreferences = "/aicook.v1.HouseholdService/UpdateHouseholdPreferences"
 const OperationHouseholdServiceUpdateKitchenTag = "/aicook.v1.HouseholdService/UpdateKitchenTag"
@@ -38,6 +39,8 @@ type HouseholdServiceHTTPServer interface {
 	GetHouseholdPreferences(context.Context, *GetHouseholdPreferencesRequest) (*GetHouseholdPreferencesReply, error)
 	GetKitchenByShareCode(context.Context, *GetKitchenByShareCodeRequest) (*GetKitchenByShareCodeReply, error)
 	ImportSharedRecipes(context.Context, *ImportSharedRecipesRequest) (*ImportSharedRecipesReply, error)
+	// ListHouseholdMembers ListHouseholdMembers 返回指定家庭的成员列表（含基本信息 + 口味偏好）。
+	ListHouseholdMembers(context.Context, *ListHouseholdMembersRequest) (*ListHouseholdMembersReply, error)
 	ListKitchenTags(context.Context, *ListKitchenTagsRequest) (*ListKitchenTagsReply, error)
 	UpdateHouseholdPreferences(context.Context, *UpdateHouseholdPreferencesRequest) (*UpdateHouseholdPreferencesReply, error)
 	UpdateKitchenTag(context.Context, *UpdateKitchenTagRequest) (*UpdateKitchenTagReply, error)
@@ -55,6 +58,7 @@ func RegisterHouseholdServiceHTTPServer(s *http.Server, srv HouseholdServiceHTTP
 	r.DELETE("/api/v1/kitchen-tags/{id}", _HouseholdService_DeleteKitchenTag0_HTTP_Handler(srv))
 	r.GET("/api/v1/households/current/preferences", _HouseholdService_GetHouseholdPreferences0_HTTP_Handler(srv))
 	r.PUT("/api/v1/households/current/preferences", _HouseholdService_UpdateHouseholdPreferences0_HTTP_Handler(srv))
+	r.GET("/api/v1/households/{household_id}/members", _HouseholdService_ListHouseholdMembers0_HTTP_Handler(srv))
 }
 
 func _HouseholdService_CreateHousehold0_HTTP_Handler(srv HouseholdServiceHTTPServer) func(ctx http.Context) error {
@@ -277,6 +281,28 @@ func _HouseholdService_UpdateHouseholdPreferences0_HTTP_Handler(srv HouseholdSer
 	}
 }
 
+func _HouseholdService_ListHouseholdMembers0_HTTP_Handler(srv HouseholdServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListHouseholdMembersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationHouseholdServiceListHouseholdMembers)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListHouseholdMembers(ctx, req.(*ListHouseholdMembersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListHouseholdMembersReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type HouseholdServiceHTTPClient interface {
 	CreateHousehold(ctx context.Context, req *CreateHouseholdRequest, opts ...http.CallOption) (rsp *CreateHouseholdReply, err error)
 	CreateKitchenTag(ctx context.Context, req *CreateKitchenTagRequest, opts ...http.CallOption) (rsp *CreateKitchenTagReply, err error)
@@ -285,6 +311,8 @@ type HouseholdServiceHTTPClient interface {
 	GetHouseholdPreferences(ctx context.Context, req *GetHouseholdPreferencesRequest, opts ...http.CallOption) (rsp *GetHouseholdPreferencesReply, err error)
 	GetKitchenByShareCode(ctx context.Context, req *GetKitchenByShareCodeRequest, opts ...http.CallOption) (rsp *GetKitchenByShareCodeReply, err error)
 	ImportSharedRecipes(ctx context.Context, req *ImportSharedRecipesRequest, opts ...http.CallOption) (rsp *ImportSharedRecipesReply, err error)
+	// ListHouseholdMembers ListHouseholdMembers 返回指定家庭的成员列表（含基本信息 + 口味偏好）。
+	ListHouseholdMembers(ctx context.Context, req *ListHouseholdMembersRequest, opts ...http.CallOption) (rsp *ListHouseholdMembersReply, err error)
 	ListKitchenTags(ctx context.Context, req *ListKitchenTagsRequest, opts ...http.CallOption) (rsp *ListKitchenTagsReply, err error)
 	UpdateHouseholdPreferences(ctx context.Context, req *UpdateHouseholdPreferencesRequest, opts ...http.CallOption) (rsp *UpdateHouseholdPreferencesReply, err error)
 	UpdateKitchenTag(ctx context.Context, req *UpdateKitchenTagRequest, opts ...http.CallOption) (rsp *UpdateKitchenTagReply, err error)
@@ -383,6 +411,20 @@ func (c *HouseholdServiceHTTPClientImpl) ImportSharedRecipes(ctx context.Context
 	opts = append(opts, http.Operation(OperationHouseholdServiceImportSharedRecipes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListHouseholdMembers ListHouseholdMembers 返回指定家庭的成员列表（含基本信息 + 口味偏好）。
+func (c *HouseholdServiceHTTPClientImpl) ListHouseholdMembers(ctx context.Context, in *ListHouseholdMembersRequest, opts ...http.CallOption) (*ListHouseholdMembersReply, error) {
+	var out ListHouseholdMembersReply
+	pattern := "/api/v1/households/{household_id}/members"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationHouseholdServiceListHouseholdMembers))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

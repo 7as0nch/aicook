@@ -44,6 +44,16 @@ data:
       use_ssl: false
       media_bucket: aicook-media
       knowledge_bucket: aicook-kb
+    auth:
+      # JWT HMAC 签名密钥；生产环境务必替换为足够随机的强密钥（建议用 Secret 注入）。
+      jwt_secret: "change-me-to-a-strong-random-secret"
+      # token 有效期（protobuf Duration 仅接受秒，24h=86400s）；<=0 时回退为 24h。
+      token_ttl: 86400s
+    log:
+      # 日志目录、文件名与级别（gocommon zap 日志，含按天切割与压缩备份）。
+      path: /app/logs
+      filename: aicook.log
+      level: info
     inference:
       endpoint: http://inference-service.aicook.svc.cluster.local:8088
       timeout: 30s

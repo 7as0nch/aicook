@@ -1,29 +1,29 @@
 /**
- * AIcook 主题变量（对齐 UI 2.0 设计规范）
- * 主色：馋猫橙 #FF6B1A；辅助：浅橘 #FFF6EE / 中性灰底 #F5F6F8 / 成功绿 #2DBE7A
+ * AIcook 2.0 主题变量（对齐 Figma 设计规范）
+ * 主色：橘橙 #FF7A00；奶油 #FFF6EE；浅灰 #F4F5F7；绿意 #2DBE7A；深棕 #1F1B16
  */
 page {
   /* 主色与辅助色 */
-  --color-primary: #FF6B1A;          /* 主色 - 馋猫橙 */
-  --color-primary-light: #FFA666;
-  --color-primary-dark: #E55A0A;
-  --color-primary-bg: #FFF6EE;       /* 主色淡背景 / 标签底 */
-  --color-success: #2DBE7A;          /* 成功 / 食材充足 / 完成 */
+  --color-primary: #FF7A00;          /* 主色 - 橘橙 */
+  --color-primary-light: #FFB366;
+  --color-primary-dark: #E66E00;
+  --color-primary-bg: #FFF6EE;       /* 主色淡背景 / 标签底 / 奶油 */
+  --color-success: #2DBE7A;          /* 成功 / 食材充足 / 完成 / 绿意 */
   --color-success-bg: #E8F8EF;
   --color-warning: #FAAD14;
   --color-danger: #FF4D4F;
   --color-info: #1890FF;
 
   /* 文字色 */
-  --color-text-primary: #1A1A1A;
-  --color-text-regular: #4A4A4A;
-  --color-text-secondary: #8C8C8C;
+  --color-text-primary: #1F1B16;     /* 深棕 - 主标题 */
+  --color-text-regular: #5C544A;     /* 正文 */
+  --color-text-secondary: #9B978F;   /* 浅灰 - 辅助 */
   --color-text-placeholder: #BFBFBF;
   --color-text-inverse: #FFFFFF;
 
   /* 背景 / 中性 */
   --color-bg-page: #FFFFFF;          /* 页面底白 */
-  --color-bg-soft: #F5F6F8;          /* 聊天 / 卡片背景灰 */
+  --color-bg-soft: #F4F5F7;          /* 聊天 / 卡片背景灰 */
   --color-bg-card: #FFFFFF;
   --color-bg-mask: rgba(0, 0, 0, 0.5);
 
@@ -31,13 +31,20 @@ page {
   --color-border: #EAEAEA;
   --color-divider: #F0F0F0;
 
+  /* 渐变令牌 */
+  --gradient-peach: linear-gradient(135deg, #FFE4CC 0%, #FFCCAA 100%);
+  --gradient-primary: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%);
+  --gradient-hero-bg: linear-gradient(180deg, #FFF6EE 0%, #FFFFFF 60%);
+
   /* 圆角 */
   --radius-xs: 4rpx;
   --radius-sm: 8rpx;
   --radius-md: 16rpx;
   --radius-lg: 24rpx;                /* 卡片默认 */
+  --radius-card: 24rpx;
+  --radius-card-lg: 32rpx;
   --radius-xl: 32rpx;                /* 大卡片 / 抽屉顶圆 */
-  --radius-pill: 999rpx;
+  --radius-pill: 9999rpx;
 
   /* 间距 */
   --spacing-xs: 8rpx;
@@ -48,15 +55,17 @@ page {
 
   /* 阴影 */
   --shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4rpx 16rpx rgba(255, 107, 26, 0.12);
+  --shadow-md: 0 4rpx 16rpx rgba(255, 122, 0, 0.12);
+  --shadow-card: 0 4rpx 16rpx rgba(31, 27, 22, 0.06);
   --shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
-  --shadow-fab: 0 8rpx 24rpx rgba(255, 107, 26, 0.32);
+  --shadow-fab: 0 8rpx 24rpx rgba(255, 122, 0, 0.32);
 
   /* 字号（设计稿映射：rpx ≈ pt × 2） */
-  --font-xs: 22rpx;                  /* 12pt Light - 说明 */
-  --font-sm: 26rpx;                  /* 14pt Regular - 正文 */
-  --font-md: 30rpx;
-  --font-lg: 32rpx;                  /* 16pt Medium - 副标 */
-  --font-xl: 40rpx;                  /* 22pt Semibold - 大标题 */
-  --font-xxl: 56rpx;                 /* 30pt Bold - 主标题 */
+  --font-xs: 22rpx;                  /* 12pt Light - 辅助说明 */
+  --font-sm: 24rpx;                  /* 12pt - 辅助 */
+  --font-md: 26rpx;                  /* 13pt - 副文 */
+  --font-lg: 30rpx;                  /* 15pt Regular - 正文 */
+  --font-xl: 36rpx;                  /* 18pt Medium - 小标题 */
+  --font-xxl: 44rpx;                 /* 22pt Semibold - 大标题 */
+  --font-xxxl: 56rpx;                /* 28pt Bold - 主标题 */
 }

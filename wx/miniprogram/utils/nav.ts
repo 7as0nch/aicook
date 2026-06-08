@@ -2,12 +2,11 @@
 
 import { authStore } from '../store/auth.store';
 
-// 5 个 tabBar 页面路径（与 app.json 一致）
+// tabBar 页面路径（与 app.json 一致；当前 4 个 tab）
 const TAB_PAGES = new Set([
   '/pages/home/index/index',
   '/pages/recipes/list/index',
   '/pages/plan/index/index',
-  '/pages/ai/index/index',
   '/pages/me/index/index',
 ]);
 

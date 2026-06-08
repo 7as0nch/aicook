@@ -1,5 +1,6 @@
 {
   "setting": {
+    "urlCheck": false,
     "es6": true,
     "postcss": true,
     "minified": true,
@@ -12,7 +13,17 @@
       "outputPath": ""
     },
     "useCompilerPlugins": false,
-    "minifyWXML": true
+    "minifyWXML": true,
+    "compileHotReLoad": true,
+    "lazyloadPlaceholderEnable": false,
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "showShadowRootInWxmlPanel": true,
+    "ignoreDevUnusedFiles": false,
+    "checkInvalidKey": true,
+    "ignoreUploadUnusedFiles": false,
+    "ignoreCompileWarning": true
   },
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
@@ -21,5 +32,6 @@
     "include": []
   },
   "appid": "wx25c43818e829e7be",
-  "editorSetting": {}
+  "editorSetting": {},
+  "libVersion": "3.5.5"
 }

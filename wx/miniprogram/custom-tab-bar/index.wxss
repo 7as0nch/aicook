@@ -1,3 +1,7 @@
+.tab-bar--hidden {
+  display: none !important;
+}
+
 .tab-bar {
   position: fixed;
   left: 0;
@@ -23,12 +27,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999999;
+  color: #9B978F;
   height: 100rpx;
+  transition: color 0.18s ease;
 }
 
 .tab-item.active {
-  color: #FF6B1A;
+  color: #FF7A00;
 }
 
 .tab-icon {
@@ -37,13 +42,23 @@
 }
 
 .tab-icon-img {
-  width: 44rpx;
-  height: 44rpx;
+  width: 48rpx;
+  height: 48rpx;
+  transition: transform 0.18s ease;
+}
+
+.tab-item.active .tab-icon-img {
+  transform: scale(1.08);
 }
 
 .tab-label {
-  font-size: 22rpx;
+  font-size: 20rpx;
   margin-top: 4rpx;
+  transition: font-weight 0.18s ease;
+}
+
+.tab-item.active .tab-label {
+  font-weight: 600;
 }
 
 /* 中间浮按占位（占据 flex 空间） */
@@ -60,12 +75,17 @@
   width: 112rpx;
   height: 112rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FFA666 0%, #FF6B1A 100%);
+  background: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(255, 107, 26, 0.32);
+  box-shadow: 0 8rpx 24rpx rgba(255, 122, 0, 0.32);
   z-index: 101;
+}
+
+.fab-icon {
+  width: 52rpx;
+  height: 52rpx;
 }
 
 .fab-inner {

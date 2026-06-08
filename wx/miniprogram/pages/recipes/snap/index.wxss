@@ -1,145 +1,330 @@
-.snap-page {
+.snap {
   min-height: 100vh;
-  background: #1A1A1A;
-  padding: 0 24rpx;
+  background: #1F1B16;
   display: flex;
   flex-direction: column;
 }
 
-.snap-header {
+/* ========== 取景器 ========== */
+.snap__viewfinder {
+  position: relative;
+  flex: 1;
+  min-height: 980rpx;
+  overflow: hidden;
+  background: linear-gradient(180deg, #EEF0EA 0%, #D7DDD1 100%);
+}
+
+.snap__camera,
+.snap__captured {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.snap__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 27, 22, 0.14);
+}
+
+/* 4 角括号 — 200x200 居中（rpx：400x400） */
+.snap__bracket {
+  position: absolute;
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.snap__bracket-h {
+  position: absolute;
+  height: 10rpx;
+  width: 64rpx;
+  background: #FF7A00;
+  border-radius: 5rpx;
+}
+
+.snap__bracket-v {
+  position: absolute;
+  width: 10rpx;
+  height: 64rpx;
+  background: #FF7A00;
+  border-radius: 5rpx;
+}
+
+.snap__bracket--tl {
+  top: 240rpx; left: 148rpx;
+}
+.snap__bracket--tl .snap__bracket-h { top: 0; left: 0; }
+.snap__bracket--tl .snap__bracket-v { top: 0; left: 0; }
+
+.snap__bracket--tr {
+  top: 240rpx; right: 148rpx;
+}
+.snap__bracket--tr .snap__bracket-h { top: 0; right: 0; }
+.snap__bracket--tr .snap__bracket-v { top: 0; right: 0; }
+
+.snap__bracket--bl {
+  bottom: 240rpx; left: 148rpx;
+}
+.snap__bracket--bl .snap__bracket-h { bottom: 0; left: 0; }
+.snap__bracket--bl .snap__bracket-v { bottom: 0; left: 0; }
+
+.snap__bracket--br {
+  bottom: 240rpx; right: 148rpx;
+}
+.snap__bracket--br .snap__bracket-h { bottom: 0; right: 0; }
+.snap__bracket--br .snap__bracket-v { bottom: 0; right: 0; }
+
+/* 扫描线 */
+.snap__scanline {
+  position: absolute;
+  top: 470rpx;
+  left: 176rpx;
+  width: 400rpx;
+  height: 6rpx;
+  background: rgba(255, 122, 0, 0.85);
+  border-radius: 4rpx;
+  animation: scan 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-120rpx); }
+  100% { transform: translateY(120rpx); }
+}
+
+/* 状态提示胶囊 */
+.snap__status-pill {
+  position: absolute;
+  bottom: 220rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(31, 27, 22, 0.55);
+  color: #FFFFFF;
+  padding: 16rpx 28rpx;
+  border-radius: 38rpx;
+  font-size: 27rpx;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12rpx;
+  white-space: nowrap;
+}
+
+.snap__status-pill--err {
+  background: rgba(229, 96, 74, 0.85);
+}
+
+.snap__status-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #2DBE7A;
+}
+
+/* 顶部按钮 */
+.snap__topbar {
+  position: absolute;
+  left: 32rpx;
+  right: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.snap__top-btn {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+}
+
+.snap__top-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.snap__top-emoji {
+  font-size: 36rpx;
+  color: #1F1B16;
+}
+
+.snap__top-title {
+  color: #FFFFFF;
+  font-size: 34rpx;
+  font-weight: 600;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4);
+  flex: 1;
+  text-align: center;
+}
+
+.snap__top-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+/* 快门按钮 */
+.snap__shutter {
+  position: absolute;
+  bottom: 80rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  border: 6rpx solid rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.snap__shutter-inner {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background: #FFFFFF;
+}
+
+.snap__retake {
+  position: absolute;
+  bottom: 80rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 22rpx 56rpx;
+  background: rgba(31, 27, 22, 0.6);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  border-radius: 9999rpx;
+  font-weight: 500;
+}
+
+/* ========== 底部 sheet ========== */
+.snap__sheet {
+  background: #FFFFFF;
+  border-top-left-radius: 56rpx;
+  border-top-right-radius: 56rpx;
+  padding: 24rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -8rpx 48rpx rgba(0, 0, 0, 0.1);
+  margin-top: -56rpx;
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+}
+
+.snap__handle {
+  width: 74rpx;
+  height: 8rpx;
+  background: #E2DED6;
+  border-radius: 4rpx;
+  margin: 0 auto 24rpx;
+}
+
+.snap__sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 28rpx;
+}
+
+.snap__sheet-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1F1B16;
+}
+
+.snap__count-chip {
+  background: #FFF6EE;
+  color: #EF6E00;
+  font-size: 23rpx;
+  font-weight: 500;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.snap__edit {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 27rpx;
+  color: #9B978F;
+}
+
+.snap__edit-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+/* chip 网格 */
+.snap__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 32rpx;
+}
+
+.snap__chip {
+  background: #FFF6EE;
+  border: 2rpx solid #F4E6D3;
+  color: #1F1B16;
+  font-size: 27rpx;
+  font-weight: 500;
+  padding: 14rpx 24rpx;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.snap__chip-emoji {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.snap__chip--add {
+  background: #FFFFFF;
+  border-color: #E6E2DA;
+  color: #9B978F;
+}
+
+.snap__empty {
+  color: #9B978F;
+  text-align: center;
+  font-size: 26rpx;
   padding: 24rpx 0;
 }
 
-.header-btn {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.snap__cta {
+  background: #FF7A00;
   color: #FFFFFF;
-  font-size: 36rpx;
-}
-
-.preview-area {
-  flex: 1;
-  background: #2A2A2A;
-  border-radius: 24rpx;
-  margin: 16rpx 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  min-height: 600rpx;
-}
-
-.preview-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.empty-tip {
-  font-size: 28rpx;
-  color: #FFFFFF;
-  margin-top: 24rpx;
-}
-
-.empty-sub {
-  font-size: 22rpx;
-  color: #8C8C8C;
-  margin-top: 8rpx;
-}
-
-.preview-loaded {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.preview-mock {
-  font-size: 200rpx;
-}
-
-.recog-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.recog-text {
-  background: rgba(255, 107, 26, 0.9);
-  color: #FFFFFF;
-  padding: 16rpx 32rpx;
-  border-radius: 999rpx;
-  font-size: 26rpx;
-}
-
-.result-block {
-  background: #FFFFFF;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-}
-
-.result-title {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 16rpx;
-  gap: 8rpx;
-}
-
-.result-title text:first-child {
-  font-size: 28rpx;
+  font-size: 32rpx;
   font-weight: 600;
-  color: #1A1A1A;
-}
-
-.result-count {
-  font-size: 22rpx;
-  color: #8C8C8C;
-}
-
-.chip-row {
+  text-align: center;
+  padding: 28rpx 0;
+  border-radius: 54rpx;
+  box-shadow: 0 12rpx 28rpx rgba(31, 20, 8, 0.28);
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 12rpx;
 }
 
-.result-chip {
-  background: #FFF6EE;
-  color: #FF6B1A;
-  padding: 8rpx 24rpx;
-  border-radius: 999rpx;
-  font-size: 24rpx;
+.snap__cta--disabled {
+  opacity: 0.5;
 }
 
-.snap-actions {
-  padding: 16rpx 0 calc(48rpx + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.snap__cta-icon {
+  font-size: 32rpx;
 }
 
-.capture-btn {
-  width: 100%;
-  gap: 8rpx;
-}
-
-.action-tip {
-  margin-top: 16rpx;
-  font-size: 22rpx;
-  color: #FFFFFF;
-  opacity: 0.7;
+.snap__hint {
+  display: block;
+  text-align: center;
+  color: #9B978F;
+  font-size: 25rpx;
+  margin-top: 20rpx;
 }

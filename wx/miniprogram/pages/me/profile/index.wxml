@@ -1,5 +1,38 @@
-<view class="placeholder-page">
-  <view class="emoji">👤</view>
-  <view class="title">个人资料</view>
-  <view class="desc">阶段 1 实现昵称 / 头像编辑</view>
+<view class="prof">
+  <custom-navbar title="个人资料">
+    <view slot="right" class="prof__nav-save {{saving ? 'prof__nav-save--saving' : ''}}" bindtap="onSave">
+      <text>{{saving ? '保存中…' : '保存'}}</text>
+    </view>
+  </custom-navbar>
+
+  <!-- 头像 -->
+  <view class="prof__avatar-row" bindtap="onAvatarTap">
+    <view class="prof__avatar">
+      <image wx:if="{{avatarUrl}}" class="prof__avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+      <image wx:else class="prof__avatar-default" src="/assets/icons/me.png" mode="aspectFit" />
+    </view>
+    <text class="prof__avatar-tip">点击更换头像</text>
+  </view>
+
+  <!-- 字段 -->
+  <view class="prof__card">
+    <view class="prof__field">
+      <text class="prof__label">昵称</text>
+      <input class="prof__input" placeholder="请输入昵称" value="{{displayName}}" bindinput="onDisplayNameInput" />
+    </view>
+    <view class="prof__field">
+      <text class="prof__label">用户名</text>
+      <text class="prof__readonly">{{username}}</text>
+    </view>
+    <view wx:if="{{phone}}" class="prof__field">
+      <text class="prof__label">手机号</text>
+      <text class="prof__readonly">{{phone}}</text>
+    </view>
+    <view class="prof__field">
+      <text class="prof__label">邮箱</text>
+      <input class="prof__input" placeholder="选填" value="{{email}}" bindinput="onEmailInput" type="text" />
+    </view>
+  </view>
+
+  <view class="prof__spacer"></view>
 </view>

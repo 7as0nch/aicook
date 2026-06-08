@@ -1,0 +1,70 @@
+<view class="today">
+  <view class="today__topbar">
+    <view class="today__top-btn" bindtap="onBack">
+      <image class="today__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+    </view>
+    <view class="today__top-spacer"></view>
+    <view class="today__top-btn">
+      <image class="today__top-icon" src="/assets/icons/star.svg" mode="aspectFit" />
+    </view>
+  </view>
+
+  <view class="today__title">{{pageTitle}}</view>
+  <view wx:if="{{ingredients.length}}" class="today__sub">已根据 {{ingredients.length + extraCount}} 种识别食材为你智能排序</view>
+  <view wx:else class="today__sub">{{recipes.length}} 道菜谱</view>
+
+  <scroll-view scroll-x enhanced="{{true}}" show-scrollbar="{{false}}" class="today__chips">
+    <view class="today__chips-row">
+      <view wx:for="{{ingredients}}" wx:key="name" class="today__chip">
+        <text>{{item.emoji}}</text>
+        <text>{{item.name}}</text>
+      </view>
+      <view wx:if="{{extraCount > 0}}" class="today__chip today__chip--extra">+{{extraCount}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="today__sort">
+    <view
+      wx:for="{{sortTabs}}"
+      wx:key="key"
+      class="today__sort-tab {{sortKey === item.key ? 'today__sort-tab--active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSortTabTap"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <view class="today__list">
+    <view
+      wx:for="{{recipes}}"
+      wx:key="id"
+      class="today__card"
+      data-id="{{item.id}}"
+      bindtap="onCardTap"
+    >
+      <view class="today__card-cover">
+        <image wx:if="{{item.cover_image_url}}" class="today__card-cover-img" src="{{item.cover_image_url}}" mode="aspectFill" />
+        <view class="today__rank">{{index + 1}}</view>
+      </view>
+      <view class="today__card-body">
+        <view class="today__card-line1">
+          <text class="today__card-title">{{item.title}}</text>
+          <view class="today__card-match">{{item.__match}}% 匹配</view>
+        </view>
+        <view class="today__card-meta">{{item.total_minutes || 30}}分钟 · {{item.servings || 2}}人 · {{item.__diffLabel || '中等'}}</view>
+        <view class="today__card-tags">
+          <view wx:if="{{item.category}}" class="today__card-tag">{{item.category}}</view>
+          <view wx:for="{{item.scenario_tags}}" wx:for-item="tag" wx:key="*this" wx:if="{{index < 2}}" class="today__card-tag">{{tag}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{!recipes.length && !loading}}" class="today__empty">暂无推荐</view>
+
+  <view class="today__spacer"></view>
+</view>
+
+<ai-fab />
+<ai-sheet context="今日推荐" />

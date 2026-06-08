@@ -103,4 +103,29 @@ export const recipeApi = {
       query: { limit },
     });
   },
+
+  // --- 收藏 ---
+
+  addFavorite(recipeId: Int64Like) {
+    return request<{ recipe: Recipe; favored: boolean }>({
+      url: `/api/v1/recipes/${recipeId}/favorite`,
+      method: 'POST',
+      data: { recipe_id: recipeId },
+    });
+  },
+
+  removeFavorite(recipeId: Int64Like) {
+    return request<{ ok: boolean }>({
+      url: `/api/v1/recipes/${recipeId}/favorite`,
+      method: 'DELETE',
+    });
+  },
+
+  listFavorites(query: { limit?: number; before_id?: Int64Like } = {}) {
+    return request<{ recipes: Recipe[]; total: Int64Like }>({
+      url: '/api/v1/recipes/favorites',
+      method: 'GET',
+      query: query as Record<string, string | number | boolean | undefined | null>,
+    });
+  },
 };

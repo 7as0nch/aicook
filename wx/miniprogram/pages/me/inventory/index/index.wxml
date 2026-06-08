@@ -1,0 +1,62 @@
+<view class="inv">
+  <custom-navbar title="冰箱库存">
+    <view slot="right" class="inv__nav-btn inv__nav-btn--primary" bindtap="onAdd">
+      <text>+</text>
+    </view>
+  </custom-navbar>
+
+  <view class="inv__search">
+    <image class="inv__search-icon" src="/assets/icons/search.png" mode="aspectFit" />
+    <input
+      class="inv__search-input"
+      placeholder="搜索食材…"
+      value="{{keyword}}"
+      bindinput="onSearchInput"
+    />
+  </view>
+
+  <scroll-view scroll-x enhanced="{{true}}" show-scrollbar="{{false}}" class="inv__tabs">
+    <view class="inv__tabs-row">
+      <view
+        wx:for="{{tabs}}"
+        wx:key="key"
+        class="inv__tab {{activeTab === item.key ? 'inv__tab--active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onTabTap"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="inv__list">
+    <view
+      wx:for="{{filtered}}"
+      wx:key="id"
+      class="inv__item"
+    >
+      <view class="inv__item-icon">
+        <image wx:if="{{item.icon_emoji}}" class="inv__item-img" src="{{item.icon_emoji}}" mode="aspectFit" />
+        <text wx:else class="inv__item-emoji">🥗</text>
+      </view>
+      <view class="inv__item-body">
+        <text class="inv__item-name">{{item.name}}</text>
+        <text class="inv__item-meta">{{item.quantity_text || '—'}} {{item.expire_label ? ' · 距过期 ' + item.expire_label : ''}}</text>
+      </view>
+      <view class="inv__item-del" data-id="{{item.id}}" bindtap="onItemRemove">×</view>
+    </view>
+
+    <view wx:if="{{!filtered.length}}" class="inv__empty">
+      <text class="inv__empty-emoji">🧊</text>
+      <text class="inv__empty-text">冰箱空空，点 + 添加食材</text>
+    </view>
+  </view>
+
+  <!-- 推荐能做的菜 -->
+  <view wx:if="{{filtered.length}}" class="inv__cta" bindtap="onRecommendTap">
+    <text class="inv__cta-icon">✨</text>
+    <text>用现有食材推荐能做的菜</text>
+  </view>
+
+  <view class="inv__spacer"></view>
+</view>

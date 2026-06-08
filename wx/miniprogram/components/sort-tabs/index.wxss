@@ -1,0 +1,25 @@
+.st {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.st__row {
+  display: inline-flex;
+  gap: 12rpx;
+  padding: 4rpx 0;
+}
+
+.st__tab {
+  padding: 12rpx 28rpx;
+  border-radius: 9999rpx;
+  background: var(--color-bg-soft);
+  color: var(--color-text-regular);
+  font-size: 26rpx;
+  flex-shrink: 0;
+}
+
+.st__tab--active {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-weight: 500;
+}

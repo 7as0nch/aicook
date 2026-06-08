@@ -1,19 +1,76 @@
-.register-page { min-height: 100vh; padding: 60rpx var(--spacing-lg); }
-.title { font-size: var(--font-xxl); font-weight: 600; text-align: center; margin: 60rpx 0; }
-.input {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-md);
-  padding: 24rpx var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  font-size: var(--font-md);
+.auth {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF6EE 0%, #FFFFFF 50%);
+  padding: 0 56rpx 80rpx;
 }
-.primary-btn {
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  border-radius: var(--radius-md);
-  padding: 24rpx;
-  font-size: var(--font-lg);
-  text-align: center;
-  margin-top: var(--spacing-md);
+
+.auth__top {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 100rpx;
+  padding-bottom: 40rpx;
 }
-.primary-btn[disabled] { opacity: 0.6; }
+
+.auth__back {
+  position: absolute;
+  top: 32rpx;
+  left: 0;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2rpx solid #EFEDE8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth__back-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.auth__mascot {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: #FFEDD9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+}
+
+.auth__mascot-img {
+  width: 150rpx;
+  height: 150rpx;
+}
+
+.auth__welcome {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #1F1B16;
+}
+
+.auth__sub {
+  font-size: 25rpx;
+  color: #9B978F;
+  margin-top: 10rpx;
+}
+
+.auth__form {
+  background: #FFFFFF;
+  border-radius: 40rpx;
+  padding: 40rpx 36rpx 32rpx;
+  border: 2rpx solid #EFEDE8;
+  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.06);
+}
+
+.auth__field { margin-bottom: 22rpx; }
+.auth__label { display: block; font-size: 24rpx; color: #6E6A62; margin-bottom: 12rpx; font-weight: 500; }
+.auth__input { background: #F4F5F7; border-radius: 22rpx; padding: 0 26rpx; height: 88rpx; line-height: 88rpx; font-size: 27rpx; color: #1F1B16; }
+
+.auth__btn { margin-top: 16rpx; background: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%); color: #FFFFFF; font-size: 32rpx; font-weight: 600; text-align: center; padding: 28rpx 0; border-radius: 28rpx; box-shadow: 0 12rpx 28rpx rgba(255, 122, 0, 0.32); }
+.auth__btn--loading { opacity: 0.65; }

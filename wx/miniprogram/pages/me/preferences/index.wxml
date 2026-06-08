@@ -1,5 +1,82 @@
-<view class="placeholder-page">
-  <view class="emoji">🌶️</view>
-  <view class="title">口味偏好</view>
-  <view class="desc">阶段 9 实现偏好编辑（影响推荐与 AI）</view>
+<view class="pref">
+  <custom-navbar title="口味偏好">
+    <view slot="right" class="pref__nav-save {{saving ? 'pref__nav-save--saving' : ''}}" bindtap="onSave">
+      <text>{{saving ? '保存中…' : '保存'}}</text>
+    </view>
+  </custom-navbar>
+
+  <view class="pref__intro">
+    <image class="pref__intro-icon" src="/assets/icons/spicy.svg" mode="aspectFit" />
+    <text class="pref__intro-text">让 AI 推荐更懂你</text>
+  </view>
+
+  <view class="pref__card">
+    <view class="pref__sec-title">口味</view>
+    <view class="pref__sec-sub">支持多选</view>
+    <view class="pref__chips">
+      <view
+        wx:for="{{flavorOptions}}"
+        wx:key="*this"
+        class="pref__chip {{flavor.indexOf(item) >= 0 ? 'pref__chip--on' : ''}}"
+        data-tag="{{item}}"
+        bindtap="onFlavorTap"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <view class="pref__card">
+    <view class="pref__sec-title">用餐场景</view>
+    <view class="pref__chips">
+      <view
+        wx:for="{{scenarioOptions}}"
+        wx:key="*this"
+        class="pref__chip {{scenarios.indexOf(item) >= 0 ? 'pref__chip--on' : ''}}"
+        data-tag="{{item}}"
+        bindtap="onScenarioTap"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <view class="pref__card">
+    <view class="pref__sec-title">饮食禁忌</view>
+    <view class="pref__sec-sub">AI 会自动避开</view>
+    <view class="pref__chips">
+      <view
+        wx:for="{{restrictionOptions}}"
+        wx:key="*this"
+        class="pref__chip pref__chip--alert {{restrictions.indexOf(item) >= 0 ? 'pref__chip--on-alert' : ''}}"
+        data-tag="{{item}}"
+        bindtap="onRestrictionTap"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <view class="pref__card">
+    <view class="pref__sec-title">最大难度</view>
+    <view class="pref__diff">
+      <view
+        wx:for="{{[1,2,3,4,5]}}"
+        wx:key="*this"
+        class="pref__diff-dot {{maxDifficulty >= item ? 'pref__diff-dot--on' : ''}}"
+        data-v="{{item}}"
+        bindtap="onDifficultyTap"
+      ></view>
+    </view>
+    <view class="pref__diff-label">{{maxDifficulty === 1 ? '极简' : maxDifficulty === 2 ? '简单' : maxDifficulty === 3 ? '中等' : maxDifficulty === 4 ? '较难' : '复杂'}}</view>
+  </view>
+
+  <view class="pref__card">
+    <view class="pref__sec-title">最大时长</view>
+    <view class="pref__chips">
+      <view
+        wx:for="{{timeOptions}}"
+        wx:key="value"
+        class="pref__chip {{maxMinutes === item.value ? 'pref__chip--on' : ''}}"
+        data-v="{{item.value}}"
+        bindtap="onTimeTap"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="pref__spacer"></view>
 </view>

@@ -1,101 +1,119 @@
-<view class="detail-page">
-  <!-- 大图 -->
-  <view class="cover-area img-placeholder">
-    <image wx:if="{{recipe.cover}}" class="cover-img" src="{{recipe.cover}}" mode="aspectFill"></image>
-    <text wx:else class="cover-emoji">{{recipe.coverFallback}}</text>
-    <view class="cover-actions">
-      <view class="cover-btn" bindtap="onFavTap">
-        <text class="icon-slot__emoji">⭐</text>
+<view class="rd">
+  <!-- Hero 图 -->
+  <view class="rd__hero">
+    <image wx:if="{{recipe.cover_image_url}}" class="rd__hero-img" src="{{recipe.cover_image_url}}" mode="aspectFill" />
+    <view class="rd__hero-overlay"></view>
+  </view>
+
+  <!-- 顶部按钮 -->
+  <view class="rd__topbar" style="top: {{statusBarHeight + 6}}px">
+    <view class="rd__top-btn" bindtap="onBack">
+      <image class="rd__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+    </view>
+    <view class="rd__top-actions">
+      <view class="rd__top-btn" bindtap="onFavTap">
+        <image class="rd__top-icon" src="/assets/icons/star.svg" mode="aspectFit" />
       </view>
-      <view class="cover-btn" bindtap="onShareTap">
-        <text class="icon-slot__emoji">↗</text>
+      <view class="rd__top-btn" bindtap="onShareTap">
+        <image class="rd__top-icon" src="/assets/icons/share.svg" mode="aspectFit" />
       </view>
     </view>
   </view>
 
-  <!-- 标题区 -->
-  <view class="header-card">
-    <text class="title">{{recipe.title}}</text>
-    <view class="meta-row">
-      <view class="meta-item">
-        <view class="icon-slot size-sm"><text class="icon-slot__emoji">⏱️</text></view>
-        <text>{{recipe.minutes}}分钟</text>
+  <!-- 内容卡 -->
+  <view class="rd__sheet">
+    <view class="rd__title">{{recipe.title || '加载中…'}}</view>
+
+    <view class="rd__chips">
+      <view wx:if="{{recipe.category}}" class="rd__chip">{{recipe.category}}</view>
+      <view wx:if="{{recipe.total_minutes}}" class="rd__chip">{{recipe.total_minutes}}分钟</view>
+      <view wx:if="{{recipe.difficulty}}" class="rd__chip">{{difficultyLabel}}</view>
+      <view wx:if="{{recipe.servings}}" class="rd__chip">{{recipe.servings}}人</view>
+    </view>
+
+    <view class="rd__match">
+      <view class="rd__match-dot"></view>
+      <text>{{matchPercent}}% 匹配 · 与识别食材匹配度高</text>
+    </view>
+
+    <view class="rd__divider"></view>
+
+    <!-- 4 tab -->
+    <view class="rd__tabs">
+      <view class="rd__tab {{activeTab === 'ingredients' ? 'rd__tab--active' : ''}}" data-tab="ingredients" bindtap="onTabSwitch">
+        食材
+        <view wx:if="{{activeTab === 'ingredients'}}" class="rd__tab-bar"></view>
       </view>
-      <view class="meta-item">
-        <view class="icon-slot size-sm"><text class="icon-slot__emoji">📊</text></view>
-        <text>{{recipe.difficulty}}</text>
+      <view class="rd__tab {{activeTab === 'steps' ? 'rd__tab--active' : ''}}" data-tab="steps" bindtap="onTabSwitch">
+        步骤
+        <view wx:if="{{activeTab === 'steps'}}" class="rd__tab-bar"></view>
       </view>
-      <view class="meta-item">
-        <view class="icon-slot size-sm"><text class="icon-slot__emoji">👥</text></view>
-        <text>{{recipe.servings}}</text>
+      <view class="rd__tab {{activeTab === 'ai' ? 'rd__tab--active' : ''}}" data-tab="ai" bindtap="onTabSwitch">
+        AI 指导
+        <view wx:if="{{activeTab === 'ai'}}" class="rd__tab-bar"></view>
+      </view>
+      <view class="rd__tab {{activeTab === 'nutrition' ? 'rd__tab--active' : ''}}" data-tab="nutrition" bindtap="onTabSwitch">
+        营养
+        <view wx:if="{{activeTab === 'nutrition'}}" class="rd__tab-bar"></view>
       </view>
     </view>
-    <view class="tags-row">
-      <view class="tag" wx:for="{{recipe.tags}}" wx:key="*this">{{item}}</view>
-      <view class="match-badge">
-        <text class="match-percent small">{{recipe.matchPercent}}%</text>
-        <text class="match-label">匹配</text>
+
+    <view class="rd__divider"></view>
+
+    <!-- 食材 -->
+    <view wx:if="{{activeTab === 'ingredients'}}" class="rd__panel">
+      <block wx:for="{{ingredientGroups}}" wx:key="groupName" wx:for-item="grp">
+        <view class="rd__ing-group">
+          <view class="rd__ing-grp-name">{{grp.groupName}}</view>
+          <view wx:for="{{grp.items}}" wx:key="name" wx:for-item="ing" class="rd__ing-row">
+            <text class="rd__ing-name">{{ing.name}}</text>
+            <text class="rd__ing-amt">{{ing.amount}} {{ing.unit}}</text>
+          </view>
+        </view>
+      </block>
+      <view wx:if="{{!ingredientGroups.length}}" class="rd__empty">暂无食材数据</view>
+    </view>
+
+    <!-- 步骤 -->
+    <view wx:if="{{activeTab === 'steps'}}" class="rd__panel">
+      <view wx:for="{{steps}}" wx:key="step_no" wx:for-item="step" class="rd__step">
+        <view class="rd__step-no">{{step.step_no || index + 1}}</view>
+        <view wx:if="{{index < steps.length - 1}}" class="rd__step-line"></view>
+        <view class="rd__step-body">
+          <view class="rd__step-title">{{step.title || ('步骤 ' + (step.step_no || index + 1))}}</view>
+          <view class="rd__step-desc">{{step.description}}</view>
+        </view>
+        <view class="rd__step-img">
+          <image wx:if="{{step.cover_image_url}}" class="rd__step-img-i" src="{{step.cover_image_url}}" mode="aspectFill" />
+        </view>
+      </view>
+      <view wx:if="{{!steps.length}}" class="rd__empty">暂无步骤</view>
+    </view>
+
+    <!-- AI 指导 -->
+    <view wx:if="{{activeTab === 'ai'}}" class="rd__panel">
+      <view wx:for="{{aiHints}}" wx:key="*this" class="rd__ai-hint">{{item}}</view>
+      <view class="rd__ai-cta" bindtap="onAskAI">
+        <text>✨ 问问厨艺助理</text>
       </view>
     </view>
+
+    <!-- 营养 -->
+    <view wx:if="{{activeTab === 'nutrition'}}" class="rd__panel">
+      <view class="rd__empty">营养数据敬请期待</view>
+    </view>
+
+    <view class="rd__sheet-spacer"></view>
   </view>
 
-  <!-- Tab -->
-  <view class="tab-bar-detail">
-    <view
-      class="tab-item-detail {{activeTab === 'intro' ? 'active' : ''}}"
-      data-tab="intro"
-      bindtap="onTabSwitch"
-    >简介</view>
-    <view
-      class="tab-item-detail {{activeTab === 'ingredients' ? 'active' : ''}}"
-      data-tab="ingredients"
-      bindtap="onTabSwitch"
-    >食材</view>
-    <view
-      class="tab-item-detail {{activeTab === 'steps' ? 'active' : ''}}"
-      data-tab="steps"
-      bindtap="onTabSwitch"
-    >步骤</view>
-    <view
-      class="tab-item-detail {{activeTab === 'ai' ? 'active' : ''}}"
-      data-tab="ai"
-      bindtap="onTabSwitch"
-    >AI 指导</view>
-  </view>
-
-  <!-- 内容 -->
-  <view class="tab-content">
-    <view wx:if="{{activeTab === 'intro'}}" class="intro-block">{{introText}}</view>
-
-    <view wx:elif="{{activeTab === 'ingredients'}}" class="ingr-block">
-      <view class="ingr-row" wx:for="{{ingredients}}" wx:key="id">
-        <text class="ingr-name">{{item.name}}</text>
-        <text class="ingr-amount">{{item.amount}}</text>
-      </view>
+  <!-- 底部 sticky 操作栏 -->
+  <view class="rd__footer">
+    <view class="rd__fav-btn {{favored ? 'rd__fav-btn--on' : ''}}" bindtap="onFavTap">
+      <image class="rd__fav-icon" src="/assets/icons/star.svg" mode="aspectFit" />
     </view>
-
-    <view wx:elif="{{activeTab === 'steps'}}" class="steps-block">
-      <view class="step-row" wx:for="{{steps}}" wx:key="no">
-        <view class="step-no">{{item.no}}</view>
-        <text class="step-desc">{{item.description}}</text>
-      </view>
+    <view class="rd__cook-btn" bindtap="onCookTap">
+      <image class="rd__cook-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+      <text>开始烹饪</text>
     </view>
-
-    <view wx:elif="{{activeTab === 'ai'}}" class="ai-block">
-      <view class="ai-row" wx:for="{{aiHints}}" wx:key="*this">
-        <view class="icon-slot size-sm"><text class="icon-slot__emoji">💡</text></view>
-        <text>{{item}}</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="bottom-spacer-detail"></view>
-
-  <!-- 开始烹饪 CTA -->
-  <view class="cta-fixed">
-    <view class="cta-btn cook-cta" bindtap="onCookTap">开始烹饪</view>
   </view>
 </view>
-
-<ai-fab bottom="200rpx" />
-<ai-sheet context="菜谱：{{recipe.title}}" />

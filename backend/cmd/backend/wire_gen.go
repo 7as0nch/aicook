@@ -20,7 +20,7 @@ import (
 // Injectors from wire.go:
 
 func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error) {
-	authRepo := auth.NewAuthRepo()
+	authRepo := auth.NewAuthRepo(cfg)
 	db, cleanup, err := data.NewDB(cfg)
 	if err != nil {
 		return nil, nil, err
@@ -44,7 +44,9 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	kitchenOpsRepo := data.NewKitchenOpsRepo(db)
 	cookingHistoryRepo := data.NewCookingHistoryRepo(db)
 	recommendUsecase := biz.NewRecommendUsecase(recipeRepo, householdRepo, kitchenOpsRepo, cookingHistoryRepo)
-	recipeService := service.NewRecipeService(recipeUsecase, mediaUsecase, recommendUsecase)
+	recipeFavoriteRepo := data.NewRecipeFavoriteRepo(db)
+	recipeFavoriteUsecase := biz.NewRecipeFavoriteUsecase(recipeFavoriteRepo, recipeRepo)
+	recipeService := service.NewRecipeService(recipeUsecase, mediaUsecase, recommendUsecase, recipeFavoriteUsecase)
 	mediaService := service.NewMediaService(mediaUsecase)
 	client := data.NewInferenceClient(cfg)
 	voiceUsecase := biz.NewVoiceUsecase(mediaRepo, objectStorage, client)
@@ -72,7 +74,8 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	cookingHistoryUsecase := biz.NewCookingHistoryUsecase(cookingHistoryRepo, recipeRepo, cookingProgressUsecase)
 	kitchenService := service.NewKitchenService(kitchenOpsUsecase, mediaUsecase, cookingHistoryUsecase)
 	aiChatHandler := server.NewAIChatHandler(aiUsecase, knowledgeUsecase, authRepo)
-	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService, aiChatHandler)
+	wxLoginHandler := server.NewWxLoginHandler(authUsecase)
+	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService, aiChatHandler, wxLoginHandler)
 	grpcServer := server.NewGRPCServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService)
 	app := server.NewApp(cfg, logger, httpServer, grpcServer)
 	return app, func() {

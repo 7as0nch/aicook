@@ -36,4 +36,6 @@ export const EVENTS = {
   HOUSEHOLD_SWITCHED: 'household:switched', // 切换家庭
   AI_OPEN: 'ai:open',                       // 唤起 AI 助理浮球抽屉
   AI_CLOSE: 'ai:close',                     // 关闭 AI 抽屉
+  TAB_BAR_HIDE: 'tabbar:hide',              // 隐藏自定义 tab bar（AI sheet 打开时）
+  TAB_BAR_SHOW: 'tabbar:show',              // 重新显示 tab bar
 } as const;

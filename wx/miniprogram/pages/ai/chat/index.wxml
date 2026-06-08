@@ -1,5 +1,171 @@
-<view class="placeholder-page">
-  <view class="emoji">💬</view>
-  <view class="title">AI 对话</view>
-  <view class="desc">阶段 6 接入 SSE 流式聊天</view>
+<view class="chat">
+  <custom-navbar showBack="{{false}}">
+    <view slot="left" class="chat__back" bindtap="onBack">
+      <image class="chat__back-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+    </view>
+    <view slot="title" class="chat__head-title">
+      <view class="chat__head-avatar">
+        <image class="chat__head-avatar-img" src="/assets/mascot/bao-default.png" mode="aspectFit" />
+      </view>
+      <view class="chat__head-text">
+        <text class="chat__head-name">厨艺助理 AI</text>
+        <view class="chat__head-sub">
+          <view class="chat__head-dot"></view>
+          <text>在线 · 随时为你出主意</text>
+        </view>
+      </view>
+    </view>
+    <view slot="right" class="chat__head-actions">
+      <view class="chat__history" bindtap="onOpenHistory">
+        <image class="chat__history-icon" src="/assets/icons/clock.png" mode="aspectFit" />
+      </view>
+      <view class="chat__new" bindtap="onNew">
+        <text>+</text>
+      </view>
+    </view>
+  </custom-navbar>
+
+  <scroll-view
+    class="chat__body"
+    scroll-y
+    scroll-into-view="{{scrollToView}}"
+    enhanced="{{true}}"
+    show-scrollbar="{{false}}"
+  >
+    <!-- 空态：mascot greeting + 2x2 + 3 suggestion -->
+    <view wx:if="{{!messages.length}}" class="chat__empty">
+      <view class="chat__greet">
+        <view class="chat__greet-mascot">
+          <image class="chat__greet-mascot-img" src="/assets/mascot/bao-default.png" mode="aspectFit" />
+        </view>
+        <view class="chat__greet-bubble">
+          你好！我是你的厨艺助理 包包 👋 不知道吃什么？拍张冰箱照，我来帮你出主意～
+        </view>
+      </view>
+
+      <view class="chat__quick">
+        <view
+          wx:for="{{quickActions}}"
+          wx:key="id"
+          class="chat__quick-card"
+          data-id="{{item.id}}"
+          bindtap="onQuickTap"
+        >
+          <view class="chat__quick-icon">
+            <image class="chat__quick-icon-img" src="{{item.iconSrc}}" mode="aspectFit" />
+          </view>
+          <view class="chat__quick-text">
+            <text class="chat__quick-label">{{item.label}}</text>
+            <text class="chat__quick-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="chat__suggest-head">
+        <text>✦ 你也可以这样问我</text>
+      </view>
+      <view class="chat__suggest-list">
+        <view
+          wx:for="{{suggestions}}"
+          wx:key="*this"
+          class="chat__suggest-item"
+          data-text="{{item}}"
+          bindtap="onSuggestionTap"
+        >
+          <text>{{item}}</text>
+          <text class="chat__suggest-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 消息列表 -->
+    <block wx:for="{{messages}}" wx:key="client_id" wx:for-item="msg">
+      <view id="m-{{msg.client_id}}" class="chat__msg chat__msg--{{msg.role}}">
+        <view wx:if="{{msg.role === 'assistant'}}" class="chat__avatar">
+          <image class="chat__avatar-img" src="/assets/mascot/bao-default.png" mode="aspectFit" />
+        </view>
+        <view class="chat__bubble">
+          <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
+            <view wx:if="{{seg.kind === 'text'}}" class="chat__text">{{seg.content}}</view>
+            <view wx:elif="{{seg.kind === 'reasoning'}}" class="chat__reasoning">
+              <view class="chat__reasoning-head">
+                <view class="chat__reasoning-dot"></view>
+                <text class="chat__reasoning-label">推理过程</text>
+              </view>
+              <text class="chat__reasoning-text">{{seg.content}}</text>
+            </view>
+            <view wx:elif="{{seg.kind === 'tool_call'}}" class="chat__tool">
+              <view class="chat__tool-dot"></view>
+              <text>调用 {{seg.tool_name}}</text>
+            </view>
+            <view wx:elif="{{seg.kind === 'agent'}}" class="chat__agent">
+              <view class="chat__agent-dot"></view>
+              <text>{{seg.content}}</text>
+            </view>
+            <view wx:elif="{{seg.kind === 'recipe_card'}}" class="chat__recipe" data-id="{{seg.recipe_id}}" bindtap="onRecipeCardTap">
+              <view class="chat__recipe-cover chat__recipe-cover--ph">
+                <image wx:if="{{seg.cover_image_url}}" class="chat__recipe-cover-img" src="{{seg.cover_image_url}}" mode="aspectFill" />
+              </view>
+              <view class="chat__recipe-body">
+                <view class="chat__recipe-title">{{seg.title}}</view>
+                <view class="chat__recipe-summary">{{seg.summary || ''}}</view>
+                <view class="chat__recipe-cta">查看详情 ›</view>
+              </view>
+            </view>
+            <view wx:elif="{{seg.kind === 'approval'}}" class="chat__approval">
+              <text class="chat__approval-prompt">{{seg.prompt}}</text>
+            </view>
+            <view wx:elif="{{seg.kind === 'sources'}}" class="chat__sources">
+              <text class="chat__sources-head">参考来源</text>
+              <scroll-view scroll-x class="chat__sources-scroll">
+                <view class="chat__sources-row">
+                  <view
+                    wx:for="{{seg.sources}}"
+                    wx:for-item="src"
+                    wx:key="title"
+                    class="chat__source-card"
+                  >
+                    <text class="chat__source-title">{{src.title}}</text>
+                    <text wx:if="{{src.snippet}}" class="chat__source-snippet">{{src.snippet}}</text>
+                  </view>
+                </view>
+              </scroll-view>
+            </view>
+            <view wx:elif="{{seg.kind === 'status'}}" class="chat__status">{{seg.message}}</view>
+            <view wx:elif="{{seg.kind === 'error'}}" class="chat__error">⚠ {{seg.message}}</view>
+          </block>
+          <view wx:if="{{msg.status === 'streaming' && !msg.segments.length}}" class="chat__typing">
+            <text>包包正在思考</text>
+            <text class="chat__typing-dots">...</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="chat__bottom-spacer"></view>
+  </scroll-view>
+
+  <view class="chat__modes">
+    <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:tap="onToggleReasoning" />
+    <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:tap="onToggleWebSearch" />
+    <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:tap="onToggleImageRecipe" />
+  </view>
+
+  <view class="chat__input">
+    <view class="chat__input-mic {{recording ? 'chat__input-mic--rec' : ''}}" bindtap="onMicTap">
+      <image class="chat__input-mic-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+    </view>
+    <input
+      class="chat__input-field"
+      placeholder="说点什么，或长按语音…"
+      value="{{text}}"
+      bindinput="onInputChange"
+      confirm-type="send"
+      bindconfirm="onSendTap"
+    />
+    <view wx:if="{{streaming}}" class="chat__input-stop" bindtap="onAbort">■</view>
+    <view wx:else class="chat__input-send" bindtap="onSendTap">
+      <image class="chat__input-send-icon" src="/assets/icons/send.svg" mode="aspectFit" />
+    </view>
+  </view>
 </view>

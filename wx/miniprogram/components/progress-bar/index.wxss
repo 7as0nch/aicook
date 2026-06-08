@@ -1,0 +1,14 @@
+.pb {
+  width: 100%;
+  height: 12rpx;
+  border-radius: 9999rpx;
+  background: var(--color-bg-soft);
+  overflow: hidden;
+}
+
+.pb__fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 9999rpx;
+  transition: width 0.3s ease;
+}

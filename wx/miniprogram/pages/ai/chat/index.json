@@ -1,1 +1,8 @@
-{ "usingComponents": {}, "navigationBarTitleText": "AI 对话" }
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "custom-navbar": "/components/custom-navbar/index",
+    "mode-chip": "/components/mode-chip/index",
+    "mascot-bubble": "/components/mascot-bubble/index"
+  }
+}

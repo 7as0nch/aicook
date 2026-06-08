@@ -19,12 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RecipeService_ListRecipes_FullMethodName       = "/aicook.v1.RecipeService/ListRecipes"
-	RecipeService_GetRecipeDetail_FullMethodName   = "/aicook.v1.RecipeService/GetRecipeDetail"
-	RecipeService_CreateRecipeDraft_FullMethodName = "/aicook.v1.RecipeService/CreateRecipeDraft"
-	RecipeService_UpdateRecipe_FullMethodName      = "/aicook.v1.RecipeService/UpdateRecipe"
-	RecipeService_DeleteRecipe_FullMethodName      = "/aicook.v1.RecipeService/DeleteRecipe"
-	RecipeService_ListTodayRecipes_FullMethodName  = "/aicook.v1.RecipeService/ListTodayRecipes"
+	RecipeService_ListRecipes_FullMethodName          = "/aicook.v1.RecipeService/ListRecipes"
+	RecipeService_GetRecipeDetail_FullMethodName      = "/aicook.v1.RecipeService/GetRecipeDetail"
+	RecipeService_CreateRecipeDraft_FullMethodName    = "/aicook.v1.RecipeService/CreateRecipeDraft"
+	RecipeService_UpdateRecipe_FullMethodName         = "/aicook.v1.RecipeService/UpdateRecipe"
+	RecipeService_DeleteRecipe_FullMethodName         = "/aicook.v1.RecipeService/DeleteRecipe"
+	RecipeService_ListTodayRecipes_FullMethodName     = "/aicook.v1.RecipeService/ListTodayRecipes"
+	RecipeService_AddRecipeFavorite_FullMethodName    = "/aicook.v1.RecipeService/AddRecipeFavorite"
+	RecipeService_RemoveRecipeFavorite_FullMethodName = "/aicook.v1.RecipeService/RemoveRecipeFavorite"
+	RecipeService_ListMyFavorites_FullMethodName      = "/aicook.v1.RecipeService/ListMyFavorites"
 )
 
 // RecipeServiceClient is the client API for RecipeService service.
@@ -38,6 +41,9 @@ type RecipeServiceClient interface {
 	DeleteRecipe(ctx context.Context, in *DeleteRecipeRequest, opts ...grpc.CallOption) (*DeleteRecipeReply, error)
 	// ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
 	ListTodayRecipes(ctx context.Context, in *ListTodayRecipesRequest, opts ...grpc.CallOption) (*ListTodayRecipesReply, error)
+	AddRecipeFavorite(ctx context.Context, in *AddRecipeFavoriteRequest, opts ...grpc.CallOption) (*AddRecipeFavoriteReply, error)
+	RemoveRecipeFavorite(ctx context.Context, in *RemoveRecipeFavoriteRequest, opts ...grpc.CallOption) (*RemoveRecipeFavoriteReply, error)
+	ListMyFavorites(ctx context.Context, in *ListMyFavoritesRequest, opts ...grpc.CallOption) (*ListMyFavoritesReply, error)
 }
 
 type recipeServiceClient struct {
@@ -108,6 +114,36 @@ func (c *recipeServiceClient) ListTodayRecipes(ctx context.Context, in *ListToda
 	return out, nil
 }
 
+func (c *recipeServiceClient) AddRecipeFavorite(ctx context.Context, in *AddRecipeFavoriteRequest, opts ...grpc.CallOption) (*AddRecipeFavoriteReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddRecipeFavoriteReply)
+	err := c.cc.Invoke(ctx, RecipeService_AddRecipeFavorite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recipeServiceClient) RemoveRecipeFavorite(ctx context.Context, in *RemoveRecipeFavoriteRequest, opts ...grpc.CallOption) (*RemoveRecipeFavoriteReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveRecipeFavoriteReply)
+	err := c.cc.Invoke(ctx, RecipeService_RemoveRecipeFavorite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recipeServiceClient) ListMyFavorites(ctx context.Context, in *ListMyFavoritesRequest, opts ...grpc.CallOption) (*ListMyFavoritesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMyFavoritesReply)
+	err := c.cc.Invoke(ctx, RecipeService_ListMyFavorites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RecipeServiceServer is the server API for RecipeService service.
 // All implementations should embed UnimplementedRecipeServiceServer
 // for forward compatibility.
@@ -119,6 +155,9 @@ type RecipeServiceServer interface {
 	DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error)
 	// ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
 	ListTodayRecipes(context.Context, *ListTodayRecipesRequest) (*ListTodayRecipesReply, error)
+	AddRecipeFavorite(context.Context, *AddRecipeFavoriteRequest) (*AddRecipeFavoriteReply, error)
+	RemoveRecipeFavorite(context.Context, *RemoveRecipeFavoriteRequest) (*RemoveRecipeFavoriteReply, error)
+	ListMyFavorites(context.Context, *ListMyFavoritesRequest) (*ListMyFavoritesReply, error)
 }
 
 // UnimplementedRecipeServiceServer should be embedded to have
@@ -145,6 +184,15 @@ func (UnimplementedRecipeServiceServer) DeleteRecipe(context.Context, *DeleteRec
 }
 func (UnimplementedRecipeServiceServer) ListTodayRecipes(context.Context, *ListTodayRecipesRequest) (*ListTodayRecipesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTodayRecipes not implemented")
+}
+func (UnimplementedRecipeServiceServer) AddRecipeFavorite(context.Context, *AddRecipeFavoriteRequest) (*AddRecipeFavoriteReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddRecipeFavorite not implemented")
+}
+func (UnimplementedRecipeServiceServer) RemoveRecipeFavorite(context.Context, *RemoveRecipeFavoriteRequest) (*RemoveRecipeFavoriteReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveRecipeFavorite not implemented")
+}
+func (UnimplementedRecipeServiceServer) ListMyFavorites(context.Context, *ListMyFavoritesRequest) (*ListMyFavoritesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMyFavorites not implemented")
 }
 func (UnimplementedRecipeServiceServer) testEmbeddedByValue() {}
 
@@ -274,6 +322,60 @@ func _RecipeService_ListTodayRecipes_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecipeService_AddRecipeFavorite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRecipeFavoriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).AddRecipeFavorite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_AddRecipeFavorite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).AddRecipeFavorite(ctx, req.(*AddRecipeFavoriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecipeService_RemoveRecipeFavorite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveRecipeFavoriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).RemoveRecipeFavorite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_RemoveRecipeFavorite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).RemoveRecipeFavorite(ctx, req.(*RemoveRecipeFavoriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecipeService_ListMyFavorites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMyFavoritesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).ListMyFavorites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_ListMyFavorites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).ListMyFavorites(ctx, req.(*ListMyFavoritesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RecipeService_ServiceDesc is the grpc.ServiceDesc for RecipeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +406,18 @@ var RecipeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTodayRecipes",
 			Handler:    _RecipeService_ListTodayRecipes_Handler,
+		},
+		{
+			MethodName: "AddRecipeFavorite",
+			Handler:    _RecipeService_AddRecipeFavorite_Handler,
+		},
+		{
+			MethodName: "RemoveRecipeFavorite",
+			Handler:    _RecipeService_RemoveRecipeFavorite_Handler,
+		},
+		{
+			MethodName: "ListMyFavorites",
+			Handler:    _RecipeService_ListMyFavorites_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

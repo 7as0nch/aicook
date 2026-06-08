@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	gca "github.com/7as0nch/gocommon/auth"
 	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/utils"
@@ -16,7 +17,7 @@ import (
 type AuthUsecase struct {
 	repo      *data.AuthRepo
 	mediaRepo *data.MediaRepo
-	tokenRepo auth.AuthRepo
+	tokenRepo gca.AuthRepo
 }
 
 type RegisterRequest struct {
@@ -35,7 +36,7 @@ type AuthResult struct {
 	Households       []*data.Household
 }
 
-func NewAuthUsecase(repo *data.AuthRepo, mediaRepo *data.MediaRepo, tokenRepo auth.AuthRepo) *AuthUsecase {
+func NewAuthUsecase(repo *data.AuthRepo, mediaRepo *data.MediaRepo, tokenRepo gca.AuthRepo) *AuthUsecase {
 	return &AuthUsecase{repo: repo, mediaRepo: mediaRepo, tokenRepo: tokenRepo}
 }
 
@@ -85,7 +86,102 @@ func (u *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*AuthR
 	if err != nil {
 		return nil, err
 	}
-	token, err := u.tokenRepo.NewToken(ctx, user.ID, household.ID, user.Username, user.Phone)
+	token, err := u.tokenRepo.NewTokenWithClaims(ctx, &auth.JwtClaims{
+		UserId:      user.ID,
+		HouseholdId: household.ID,
+		UserName:    user.Username,
+		UserPhone:   user.Phone,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{
+		Token:            token,
+		User:             user,
+		CurrentHousehold: household,
+		Households:       households,
+	}, nil
+}
+
+// LoginByWx 通过微信 openid 登录/注册：
+//   - openid 已绑定用户 → 直接签 JWT
+//   - 否则新建 household + user（username = "wx_<openid>"，密码留空可登），并绑定 openid
+func (u *AuthUsecase) LoginByWx(ctx context.Context, openid, unionid, nickname, avatarURL string) (*AuthResult, error) {
+	openid = strings.TrimSpace(openid)
+	if openid == "" {
+		return nil, fmt.Errorf("openid is required")
+	}
+	existing, err := u.repo.FindUserByWxOpenid(ctx, openid)
+	if err == nil && existing != nil {
+		// 老用户：直接签 token
+		current, err := u.repo.GetHousehold(ctx, existing.HouseholdID)
+		if err != nil {
+			return nil, err
+		}
+		households, err := u.repo.ListHouseholdsByUser(ctx, existing.ID)
+		if err != nil {
+			return nil, err
+		}
+		token, err := u.tokenRepo.NewTokenWithClaims(ctx, &auth.JwtClaims{
+			UserId:      existing.ID,
+			HouseholdId: current.ID,
+			UserName:    existing.Username,
+			UserPhone:   existing.Phone,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &AuthResult{
+			Token:            token,
+			User:             existing,
+			CurrentHousehold: current,
+			Households:       households,
+		}, nil
+	} else if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	// 新用户：创建 household + user
+	displayName := strings.TrimSpace(nickname)
+	if displayName == "" {
+		displayName = "微信用户"
+	}
+	username := "wx_" + openid
+	if len(username) > 60 {
+		username = username[:60]
+	}
+	// 微信登录用户的密码留随机值（不允许密码登录）
+	randPwd, _ := bcrypt.GenerateFromPassword([]byte(utils.GetSFIDBase62()+utils.GetSFIDBase62()), bcrypt.DefaultCost)
+
+	household := &data.Household{
+		BaseModel:   data.BaseModel{ID: utils.GetSFID()},
+		Name:        displayName + "的厨房",
+		ShareCode:   utils.GetSFIDBase62(),
+		Timezone:    "Asia/Shanghai",
+		Preferences: nil,
+	}
+	user := &data.User{
+		BaseModel:    data.BaseModel{ID: utils.GetSFID()},
+		Username:     username,
+		PasswordHash: string(randPwd),
+		DisplayName:  displayName,
+		Status:       "active",
+		WxOpenid:     openid,
+		WxUnionid:    strings.TrimSpace(unionid),
+	}
+	if err := u.repo.CreateUserWithHousehold(ctx, household, user, "owner"); err != nil {
+		return nil, err
+	}
+	households, err := u.repo.ListHouseholdsByUser(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := u.tokenRepo.NewTokenWithClaims(ctx, &auth.JwtClaims{
+		UserId:      user.ID,
+		HouseholdId: household.ID,
+		UserName:    user.Username,
+		UserPhone:   user.Phone,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +209,12 @@ func (u *AuthUsecase) Login(ctx context.Context, username, password string) (*Au
 	if err != nil {
 		return nil, err
 	}
-	token, err := u.tokenRepo.NewToken(ctx, user.ID, current.ID, user.Username, user.Phone)
+	token, err := u.tokenRepo.NewTokenWithClaims(ctx, &auth.JwtClaims{
+		UserId:      user.ID,
+		HouseholdId: current.ID,
+		UserName:    user.Username,
+		UserPhone:   user.Phone,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +316,12 @@ func (u *AuthUsecase) SwitchHousehold(ctx context.Context, actor Actor, househol
 	if err != nil {
 		return nil, err
 	}
-	token, err := u.tokenRepo.NewToken(ctx, user.ID, householdID, user.Username, user.Phone)
+	token, err := u.tokenRepo.NewTokenWithClaims(ctx, &auth.JwtClaims{
+		UserId:      user.ID,
+		HouseholdId: householdID,
+		UserName:    user.Username,
+		UserPhone:   user.Phone,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +346,12 @@ func (u *AuthUsecase) CreateHousehold(ctx context.Context, actor Actor, name str
 	if err != nil {
 		return nil, err
 	}
-	token, err := u.tokenRepo.NewToken(ctx, actor.UserID, household.ID, user.Username, user.Phone)
+	token, err := u.tokenRepo.NewTokenWithClaims(ctx, &auth.JwtClaims{
+		UserId:      actor.UserID,
+		HouseholdId: household.ID,
+		UserName:    user.Username,
+		UserPhone:   user.Phone,
+	})
 	if err != nil {
 		return nil, err
 	}

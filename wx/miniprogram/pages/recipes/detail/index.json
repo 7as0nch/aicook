@@ -1,7 +1,10 @@
 {
   "usingComponents": {
     "ai-fab": "/components/ai-fab/index",
-    "ai-sheet": "/components/ai-sheet/index"
+    "ai-sheet": "/components/ai-sheet/index",
+    "match-badge": "/components/match-badge/index",
+    "ingredient-pill": "/components/ingredient-pill/index"
   },
-  "navigationBarTitleText": "菜谱详情"
+  "navigationBarTitleText": "菜谱详情",
+  "navigationStyle": "custom"
 }

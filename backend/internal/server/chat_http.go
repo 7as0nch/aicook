@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	gca "github.com/7as0nch/gocommon/auth"
 	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/biz"
 	"github.com/chengjiang/aicook/backend/internal/data"
@@ -18,7 +19,7 @@ import (
 type AIChatHandler struct {
 	usecase   *biz.AIUsecase
 	knowledge *biz.KnowledgeUsecase
-	authRepo  auth.AuthRepo
+	authRepo  gca.AuthRepo
 }
 
 type chatSessionID string
@@ -68,7 +69,7 @@ func (id chatSessionID) Int64() (int64, error) {
 	return strconv.ParseInt(string(id), 10, 64)
 }
 
-func NewAIChatHandler(usecase *biz.AIUsecase, knowledge *biz.KnowledgeUsecase, authRepo auth.AuthRepo) *AIChatHandler {
+func NewAIChatHandler(usecase *biz.AIUsecase, knowledge *biz.KnowledgeUsecase, authRepo gca.AuthRepo) *AIChatHandler {
 	return &AIChatHandler{
 		usecase:   usecase,
 		knowledge: knowledge,
@@ -419,9 +420,10 @@ func (h *AIChatHandler) handleListMessages(w http.ResponseWriter, r *http.Reques
 
 func (h *AIChatHandler) authContext(r *http.Request) context.Context {
 	ctx := r.Context()
-	if token := strings.TrimSpace(r.Header.Get(auth.AuthorizationKey)); token != "" {
-		if claims, err := h.authRepo.CheckToken(ctx, token); err == nil && claims != nil {
-			ctx = auth.NewContext(ctx, claims)
+	if token := strings.TrimSpace(r.Header.Get(gca.AuthorizationKey)); token != "" {
+		claims := &auth.JwtClaims{}
+		if err := h.authRepo.CheckTokenWithClaims(ctx, token, claims); err == nil {
+			ctx = gca.NewContext(ctx, claims)
 		}
 	}
 	return ctx

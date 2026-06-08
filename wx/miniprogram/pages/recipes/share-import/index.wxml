@@ -1,0 +1,55 @@
+<view class="si">
+  <view class="si__navbar">
+    <view class="si__nav-btn" bindtap="onBack">
+      <image class="si__nav-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+    </view>
+    <view class="si__nav-title">分享菜谱</view>
+    <view class="si__nav-placeholder"></view>
+  </view>
+
+  <view wx:if="{{loading}}" class="si__loading">加载中…</view>
+
+  <view wx:elif="{{error}}" class="si__error">
+    <image class="si__error-icon" src="/assets/icons/inbox.svg" mode="aspectFit" />
+    <text class="si__error-text">{{error}}</text>
+    <view class="si__error-cta" bindtap="onBack">返回</view>
+  </view>
+
+  <block wx:elif="{{detail}}">
+    <!-- Hero -->
+    <view class="si__hero">
+      <image wx:if="{{detail.recipe.cover_image_url}}" class="si__hero-img" src="{{detail.recipe.cover_image_url}}" mode="aspectFill" />
+      <view class="si__hero-meta">
+        <text class="si__hero-title">{{detail.recipe.title}}</text>
+        <view class="si__hero-row">
+          <text wx:if="{{detail.recipe.category}}">{{detail.recipe.category}}</text>
+          <text wx:if="{{detail.recipe.total_minutes}}"> · {{detail.recipe.total_minutes}}分钟</text>
+          <text wx:if="{{detail.ingredients.length}}"> · {{detail.ingredients.length}}种食材</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 简介 -->
+    <view wx:if="{{detail.recipe.summary}}" class="si__section">
+      <view class="si__section-title">简介</view>
+      <text class="si__summary">{{detail.recipe.summary}}</text>
+    </view>
+
+    <!-- 食材预览 -->
+    <view wx:if="{{detail.ingredients.length}}" class="si__section">
+      <view class="si__section-title">主要食材</view>
+      <view class="si__ingredients">
+        <view wx:for="{{detail.ingredients}}" wx:key="id" class="si__ing-chip">{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="si__spacer"></view>
+
+    <!-- 底部 CTA -->
+    <view class="si__bottom">
+      <view class="si__import {{importing ? 'si__import--loading' : ''}}" bindtap="onImport">
+        <text>{{importing ? '导入中…' : '加入我的菜谱'}}</text>
+      </view>
+    </view>
+  </block>
+</view>

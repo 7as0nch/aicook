@@ -1,7 +1,7 @@
 // SSE 流式封装
 // 后端 /chat/send 是 POST + SSE，事件帧格式：
 //   event: answer_delta\n
-//   data: {"text":"...","seq":1}\n
+//   data: {"content":"...","seq":1,"part_type":"text"}\n
 //   \n
 // 微信小程序通过 wx.request({enableChunked: true}) + onChunkReceived 接收流。
 // 本模块负责：拼装请求、读 chunk、按 \n\n 切帧、按 event/data 解析为对象，回调上层。
@@ -10,6 +10,7 @@ import { prepareRaw } from './http';
 
 // SSE 事件类型（与后端 chat_http.go 中的 SSE writer 对齐）
 export type SSEEventType =
+  | 'start'
   | 'answer_delta'
   | 'reasoning_delta'
   | 'status_delta'
@@ -96,7 +97,8 @@ function parseFrame(raw: string): SSEEvent | null {
     if (line.startsWith('event:')) {
       event = line.slice(6).trim();
     } else if (line.startsWith('data:')) {
-      data += line.slice(5).trim();
+      // 注意：不能用 trim()，否则会丢弃 SSE 数据本身的空白
+      data += line.slice(5).replace(/^\s/, '');
     }
   }
   if (!event) return null;
@@ -109,11 +111,54 @@ function parseFrame(raw: string): SSEEvent | null {
   return { event: event as SSEEventType, data: parsed, raw };
 }
 
+// 简单 SDKVersion 比较；返回 a-b 的符号
+function compareVersion(a: string, b: string): number {
+  const av = (a || '0.0.0').split('.').map((x) => Number(x) || 0);
+  const bv = (b || '0.0.0').split('.').map((x) => Number(x) || 0);
+  for (let i = 0; i < Math.max(av.length, bv.length); i++) {
+    const ai = av[i] || 0;
+    const bi = bv[i] || 0;
+    if (ai !== bi) return ai - bi;
+  }
+  return 0;
+}
+
+let _sdkChecked = false;
+function ensureSDKVersion(): boolean {
+  if (_sdkChecked) return true;
+  try {
+    const info = wx.getSystemInfoSync();
+    if (compareVersion(info.SDKVersion || '0.0.0', '2.10.0') < 0) {
+      wx.showModal({
+        title: '版本过低',
+        content: `当前微信基础库 ${info.SDKVersion} 不支持流式聊天，请升级微信到最新版`,
+        showCancel: false,
+      });
+      return false;
+    }
+  } catch (_) {
+    // ignore
+  }
+  _sdkChecked = true;
+  return true;
+}
+
 // 发起一次流式 chat 请求
 export function chatStream(req: ChatSendRequest, handlers: SSEHandlers): SSETask {
-  const prep = prepareRaw('/chat/send', { Accept: 'text/event-stream' });
+  if (!ensureSDKVersion()) {
+    const err = { code: -2, message: 'SDKVersion 过低，无法发送' };
+    handlers.onError?.(err);
+    return { abort: () => {} };
+  }
+  const prep = prepareRaw('/chat/send', {
+    Accept: 'text/event-stream',
+    'Content-Type': 'application/json',
+  });
   let buffer = '';
   let aborted = false;
+  let receivedAnyChunk = false;
+
+  console.debug('[chatStream] POST', prep.url, JSON.stringify({ ...req, attachments: req.attachments ? `(${req.attachments.length})` : undefined }));
 
   const task = wx.request({
     url: prep.url,
@@ -122,20 +167,40 @@ export function chatStream(req: ChatSendRequest, handlers: SSEHandlers): SSETask
     data: req as unknown as WechatMiniprogram.IAnyObject,
     enableChunked: true,
     responseType: 'arraybuffer',
-    success: () => {
+    success: (res) => {
       if (aborted) return;
       // 处理 buffer 中残留的最后一帧（如果未以 \n\n 结尾）
       flushBuffer();
+      const status = (res as { statusCode?: number }).statusCode;
+      if (status && status >= 400) {
+        const msg = `HTTP ${status}`;
+        console.error('[chatStream] non-2xx', status, res);
+        wx.showToast({ title: msg, icon: 'none', duration: 3000 });
+        handlers.onError?.({ code: status, message: msg });
+        return;
+      }
+      if (!receivedAnyChunk) {
+        // 后端返回了但没收到任何 chunk，可能是基础库不支持 chunked
+        const msg = '流式响应为空，请检查基础库版本（≥2.10.0）';
+        console.warn('[chatStream] success but no chunk received');
+        wx.showToast({ title: msg, icon: 'none', duration: 3000 });
+        handlers.onError?.({ code: -3, message: msg });
+        return;
+      }
       handlers.onDone?.();
     },
     fail: (err) => {
       if (aborted) return;
-      handlers.onError?.({ code: -1, message: err.errMsg || 'SSE 请求失败' });
+      const msg = err.errMsg || 'AI 请求失败';
+      console.error('[chatStream] fail:', msg, err);
+      wx.showToast({ title: msg, icon: 'none', duration: 3000 });
+      handlers.onError?.({ code: -1, message: msg });
     },
   });
 
   const onChunk = (res: { data: ArrayBuffer }): void => {
     if (aborted) return;
+    receivedAnyChunk = true;
     buffer += decodeChunk(res.data);
     let idx: number;
     while ((idx = buffer.indexOf('\n\n')) >= 0) {
@@ -144,6 +209,7 @@ export function chatStream(req: ChatSendRequest, handlers: SSEHandlers): SSETask
       if (!frame.trim()) continue;
       const ev = parseFrame(frame);
       if (ev) {
+        console.debug('[SSE]', ev.event, ev.data);
         handlers.onEvent(ev);
       }
     }
@@ -152,7 +218,10 @@ export function chatStream(req: ChatSendRequest, handlers: SSEHandlers): SSETask
   const flushBuffer = (): void => {
     if (!buffer.trim()) return;
     const ev = parseFrame(buffer);
-    if (ev) handlers.onEvent(ev);
+    if (ev) {
+      console.debug('[SSE flush]', ev.event, ev.data);
+      handlers.onEvent(ev);
+    }
     buffer = '';
   };
 

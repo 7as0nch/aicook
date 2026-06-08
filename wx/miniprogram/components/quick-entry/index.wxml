@@ -1,0 +1,7 @@
+<view class="qe" bindtap="onTap">
+  <view class="qe__icon qe__icon--{{theme}}">
+    <image wx:if="{{iconSrc}}" class="qe__icon-img" src="{{iconSrc}}" mode="aspectFit" />
+    <text wx:else class="qe__icon-emoji">{{icon}}</text>
+  </view>
+  <view class="qe__label">{{label}}</view>
+</view>
