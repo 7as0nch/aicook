@@ -1,6 +1,7 @@
 // 菜谱列表（Tab 2）
 // 设计稿：搜索 + 标签筛选 + 今日常做 + 按类型浏览网格 + 我的菜谱入口
 import { recipeApi } from '../../../services/recipe.api';
+import { hasToken } from '../../../utils/auth-guard';
 import type { Recipe, TodayRecipe } from '../../../types/api';
 
 interface FilterTag { id: string; text: string; tag?: string; }
@@ -39,16 +40,15 @@ Page({
   },
 
   onShow() {
-    this.getTabBar?.()?.setData({ selected: 1 });
-    // 推迟下一帧，让 tab 切换先渲染
-    setTimeout(() => {
-      const now = Date.now();
-      const last = (this as unknown as { _lastLoadAt?: number })._lastLoadAt || 0;
-      if (this.data.todayPicks.length === 0 || now - last > 30000) {
-        (this as unknown as { _lastLoadAt?: number })._lastLoadAt = Date.now();
-        void this.loadAll();
-      }
-    }, 0);
+    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    // 未登录早退（app.ts onLaunch 兜底跳登录页）
+    if (!hasToken()) return;
+    const now = Date.now();
+    const last = (this as unknown as { _lastLoadAt?: number })._lastLoadAt || 0;
+    if (this.data.todayPicks.length === 0 || now - last > 30000) {
+      (this as unknown as { _lastLoadAt?: number })._lastLoadAt = now;
+      void this.loadAll();
+    }
   },
 
   async onPullDownRefresh() {
@@ -57,6 +57,7 @@ Page({
   },
 
   async loadAll() {
+    if (!hasToken()) return;
     this.setData({ loading: true });
     try {
       const [todayRes, listRes, favRes] = await Promise.all([

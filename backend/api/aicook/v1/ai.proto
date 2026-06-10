@@ -82,11 +82,15 @@ message ListSessionsReply {
 message ListMessagesRequest {
   int64 session_id = 1;
   int32 limit = 2;
+  // 游标分页：返回 ID < before_message_id 的消息（按创建时间倒序）。0 表示从最新一页开始。
+  int64 before_message_id = 3;
 }
 
 message ListMessagesReply {
   AISession session = 1;
   repeated AIMessage messages = 2;
+  // 是否还有更早的消息可以继续往前翻
+  bool has_more = 3;
 }
 
 message DeleteSessionRequest {

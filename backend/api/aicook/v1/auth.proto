@@ -22,6 +22,16 @@ service AuthService {
     };
   }
 
+  // WxLogin 用 wx.login 拿到的 code 走 jscode2session 换 openid，
+  // 已注册账号直接签 JWT，否则自动创建 household + user。
+  // 后端 wechat.appid/secret 配置缺失时返回 503。
+  rpc WxLogin(WxLoginRequest) returns (AuthReply) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/wx-login"
+      body: "*"
+    };
+  }
+
   rpc GetMe(GetMeRequest) returns (GetMeReply) {
     option (google.api.http) = {
       get: "/api/v1/auth/me"
@@ -61,6 +71,15 @@ message RegisterRequest {
 message LoginRequest {
   string username = 1;
   string password = 2;
+}
+
+message WxLoginRequest {
+  // wx.login 返回的 code（jscode2session 必填）
+  string code = 1;
+  // 选填：wx.getUserProfile 拿到的昵称，仅个人开发者可用
+  string nickname = 2;
+  // 选填：wx.getUserProfile 拿到的头像 URL
+  string avatar_url = 3;
 }
 
 message GetMeRequest {}

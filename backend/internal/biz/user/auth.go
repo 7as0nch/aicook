@@ -1,4 +1,4 @@
-package biz
+package user
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	gca "github.com/7as0nch/gocommon/auth"
 	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/utils"
 )
 
@@ -105,7 +106,10 @@ func (u *AuthUsecase) Register(ctx context.Context, req RegisterRequest) (*AuthR
 
 // LoginByWx 通过微信 openid 登录/注册：
 //   - openid 已绑定用户 → 直接签 JWT
-//   - 否则新建 household + user（username = "wx_<openid>"，密码留空可登），并绑定 openid
+//   - 否则新建 household + user：
+//     · username = "wx_<base62-snowflake>"（不含 openid，避免前端可见即泄露）
+//     · display_name 优先用 wx.getUserProfile 拿到的昵称；为空时兜底「用户」
+//     · 头像 URL 若 wx.getUserProfile 拿到则落库（avatar_url）
 func (u *AuthUsecase) LoginByWx(ctx context.Context, openid, unionid, nickname, avatarURL string) (*AuthResult, error) {
 	openid = strings.TrimSpace(openid)
 	if openid == "" {
@@ -114,6 +118,14 @@ func (u *AuthUsecase) LoginByWx(ctx context.Context, openid, unionid, nickname, 
 	existing, err := u.repo.FindUserByWxOpenid(ctx, openid)
 	if err == nil && existing != nil {
 		// 老用户：直接签 token
+		// 微信头像 URL 会过期 / 用户也可能改头像，每次登录都尽量同步一次。
+		// 仅在没有自上传头像（AvatarAssetID 为空）时回写，避免覆盖用户主动上传的头像。
+		newAvatar := strings.TrimSpace(avatarURL)
+		if newAvatar != "" && newAvatar != existing.AvatarURL && (existing.AvatarAssetID == nil || *existing.AvatarAssetID == 0) {
+			existing.AvatarURL = newAvatar
+			// 非关键路径：失败不阻断登录
+			_ = u.repo.UpdateUser(ctx, existing.ID, map[string]any{"avatar_url": newAvatar})
+		}
 		current, err := u.repo.GetHousehold(ctx, existing.HouseholdID)
 		if err != nil {
 			return nil, err
@@ -142,16 +154,18 @@ func (u *AuthUsecase) LoginByWx(ctx context.Context, openid, unionid, nickname, 
 	}
 
 	// 新用户：创建 household + user
-	displayName := strings.TrimSpace(nickname)
-	if displayName == "" {
-		displayName = "微信用户"
-	}
-	username := "wx_" + openid
+	// 安全：username 不能含 openid（前端可见 → 等于泄露 openid）；
+	//      改用基于 snowflake 的 base62 串，与 openid 解耦。
+	username := "wx_" + utils.GetSFIDBase62()
 	if len(username) > 60 {
 		username = username[:60]
 	}
+	// 优先用微信昵称，没有时兜底「用户」。
+	displayName := strings.TrimSpace(nickname)
+	if displayName == "" {
+		displayName = "用户"
+	}
 	// 微信登录用户的密码留随机值（不允许密码登录）
-	randPwd, _ := bcrypt.GenerateFromPassword([]byte(utils.GetSFIDBase62()+utils.GetSFIDBase62()), bcrypt.DefaultCost)
 
 	household := &data.Household{
 		BaseModel:   data.BaseModel{ID: utils.GetSFID()},
@@ -163,9 +177,10 @@ func (u *AuthUsecase) LoginByWx(ctx context.Context, openid, unionid, nickname, 
 	user := &data.User{
 		BaseModel:    data.BaseModel{ID: utils.GetSFID()},
 		Username:     username,
-		PasswordHash: string(randPwd),
+		// PasswordHash: string(randPwd),
 		DisplayName:  displayName,
 		Status:       "active",
+		AvatarURL:    strings.TrimSpace(avatarURL),
 		WxOpenid:     openid,
 		WxUnionid:    strings.TrimSpace(unionid),
 	}
@@ -226,7 +241,7 @@ func (u *AuthUsecase) Login(ctx context.Context, username, password string) (*Au
 	}, nil
 }
 
-func (u *AuthUsecase) GetMe(ctx context.Context, actor Actor) (*AuthResult, error) {
+func (u *AuthUsecase) GetMe(ctx context.Context, actor common.Actor) (*AuthResult, error) {
 	user, err := u.repo.GetUser(ctx, actor.UserID)
 	if err != nil {
 		return nil, err
@@ -247,7 +262,7 @@ func (u *AuthUsecase) GetMe(ctx context.Context, actor Actor) (*AuthResult, erro
 }
 
 // UpdateProfile 更新昵称与/或头像 asset（avatar_asset_id 为 0 且字段已设置时表示清空）。
-func (u *AuthUsecase) UpdateProfile(ctx context.Context, actor Actor, displayName *string, avatarAssetID *int64) (*AuthResult, error) {
+func (u *AuthUsecase) UpdateProfile(ctx context.Context, actor common.Actor, displayName *string, avatarAssetID *int64) (*AuthResult, error) {
 	if displayName == nil && avatarAssetID == nil {
 		return u.GetMe(ctx, actor)
 	}
@@ -296,7 +311,7 @@ func (u *AuthUsecase) ListMyHouseholds(ctx context.Context, userID int64) ([]*da
 	return u.repo.ListHouseholdsByUser(ctx, userID)
 }
 
-func (u *AuthUsecase) SwitchHousehold(ctx context.Context, actor Actor, householdID int64) (*AuthResult, error) {
+func (u *AuthUsecase) SwitchHousehold(ctx context.Context, actor common.Actor, householdID int64) (*AuthResult, error) {
 	ok, err := u.repo.HasMembership(ctx, actor.UserID, householdID)
 	if err != nil {
 		return nil, err
@@ -333,7 +348,7 @@ func (u *AuthUsecase) SwitchHousehold(ctx context.Context, actor Actor, househol
 	}, nil
 }
 
-func (u *AuthUsecase) CreateHousehold(ctx context.Context, actor Actor, name string) (*AuthResult, error) {
+func (u *AuthUsecase) CreateHousehold(ctx context.Context, actor common.Actor, name string) (*AuthResult, error) {
 	household, err := u.repo.CreateHouseholdForUser(ctx, actor.UserID, strings.TrimSpace(name), utils.GetSFIDBase62())
 	if err != nil {
 		return nil, err

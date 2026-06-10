@@ -92,13 +92,18 @@ export async function uploadFile(params: {
   await putToOss(params.tempFilePath, prep);
 
   // Step 3: 通知后端完成
-  const asset = await request<MediaAsset>({
+  // 注意：proto CompleteMediaUploadReply 把 MediaAsset 套在 { asset: {...} } 里，
+  // 不要把整个 response 当成 MediaAsset 用（会拿到 undefined.id → 后续序列化成 "undefined" 字符串）。
+  const reply = await request<{ asset: MediaAsset }>({
     url: `/api/v1/media/uploads/${encodeURIComponent(prep.asset_id)}:complete`,
     method: 'POST',
     data: { asset_id: prep.asset_id },
     loading: false,
   });
-  return asset;
+  if (!reply?.asset?.id) {
+    throw new Error('upload complete: missing asset.id');
+  }
+  return reply.asset;
 }
 
 function extractName(p: string): string {

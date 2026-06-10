@@ -7,14 +7,14 @@ import (
 	"time"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func signRecipeMediaURLs(ctx context.Context, m *biz.MediaUsecase, r *v1.Recipe) {
+func signRecipeMediaURLs(ctx context.Context, m *user.MediaUsecase, r *v1.Recipe) {
 	if m == nil || r == nil {
 		return
 	}
@@ -35,7 +35,7 @@ func signRecipeMediaURLs(ctx context.Context, m *biz.MediaUsecase, r *v1.Recipe)
 	r.GalleryImageUrls = g
 }
 
-func signRecipeStepMediaURLs(ctx context.Context, m *biz.MediaUsecase, s *v1.RecipeStep) {
+func signRecipeStepMediaURLs(ctx context.Context, m *user.MediaUsecase, s *v1.RecipeStep) {
 	if m == nil || s == nil {
 		return
 	}
@@ -56,7 +56,7 @@ func signRecipeStepMediaURLs(ctx context.Context, m *biz.MediaUsecase, s *v1.Rec
 	s.MediaUrls = mediaURLs
 }
 
-func signRecipeDetailMediaURLs(ctx context.Context, m *biz.MediaUsecase, d *v1.RecipeDetail) {
+func signRecipeDetailMediaURLs(ctx context.Context, m *user.MediaUsecase, d *v1.RecipeDetail) {
 	if m == nil || d == nil {
 		return
 	}
@@ -81,17 +81,17 @@ func toProtoRecipe(model *data.Recipe) *v1.Recipe {
 		CoverImageUrl:      model.CoverImageURL,
 		GalleryImageUrls:   data.RecipeGalleryURLs(model),
 		Status:             model.Status,
-		SourceType:    model.SourceType,
-		Language:      model.Language,
-		Category:      model.Category,
-		TotalMinutes:  int32(model.TotalMinutes),
-		Difficulty:    int32(model.Difficulty),
-		ScenarioTags:  jsonArrayToStrings(model.ScenarioTags),
-		FlavorTags:    jsonArrayToStrings(model.FlavorTags),
-		Tools:         jsonArrayToStrings(model.Tools),
-		Metadata:      jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:     toTimestamp(model.CreatedAt),
-		UpdatedAt:     toTimestamp(model.UpdatedAt),
+		SourceType:         model.SourceType,
+		Language:           model.Language,
+		Category:           model.Category,
+		TotalMinutes:       int32(model.TotalMinutes),
+		Difficulty:         int32(model.Difficulty),
+		ScenarioTags:       jsonArrayToStrings(model.ScenarioTags),
+		FlavorTags:         jsonArrayToStrings(model.FlavorTags),
+		Tools:              jsonArrayToStrings(model.Tools),
+		Metadata:           jsonMapToStruct(model.MetadataJSON),
+		CreatedAt:          toTimestamp(model.CreatedAt),
+		UpdatedAt:          toTimestamp(model.UpdatedAt),
 	}
 }
 
@@ -117,7 +117,7 @@ func toProtoHouseholds(items []*data.Household) []*v1.HouseholdSummary {
 	return out
 }
 
-func toProtoUser(ctx context.Context, model *data.User, media *biz.MediaUsecase) *v1.UserProfile {
+func toProtoUser(ctx context.Context, model *data.User, media *user.MediaUsecase) *v1.UserProfile {
 	if model == nil {
 		return nil
 	}
@@ -132,10 +132,14 @@ func toProtoUser(ctx context.Context, model *data.User, media *biz.MediaUsecase)
 		CreatedAt:   toTimestamp(model.CreatedAt),
 		UpdatedAt:   toTimestamp(model.UpdatedAt),
 	}
+	// 优先级：自上传头像（AvatarAssetID → 预签名 URL）> 外部直链（AvatarURL，多为微信默认头像）。
 	if model.AvatarAssetID != nil && *model.AvatarAssetID != 0 && media != nil {
 		if u, err := media.SignedURLForAsset(ctx, *model.AvatarAssetID); err == nil && u != "" {
 			p.AvatarUrl = u
 		}
+	}
+	if p.AvatarUrl == "" && model.AvatarURL != "" {
+		p.AvatarUrl = model.AvatarURL
 	}
 	return p
 }
@@ -318,22 +322,22 @@ func toProtoKnowledgeDocument(model *data.KnowledgeDocument) *v1.KnowledgeDocume
 		return nil
 	}
 	return &v1.KnowledgeDocument{
-		Id:               model.ID,
-		KnowledgeBaseId:  model.KnowledgeBaseID,
-		MediaAssetId:     model.MediaAssetID,
-		Title:            model.Title,
-		FileName:         model.FileName,
-		ContentType:      model.ContentType,
-		Bucket:           model.Bucket,
-		ObjectKey:        model.ObjectKey,
-		Status:           model.Status,
-		TextContent:      model.TextContent,
-		Summary:          model.Summary,
-		Metadata:         jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:        toTimestamp(model.CreatedAt),
-		UpdatedAt:        toTimestamp(model.UpdatedAt),
-		ProcessingStage:  model.ProcessingStage,
-		ChunkCount:       int32(model.ChunkCount),
+		Id:              model.ID,
+		KnowledgeBaseId: model.KnowledgeBaseID,
+		MediaAssetId:    model.MediaAssetID,
+		Title:           model.Title,
+		FileName:        model.FileName,
+		ContentType:     model.ContentType,
+		Bucket:          model.Bucket,
+		ObjectKey:       model.ObjectKey,
+		Status:          model.Status,
+		TextContent:     model.TextContent,
+		Summary:         model.Summary,
+		Metadata:        jsonMapToStruct(model.MetadataJSON),
+		CreatedAt:       toTimestamp(model.CreatedAt),
+		UpdatedAt:       toTimestamp(model.UpdatedAt),
+		ProcessingStage: model.ProcessingStage,
+		ChunkCount:      int32(model.ChunkCount),
 	}
 }
 

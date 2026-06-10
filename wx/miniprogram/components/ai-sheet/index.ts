@@ -1,7 +1,8 @@
 // AI 助理抽屉（厨艺助理 · 设计稿 05）
+// V10 改造：sheet 状态完全托管到 chatStore（visible/expanded/scene/recipeId/quoteContext）
+// 关闭时全局同步，杜绝切页后看到收起动画的残留问题
 // 支持：mid (12vh top) ⇄ full (0 top) 两态吸附拖拽；handle 区域下滑关闭/上滑展开
-// 不跳页：原"展开"按钮改为内部状态切换，全屏聊天复用同一组件的 expanded 态
-import { on, emit, EVENTS } from '../../utils/eventbus';
+import { emit, EVENTS } from '../../utils/eventbus';
 import { createStoreBindings } from 'mobx-miniprogram-bindings';
 import { chatStore } from '../../store/chat.store';
 import { aiApi } from '../../services/ai.api';
@@ -74,88 +75,92 @@ Component({
     context: { type: String, value: '' },
   },
   data: {
-    visible: false,
-    expanded: false,            // 是否展开到全屏
+    // V10：visible/expanded/scene/recipeId/quoteContext 全部从 chatStore 绑定，不在 data 里
     dragging: false,            // 是否正在拖拽
     sheetStyle: '',             // 拖拽期间的 inline transform
     text: '',
     quickActions: QUICK_ACTIONS,
     suggestions: SUGGESTIONS,
     recording: false,
-    streaming: false,
-    reasoningEnabled: false,
-    webSearchEnabled: false,
-    imageRecipeEnabled: false,
     sending: false,
-    scene: '' as string,
-    recipeId: undefined as string | undefined,
-    quoteContext: null as Record<string, unknown> | null,
-    messages: [] as unknown[],
     scrollToView: '',
-    // ↓ 历史浮窗
+    // ↓ 历史浮窗（仍是 sheet 内部交互状态，无需上抬到 store）
     historyVisible: false,
     historyList: [] as Array<{ id: string; title: string; sceneLabel: string; timeLabel: string }>,
     historyLoading: false,
     // ↓ 上次会话恢复卡
     resumeCard: null as null | { id: string; title: string; timeLabel: string },
+    // 以下字段由 storeBindings 注入，data 里仅声明类型给 TS 看：
+    // sheetVisible / sheetExpanded / sheetScene / sheetRecipeId / sheetQuoteContext
+    // streaming / reasoningEnabled / webSearchEnabled / imageRecipeEnabled / messages
   },
   lifetimes: {
     attached() {
-      const self = this as unknown as { __unbind?: () => void; storeBindings?: { destroyStoreBindings: () => void } };
-      const unbind = on(EVENTS.AI_OPEN, (payload?: unknown) => {
-        const p = (payload || {}) as { scene?: string; recipe_id?: string; quote_context?: Record<string, unknown> };
-        this.setData({
-          visible: true,
-          scene: p.scene || '',
-          recipeId: p.recipe_id,
-          quoteContext: p.quote_context || null,
-          // 有历史消息时自动展开
-          expanded: chatStore.messages.length > 0,
-          historyVisible: false,
-        });
-        emit(EVENTS.TAB_BAR_HIDE);
-        forceTabBar(true);
-        this.scrollToBottom();
-        // 没有当前 messages 时检测最近会话，提示用户是否继续
-        if (chatStore.messages.length === 0) {
-          void this.checkResumable();
-        }
-      });
-      self.__unbind = unbind;
+      const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
       self.storeBindings = createStoreBindings(this, {
         store: chatStore,
-        fields: ['streaming', 'reasoningEnabled', 'webSearchEnabled', 'imageRecipeEnabled', 'messages'] as const,
+        fields: [
+          'streaming',
+          'reasoningEnabled',
+          'webSearchEnabled',
+          'imageRecipeEnabled',
+          'messages',
+          // V10: sheet 显示态绑 store
+          'sheetVisible',
+          'sheetExpanded',
+          'sheetScene',
+          'sheetRecipeId',
+          'sheetQuoteContext',
+        ] as const,
         actions: [] as const,
       });
+      // 监听 sheet 打开（其它页面/组件改 chatStore.sheetVisible 后我们要做副作用：藏 tabbar、检查可恢复会话、滚到底）
+      // 用 observe 不方便（mobx-miniprogram 没暴露），改用一个轻量 watcher：每次 setData 后检查
+      // 简单做法：暴露一个 method 'syncSheetOpenSideEffect'，外部 openSheet 时调；但更通用的是用 setInterval 兜底
+      // 实际：开关副作用由 chatStore.openSheet 触发，组件 attached 一次即可，不需要 listener
     },
     detached() {
-      const self = this as unknown as { __unbind?: () => void; storeBindings?: { destroyStoreBindings: () => void } };
-      self.__unbind?.();
+      const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
       self.storeBindings?.destroyStoreBindings();
     },
   },
-  pageLifetimes: {
-    show() {
-      // 切回 tab 时，强制关闭 sheet 并恢复 tab bar，避免任何残留
-      if (this.data.visible) {
-        this.setData({ visible: false, expanded: false });
+  observers: {
+    // 监听 store 同步过来的 sheetVisible 变化，触发 tabbar 显隐 + 滚到底等副作用
+    'sheetVisible': function (visible: boolean) {
+      if (visible) {
+        emit(EVENTS.TAB_BAR_HIDE);
+        forceTabBar(true);
+        this.scrollToBottom();
+        if (chatStore.messages.length === 0) {
+          void this.checkResumable();
+        }
+        this.setData({ historyVisible: false });
+      } else {
+        emit(EVENTS.TAB_BAR_SHOW);
+        forceTabBar(false);
+        // 关闭时清掉 inline 拖拽样式
+        if (this.data.sheetStyle) this.setData({ sheetStyle: '' });
       }
-      emit(EVENTS.TAB_BAR_SHOW);
-      forceTabBar(false);
+    },
+  },
+  pageLifetimes: {
+    // V10：切页时不再 setData visible —— 状态在 store 里，关闭由 store 全局同步
+    // 这里只做 tabbar 兜底（防止上一页 sheet 关闭后 tabbar 仍隐藏）
+    show() {
+      if (!chatStore.sheetVisible) {
+        emit(EVENTS.TAB_BAR_SHOW);
+        forceTabBar(false);
+      }
     },
     hide() {
-      if (this.data.visible) {
-        this.setData({ visible: false, expanded: false });
-      }
+      // 仅做 tabbar 恢复，不动 sheet 状态
       emit(EVENTS.TAB_BAR_SHOW);
       forceTabBar(false);
     },
   },
   methods: {
     onClose() {
-      this.setData({ visible: false, expanded: false, sheetStyle: '' });
-      emit(EVENTS.TAB_BAR_SHOW);
-      forceTabBar(false);
+      chatStore.closeSheet();
     },
     onMaskTap() {
       this.onClose();
@@ -178,9 +183,10 @@ Component({
       // 实时跟手：translateY(dy)；上滑（dy<0）在 mid 状态下可视为预展开，下滑（dy>0）下移
       // 限制：在 expanded 状态下，向上拖无意义（已到顶），夹到 0
       let off = dy;
-      if (this.data.expanded && off < 0) off = 0;
+      const isExpanded = (this.data as unknown as { sheetExpanded: boolean }).sheetExpanded;
+      if (isExpanded && off < 0) off = 0;
       // 在 mid 状态下，限制最大上滑距离（让用户感受到阻力）
-      if (!this.data.expanded && off < -160) off = -160 + (off + 160) * 0.2;
+      if (!isExpanded && off < -160) off = -160 + (off + 160) * 0.2;
       this.setData({ sheetStyle: `transform: translateY(${off}px)` });
     },
     onDragEnd() {
@@ -192,19 +198,20 @@ Component({
 
       this.setData({ dragging: false, sheetStyle: '' });
 
-      if (this.data.expanded) {
+      const isExpanded = (this.data as unknown as { sheetExpanded: boolean }).sheetExpanded;
+      if (isExpanded) {
         // 展开态：向下拖 → 缩到 mid；下拖很多 → 直接关闭
         if (dy > 240 || (dy > 80 && velocity > 0.8)) {
           this.onClose();
         } else if (dy > 80 || (dy > 30 && velocity > 0.5)) {
-          this.setData({ expanded: false });
+          chatStore.setSheetExpanded(false);
         }
       } else {
         // mid 态：向下拖 → 关闭；向上拖 → 展开
         if (dy > 140 || (dy > 50 && velocity > 0.6)) {
           this.onClose();
         } else if (dy < -80 || (dy < -30 && velocity > 0.5)) {
-          this.setData({ expanded: true });
+          chatStore.setSheetExpanded(true);
           this.scrollToBottom();
         }
       }
@@ -212,9 +219,8 @@ Component({
 
     // ====== 头部操作 ======
     onToggleExpand() {
-      const expanded = !this.data.expanded;
-      this.setData({ expanded });
-      if (expanded) this.scrollToBottom();
+      chatStore.toggleSheetExpanded();
+      if (chatStore.sheetExpanded) this.scrollToBottom();
     },
     onOpenHistory() {
       // 切换历史浮窗显隐（不跳页）
@@ -251,7 +257,8 @@ Component({
       if (!id) return;
       try {
         await chatStore.loadHistory(id);
-        this.setData({ historyVisible: false, expanded: true, resumeCard: null });
+        chatStore.setSheetExpanded(true);
+        this.setData({ historyVisible: false, resumeCard: null });
         this.scrollToBottom();
       } catch (_) {
         wx.showToast({ title: '加载失败', icon: 'none' });
@@ -260,7 +267,8 @@ Component({
 
     onNewFromHistory() {
       chatStore.reset();
-      this.setData({ historyVisible: false, expanded: false, resumeCard: null });
+      chatStore.setSheetExpanded(false);
+      this.setData({ historyVisible: false, resumeCard: null });
     },
 
     // ====== 上次会话恢复 ======
@@ -290,7 +298,8 @@ Component({
       if (!card) return;
       try {
         await chatStore.loadHistory(card.id);
-        this.setData({ resumeCard: null, expanded: true });
+        chatStore.setSheetExpanded(true);
+        this.setData({ resumeCard: null });
         this.scrollToBottom();
       } catch (_) {
         wx.showToast({ title: '加载失败', icon: 'none' });
@@ -315,7 +324,7 @@ Component({
           break;
         case 'snap':
           wx.navigateTo({ url: '/pages/recipes/snap/index' });
-          this.setData({ visible: false });
+          chatStore.closeSheet();
           break;
         case 'voice':
           this.startVoice();
@@ -347,9 +356,7 @@ Component({
     onRecipeCardTap(e: WechatMiniprogram.BaseEvent) {
       const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
       if (id) {
-        this.setData({ visible: false });
-        emit(EVENTS.TAB_BAR_SHOW);
-        forceTabBar(false);
+        chatStore.closeSheet();
         wx.navigateTo({ url: `/pages/recipes/detail/index?id=${id}` });
       }
     },
@@ -405,11 +412,11 @@ Component({
     },
     async ensureSession() {
       if (chatStore.session) return;
-      const scene = this.data.scene || 'chat';
-      const recipeIdNum = this.data.recipeId ? Number(this.data.recipeId) : undefined;
+      const scene = chatStore.sheetScene || 'chat';
+      const recipeIdNum = chatStore.sheetRecipeId ? Number(chatStore.sheetRecipeId) : undefined;
       const reply = await aiApi.createSession({
         scene,
-        title: this.data.context || 'AI 厨艺助理',
+        title: (this.properties as unknown as { context?: string }).context || 'AI 厨艺助理',
         recipe_id: recipeIdNum,
       });
       chatStore.setSession(reply.session);
@@ -425,12 +432,12 @@ Component({
       try {
         await this.ensureSession();
         chatStore.send(t, {
-          scene: this.data.scene || undefined,
-          recipe_id: this.data.recipeId ? Number(this.data.recipeId) : undefined,
-          quote_context: this.data.quoteContext || undefined,
+          scene: chatStore.sheetScene || undefined,
+          recipe_id: chatStore.sheetRecipeId ? Number(chatStore.sheetRecipeId) : undefined,
+          quote_context: chatStore.sheetQuoteContext || undefined,
         });
         // 发送后自动展开到全屏，方便看流式输出
-        this.setData({ expanded: true });
+        chatStore.setSheetExpanded(true);
         this.scrollToBottom();
       } catch (e) {
         wx.showToast({ title: '发送失败', icon: 'none' });

@@ -2,6 +2,7 @@
 // 周日历 + 三餐卡片 + 采购清单进度
 import { planStore } from '../../../store/plan.store';
 import { createStoreBindings } from 'mobx-miniprogram-bindings';
+import { hasToken } from '../../../utils/auth-guard';
 import type { Recipe } from '../../../types/api';
 
 interface DishItem {
@@ -77,11 +78,18 @@ Page({
       actions: [] as const,
     });
 
-    void this.loadAll();
+    // onLoad 不主动 loadAll；交给 onShow 统一处理（避免 cold start 双触发）
   },
 
   onShow() {
-    this.getTabBar?.()?.setData({ selected: 2 });
+    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    if (!hasToken()) return;
+    const now = Date.now();
+    const last = (this as unknown as { _lastLoadAt?: number })._lastLoadAt || 0;
+    if (!this.data.breakfast?.length || now - last > 30000) {
+      (this as unknown as { _lastLoadAt?: number })._lastLoadAt = now;
+      void this.loadAll();
+    }
   },
 
   onUnload() {
@@ -95,6 +103,7 @@ Page({
   },
 
   async loadAll() {
+    if (!hasToken()) return;
     this.setData({ loading: true });
     try {
       await Promise.all([

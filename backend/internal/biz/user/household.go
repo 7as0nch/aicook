@@ -1,13 +1,17 @@
-package biz
+package user
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/utils"
 )
@@ -30,7 +34,7 @@ type HouseholdPreferences struct {
 }
 
 // GetPreferences 读取当前家庭的偏好。读不到时返回零值（不报错）。
-func (u *HouseholdUsecase) GetPreferences(ctx context.Context, actor Actor) (*HouseholdPreferences, error) {
+func (u *HouseholdUsecase) GetPreferences(ctx context.Context, actor common.Actor) (*HouseholdPreferences, error) {
 	hh, err := u.repo.GetHousehold(ctx, actor.HouseholdID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -53,8 +57,10 @@ type MemberDetail struct {
 	FlavorTags  []string
 }
 
-// ListMembers 列出指定家庭的成员。家庭口味缺省时用 household 维度的偏好兜底。
-func (u *HouseholdUsecase) ListMembers(ctx context.Context, actor Actor, householdID int64) ([]*MemberDetail, error) {
+// ListMembers 列出指定家庭的成员。每个成员的 flavor_tags：
+//   - 优先用 hm.preferences.flavor（成员个人口味）
+//   - 个人空则 fallback household-level preferences.flavor
+func (u *HouseholdUsecase) ListMembers(ctx context.Context, actor common.Actor, householdID int64) ([]*MemberDetail, error) {
 	if householdID <= 0 {
 		householdID = actor.HouseholdID
 	}
@@ -74,18 +80,207 @@ func (u *HouseholdUsecase) ListMembers(ctx context.Context, actor Actor, househo
 	}
 	out := make([]*MemberDetail, 0, len(rows))
 	for _, r := range rows {
-		emoji := defaultEmojiByRole(r.Role, r.MemberID)
+		emoji := strings.TrimSpace(r.Emoji)
+		if emoji == "" {
+			emoji = defaultEmojiByRole(r.Role, r.MemberID)
+		}
+		// 解析成员个人 preferences
+		var memberFlavor []string
+		if len(r.Preferences) > 0 {
+			memberPrefs := parseMemberPreferences(r.Preferences)
+			if len(memberPrefs.Flavor) > 0 {
+				memberFlavor = memberPrefs.Flavor
+			}
+		}
+		// 兜底策略：
+		//   - 真实账号（user_id>0）：未设置个人口味时 → 用家庭口味兜底（保留旧行为）
+		//   - 虚拟成员（user_id=0）：未设置就显示空，UI 显示「未设置口味偏好」
+		//     避免把 owner 设的家庭口味"伪装"成虚拟成员自己的偏好误导用户。
+		if len(memberFlavor) == 0 && r.UserID > 0 {
+			memberFlavor = fallbackFlavor
+		}
 		out = append(out, &MemberDetail{
 			ID:          r.MemberID,
 			UserID:      r.UserID,
 			Role:        r.Role,
 			DisplayName: strings.TrimSpace(r.DisplayName),
 			Username:    strings.TrimSpace(r.Username),
+			AvatarURL:   strings.TrimSpace(r.AvatarURL),
 			Emoji:       emoji,
-			FlavorTags:  append([]string(nil), fallbackFlavor...),
+			FlavorTags:  append([]string(nil), memberFlavor...),
 		})
 	}
 	return out, nil
+}
+
+// AddMember 新增虚拟成员（UserID=0）。权限：仅 owner。
+func (u *HouseholdUsecase) AddMember(ctx context.Context, actor common.Actor, householdID int64, displayName, emoji string, prefs *HouseholdPreferences) (*MemberDetail, error) {
+	if householdID <= 0 {
+		householdID = actor.HouseholdID
+	}
+	if householdID != actor.HouseholdID {
+		return nil, errors.New("forbidden: household_id mismatch")
+	}
+	if err := u.requireOwner(ctx, actor); err != nil {
+		return nil, err
+	}
+	name := strings.TrimSpace(displayName)
+	if name == "" {
+		return nil, errors.New("display_name is required")
+	}
+	if len([]rune(name)) > 30 {
+		return nil, errors.New("display_name too long")
+	}
+	// preferences 默认 {}（空对象）；如有传入则正规化后保存
+	prefsJSON, err := encodePreferencesJSON(prefs)
+	if err != nil {
+		return nil, err
+	}
+	m := &data.HouseholdMember{
+		BaseModel:       data.BaseModel{ID: utils.GetSFID()},
+		HouseholdID:     householdID,
+		UserID:          0,
+		Role:            "member",
+		DisplayName:     name,
+		Emoji:           strings.TrimSpace(emoji),
+		PreferencesJSON: datatypes.JSON(prefsJSON),
+	}
+	if err := u.repo.CreateMember(ctx, m); err != nil {
+		return nil, err
+	}
+	out := &MemberDetail{
+		ID:          m.ID,
+		UserID:      0,
+		Role:        m.Role,
+		DisplayName: m.DisplayName,
+		Emoji:       m.Emoji,
+	}
+	if out.Emoji == "" {
+		out.Emoji = defaultEmojiByRole(m.Role, m.ID)
+	}
+	if prefs != nil {
+		out.FlavorTags = append([]string(nil), prefs.Flavor...)
+	}
+	return out, nil
+}
+
+// RemoveMember 软删某成员。权限：owner only；不允许删除 owner 自己。
+func (u *HouseholdUsecase) RemoveMember(ctx context.Context, actor common.Actor, memberID int64) error {
+	if memberID <= 0 {
+		return errors.New("member_id is required")
+	}
+	if err := u.requireOwner(ctx, actor); err != nil {
+		return err
+	}
+	target, err := u.repo.GetMember(ctx, memberID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("member not found")
+		}
+		return err
+	}
+	if target.HouseholdID != actor.HouseholdID {
+		return errors.New("forbidden: household_id mismatch")
+	}
+	if target.Role == "owner" {
+		return errors.New("cannot remove owner")
+	}
+	return u.repo.SoftDeleteMember(ctx, memberID)
+}
+
+// GetMemberPreferences 读单个成员个人口味偏好。
+// 权限：成员所在家庭的任意成员都可读（actor.HouseholdID 校验）。
+func (u *HouseholdUsecase) GetMemberPreferences(ctx context.Context, actor common.Actor, memberID int64) (*HouseholdPreferences, error) {
+	target, err := u.repo.GetMember(ctx, memberID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("member not found")
+		}
+		return nil, err
+	}
+	if target.HouseholdID != actor.HouseholdID {
+		return nil, errors.New("forbidden: household_id mismatch")
+	}
+	return parseMemberPreferences([]byte(target.PreferencesJSON)), nil
+}
+
+// UpdateMemberPreferences 改单个成员口味偏好。
+// 权限：owner 或 本人（member.user_id == actor.user_id 且 != 0）。
+func (u *HouseholdUsecase) UpdateMemberPreferences(ctx context.Context, actor common.Actor, memberID int64, prefs *HouseholdPreferences) (*HouseholdPreferences, error) {
+	target, err := u.repo.GetMember(ctx, memberID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("member not found")
+		}
+		return nil, err
+	}
+	if target.HouseholdID != actor.HouseholdID {
+		return nil, errors.New("forbidden: household_id mismatch")
+	}
+	// 鉴权：owner 全权；或本人编辑自己（仅真实账号）
+	isSelf := target.UserID > 0 && target.UserID == actor.UserID
+	if !isSelf {
+		if err := u.requireOwner(ctx, actor); err != nil {
+			return nil, err
+		}
+	}
+	prefsJSON, err := encodePreferencesJSON(prefs)
+	if err != nil {
+		return nil, err
+	}
+	if err := u.repo.UpdateMemberPreferences(ctx, memberID, prefsJSON); err != nil {
+		return nil, err
+	}
+	return parseMemberPreferences(prefsJSON), nil
+}
+
+// requireOwner 校验 actor 是当前 household 的 owner。
+func (u *HouseholdUsecase) requireOwner(ctx context.Context, actor common.Actor) error {
+	if actor.UserID == 0 || actor.HouseholdID == 0 {
+		return errors.New("unauthorized")
+	}
+	m, err := u.repo.GetMemberByActor(ctx, actor.HouseholdID, actor.UserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("forbidden: not a member")
+		}
+		return err
+	}
+	if m.Role != "owner" {
+		return errors.New("forbidden: owner only")
+	}
+	return nil
+}
+
+// parseMemberPreferences 把 jsonb 原始字节解析为 HouseholdPreferences。
+// 空字节返回零值；解析失败时记日志（防止 DB 被人手动改坏后悄无声息）。
+func parseMemberPreferences(raw []byte) *HouseholdPreferences {
+	if len(raw) == 0 {
+		return &HouseholdPreferences{}
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		// 写入路径都走 encodePreferencesJSON 输出合法 JSON；这里收到非法
+		// JSON 几乎只可能是有人直接改 DB 改坏了。记下来便于排查。
+		log.Printf("[biz/user/household] parseMemberPreferences decode err: %v; raw=%q", err, string(raw))
+		return &HouseholdPreferences{}
+	}
+	return preferencesFromJSON(m)
+}
+
+// encodePreferencesJSON 把 HouseholdPreferences 正规化后序列化为 jsonb 字节。
+func encodePreferencesJSON(prefs *HouseholdPreferences) ([]byte, error) {
+	if prefs == nil {
+		return []byte("{}"), nil
+	}
+	payload := map[string]any{
+		"flavor":         uniqueTrimmedTags(prefs.Flavor),
+		"scenarios":      uniqueTrimmedTags(prefs.Scenarios),
+		"restrictions":   uniqueTrimmedTags(prefs.Restrictions),
+		"max_difficulty": clampInt(prefs.MaxDifficulty, 0, 5),
+		"max_minutes":    clampInt(prefs.MaxMinutes, 0, 600),
+	}
+	return json.Marshal(payload)
 }
 
 // defaultEmojiByRole 根据角色/成员 id 给一个默认 emoji（user metadata 里有 avatar_emoji 时取真实的）。
@@ -99,7 +294,7 @@ func defaultEmojiByRole(role string, id int64) string {
 }
 
 // UpdatePreferences 整体替换 preferences。
-func (u *HouseholdUsecase) UpdatePreferences(ctx context.Context, actor Actor, prefs *HouseholdPreferences) (*HouseholdPreferences, error) {
+func (u *HouseholdUsecase) UpdatePreferences(ctx context.Context, actor common.Actor, prefs *HouseholdPreferences) (*HouseholdPreferences, error) {
 	if prefs == nil {
 		prefs = &HouseholdPreferences{}
 	}
@@ -188,7 +383,7 @@ func clampInt(v, lo, hi int) int {
 	return v
 }
 
-func (u *HouseholdUsecase) CreateHousehold(ctx context.Context, actor Actor, name string) (*data.Household, error) {
+func (u *HouseholdUsecase) CreateHousehold(ctx context.Context, actor common.Actor, name string) (*data.Household, error) {
 	household := &data.Household{
 		BaseModel: data.BaseModel{ID: utils.GetSFID()},
 		Name:      strings.TrimSpace(name),
@@ -206,7 +401,7 @@ func (u *HouseholdUsecase) CreateHousehold(ctx context.Context, actor Actor, nam
 	return household, nil
 }
 
-func (u *HouseholdUsecase) CreateShareCode(ctx context.Context, actor Actor) (*data.Household, error) {
+func (u *HouseholdUsecase) CreateShareCode(ctx context.Context, actor common.Actor) (*data.Household, error) {
 	household, err := u.repo.GetHousehold(ctx, actor.HouseholdID)
 	if err != nil {
 		return nil, err
@@ -232,7 +427,7 @@ func (u *HouseholdUsecase) GetKitchenByShareCode(ctx context.Context, shareCode 
 	return household, recipes, nil
 }
 
-func (u *HouseholdUsecase) ImportSharedRecipes(ctx context.Context, actor Actor, shareCode string, recipeIDs []int64, kitchenTagID *int64, kitchenTagName string) ([]*data.Recipe, *data.KitchenTag, error) {
+func (u *HouseholdUsecase) ImportSharedRecipes(ctx context.Context, actor common.Actor, shareCode string, recipeIDs []int64, kitchenTagID *int64, kitchenTagName string) ([]*data.Recipe, *data.KitchenTag, error) {
 	source, err := u.repo.FindByShareCode(ctx, strings.TrimSpace(shareCode))
 	if err != nil {
 		return nil, nil, err
@@ -276,11 +471,11 @@ func (u *HouseholdUsecase) ImportSharedRecipes(ctx context.Context, actor Actor,
 	return recipes, tag, nil
 }
 
-func (u *HouseholdUsecase) ListKitchenTags(ctx context.Context, actor Actor) ([]*data.KitchenTag, error) {
+func (u *HouseholdUsecase) ListKitchenTags(ctx context.Context, actor common.Actor) ([]*data.KitchenTag, error) {
 	return u.repo.ListKitchenTags(ctx, actor.HouseholdID)
 }
 
-func (u *HouseholdUsecase) CreateKitchenTag(ctx context.Context, actor Actor, name, icon, color string) (*data.KitchenTag, error) {
+func (u *HouseholdUsecase) CreateKitchenTag(ctx context.Context, actor common.Actor, name, icon, color string) (*data.KitchenTag, error) {
 	tag := &data.KitchenTag{
 		BaseModel:   data.BaseModel{ID: utils.GetSFID()},
 		HouseholdID: actor.HouseholdID,
@@ -304,7 +499,7 @@ func (u *HouseholdUsecase) CreateKitchenTag(ctx context.Context, actor Actor, na
 	return tag, nil
 }
 
-func (u *HouseholdUsecase) UpdateKitchenTag(ctx context.Context, actor Actor, tagID int64, name, icon, color string) (*data.KitchenTag, error) {
+func (u *HouseholdUsecase) UpdateKitchenTag(ctx context.Context, actor common.Actor, tagID int64, name, icon, color string) (*data.KitchenTag, error) {
 	if tagID <= 0 {
 		return nil, fmt.Errorf("invalid kitchen tag id")
 	}
@@ -333,7 +528,7 @@ func (u *HouseholdUsecase) UpdateKitchenTag(ctx context.Context, actor Actor, ta
 	return tag, nil
 }
 
-func (u *HouseholdUsecase) DeleteKitchenTag(ctx context.Context, actor Actor, tagID int64) error {
+func (u *HouseholdUsecase) DeleteKitchenTag(ctx context.Context, actor common.Actor, tagID int64) error {
 	if tagID <= 0 {
 		return fmt.Errorf("invalid kitchen tag id")
 	}

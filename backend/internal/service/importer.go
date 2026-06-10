@@ -4,22 +4,23 @@ import (
 	"context"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/recipe"
 )
 
 type ImportService struct {
 	v1.UnimplementedImportServiceServer
 
-	usecase *biz.ImportUsecase
+	usecase *recipe.ImportUsecase
 }
 
-func NewImportService(usecase *biz.ImportUsecase) *ImportService {
+func NewImportService(usecase *recipe.ImportUsecase) *ImportService {
 	return &ImportService{usecase: usecase}
 }
 
 func (s *ImportService) CreateImageRecipe(ctx context.Context, req *v1.CreateImageRecipeRequest) (*v1.CreateImageRecipeReply, error) {
-	actor := biz.ActorFromContext(ctx)
-	job, err := s.usecase.CreateImageRecipe(ctx, biz.CreateImageRecipeRequest{
+	actor := common.ActorFromContext(ctx)
+	job, err := s.usecase.CreateImageRecipe(ctx, recipe.CreateImageRecipeRequest{
 		HouseholdID:   actor.HouseholdID,
 		UserID:        actor.UserID,
 		MediaAssetIDs: req.GetMediaAssetIds(),

@@ -1,4 +1,4 @@
-package biz
+package kitchen
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	apierrors "github.com/chengjiang/aicook/backend/api/aicook/errors"
 	"github.com/chengjiang/aicook/backend/internal/consts"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 	"gorm.io/gorm"
@@ -43,7 +44,7 @@ func redisUnavailable(err error) error {
 	return err
 }
 
-func (u *CookingProgressUsecase) Upsert(ctx context.Context, actor Actor, recipeID int64, stepIndex, totalSteps int32, timerTotal int32, timerStartedAtMS int64, timerPausedRemaining int32) (*CookingActiveItem, error) {
+func (u *CookingProgressUsecase) Upsert(ctx context.Context, actor common.Actor, recipeID int64, stepIndex, totalSteps int32, timerTotal int32, timerStartedAtMS int64, timerPausedRemaining int32) (*CookingActiveItem, error) {
 	if recipeID <= 0 {
 		return nil, apierrors.ErrorInvalidId("recipe id")
 	}
@@ -114,7 +115,7 @@ func (u *CookingProgressUsecase) Upsert(ctx context.Context, actor Actor, recipe
 	return u.buildItem(recipeID, rec, detail), nil
 }
 
-func (u *CookingProgressUsecase) Delete(ctx context.Context, actor Actor, recipeID int64) error {
+func (u *CookingProgressUsecase) Delete(ctx context.Context, actor common.Actor, recipeID int64) error {
 	if recipeID <= 0 {
 		return apierrors.ErrorInvalidId("recipe id")
 	}
@@ -130,7 +131,7 @@ func (u *CookingProgressUsecase) Delete(ctx context.Context, actor Actor, recipe
 	return nil
 }
 
-func (u *CookingProgressUsecase) List(ctx context.Context, actor Actor) ([]*CookingActiveItem, error) {
+func (u *CookingProgressUsecase) List(ctx context.Context, actor common.Actor) ([]*CookingActiveItem, error) {
 	raw, err := u.store.ListAll(ctx, actor.UserID)
 	if err != nil {
 		return nil, err
@@ -221,7 +222,7 @@ func computeRemainingSeconds(rec data.CookingProgressRecord, nowMs int64) int32 
 }
 
 // ListSummariesForAI returns snippets for model prompts; never fails on redis (empty list).
-func (u *CookingProgressUsecase) ListSummariesForAI(ctx context.Context, actor Actor) []airuntime.ActiveCookingSummary {
+func (u *CookingProgressUsecase) ListSummariesForAI(ctx context.Context, actor common.Actor) []airuntime.ActiveCookingSummary {
 	items, err := u.List(ctx, actor)
 	if err != nil || len(items) == 0 {
 		return nil

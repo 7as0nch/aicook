@@ -31,6 +31,7 @@ type Bootstrap struct {
 	Ai            *AI                    `protobuf:"bytes,5,opt,name=ai,proto3" json:"ai,omitempty"`
 	Auth          *Auth                  `protobuf:"bytes,6,opt,name=auth,proto3" json:"auth,omitempty"`
 	Log           *Log                   `protobuf:"bytes,7,opt,name=log,proto3" json:"log,omitempty"`
+	Wechat        *Wechat                `protobuf:"bytes,8,opt,name=wechat,proto3" json:"wechat,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -114,6 +115,67 @@ func (x *Bootstrap) GetLog() *Log {
 	return nil
 }
 
+func (x *Bootstrap) GetWechat() *Wechat {
+	if x != nil {
+		return x.Wechat
+	}
+	return nil
+}
+
+type Wechat struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 微信小程序 AppID（管理后台获取）
+	Appid string `protobuf:"bytes,1,opt,name=appid,proto3" json:"appid,omitempty"`
+	// 微信小程序 AppSecret（管理后台获取）。生产环境强烈建议从安全的密钥管理服务注入。
+	Secret        string `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Wechat) Reset() {
+	*x = Wechat{}
+	mi := &file_internal_conf_conf_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Wechat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Wechat) ProtoMessage() {}
+
+func (x *Wechat) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_conf_conf_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Wechat.ProtoReflect.Descriptor instead.
+func (*Wechat) Descriptor() ([]byte, []int) {
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Wechat) GetAppid() string {
+	if x != nil {
+		return x.Appid
+	}
+	return ""
+}
+
+func (x *Wechat) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
 type Auth struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	JwtSecret     string                 `protobuf:"bytes,1,opt,name=jwt_secret,json=jwtSecret,proto3" json:"jwt_secret,omitempty"` // JWT HMAC 签名密钥；为空时回退到本地开发默认值
@@ -124,7 +186,7 @@ type Auth struct {
 
 func (x *Auth) Reset() {
 	*x = Auth{}
-	mi := &file_internal_conf_conf_proto_msgTypes[1]
+	mi := &file_internal_conf_conf_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -136,7 +198,7 @@ func (x *Auth) String() string {
 func (*Auth) ProtoMessage() {}
 
 func (x *Auth) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[1]
+	mi := &file_internal_conf_conf_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -149,7 +211,7 @@ func (x *Auth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Auth.ProtoReflect.Descriptor instead.
 func (*Auth) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{1}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Auth) GetJwtSecret() string {
@@ -177,7 +239,7 @@ type Log struct {
 
 func (x *Log) Reset() {
 	*x = Log{}
-	mi := &file_internal_conf_conf_proto_msgTypes[2]
+	mi := &file_internal_conf_conf_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +251,7 @@ func (x *Log) String() string {
 func (*Log) ProtoMessage() {}
 
 func (x *Log) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[2]
+	mi := &file_internal_conf_conf_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +264,7 @@ func (x *Log) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Log.ProtoReflect.Descriptor instead.
 func (*Log) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{2}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Log) GetPath() string {
@@ -237,7 +299,7 @@ type Server struct {
 
 func (x *Server) Reset() {
 	*x = Server{}
-	mi := &file_internal_conf_conf_proto_msgTypes[3]
+	mi := &file_internal_conf_conf_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -249,7 +311,7 @@ func (x *Server) String() string {
 func (*Server) ProtoMessage() {}
 
 func (x *Server) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[3]
+	mi := &file_internal_conf_conf_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -262,7 +324,7 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{3}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Server) GetName() string {
@@ -297,7 +359,7 @@ type HTTP struct {
 
 func (x *HTTP) Reset() {
 	*x = HTTP{}
-	mi := &file_internal_conf_conf_proto_msgTypes[4]
+	mi := &file_internal_conf_conf_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -309,7 +371,7 @@ func (x *HTTP) String() string {
 func (*HTTP) ProtoMessage() {}
 
 func (x *HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[4]
+	mi := &file_internal_conf_conf_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -322,7 +384,7 @@ func (x *HTTP) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTP.ProtoReflect.Descriptor instead.
 func (*HTTP) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{4}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *HTTP) GetNetwork() string {
@@ -357,7 +419,7 @@ type GRPC struct {
 
 func (x *GRPC) Reset() {
 	*x = GRPC{}
-	mi := &file_internal_conf_conf_proto_msgTypes[5]
+	mi := &file_internal_conf_conf_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +431,7 @@ func (x *GRPC) String() string {
 func (*GRPC) ProtoMessage() {}
 
 func (x *GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[5]
+	mi := &file_internal_conf_conf_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +444,7 @@ func (x *GRPC) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GRPC.ProtoReflect.Descriptor instead.
 func (*GRPC) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{5}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GRPC) GetNetwork() string {
@@ -416,7 +478,7 @@ type Data struct {
 
 func (x *Data) Reset() {
 	*x = Data{}
-	mi := &file_internal_conf_conf_proto_msgTypes[6]
+	mi := &file_internal_conf_conf_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +490,7 @@ func (x *Data) String() string {
 func (*Data) ProtoMessage() {}
 
 func (x *Data) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[6]
+	mi := &file_internal_conf_conf_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +503,7 @@ func (x *Data) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Data.ProtoReflect.Descriptor instead.
 func (*Data) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{6}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Data) GetPgDatabase() *PGDatabase {
@@ -474,7 +536,7 @@ type PGDatabase struct {
 
 func (x *PGDatabase) Reset() {
 	*x = PGDatabase{}
-	mi := &file_internal_conf_conf_proto_msgTypes[7]
+	mi := &file_internal_conf_conf_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -486,7 +548,7 @@ func (x *PGDatabase) String() string {
 func (*PGDatabase) ProtoMessage() {}
 
 func (x *PGDatabase) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[7]
+	mi := &file_internal_conf_conf_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -499,7 +561,7 @@ func (x *PGDatabase) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PGDatabase.ProtoReflect.Descriptor instead.
 func (*PGDatabase) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{7}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PGDatabase) GetHost() string {
@@ -570,7 +632,7 @@ type Redis struct {
 
 func (x *Redis) Reset() {
 	*x = Redis{}
-	mi := &file_internal_conf_conf_proto_msgTypes[8]
+	mi := &file_internal_conf_conf_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -582,7 +644,7 @@ func (x *Redis) String() string {
 func (*Redis) ProtoMessage() {}
 
 func (x *Redis) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[8]
+	mi := &file_internal_conf_conf_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -595,7 +657,7 @@ func (x *Redis) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Redis.ProtoReflect.Descriptor instead.
 func (*Redis) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{8}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Redis) GetAddr() string {
@@ -641,7 +703,7 @@ type OSS struct {
 
 func (x *OSS) Reset() {
 	*x = OSS{}
-	mi := &file_internal_conf_conf_proto_msgTypes[9]
+	mi := &file_internal_conf_conf_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -653,7 +715,7 @@ func (x *OSS) String() string {
 func (*OSS) ProtoMessage() {}
 
 func (x *OSS) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[9]
+	mi := &file_internal_conf_conf_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -666,7 +728,7 @@ func (x *OSS) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OSS.ProtoReflect.Descriptor instead.
 func (*OSS) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{9}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *OSS) GetEndpoint() string {
@@ -728,7 +790,7 @@ type Inference struct {
 
 func (x *Inference) Reset() {
 	*x = Inference{}
-	mi := &file_internal_conf_conf_proto_msgTypes[10]
+	mi := &file_internal_conf_conf_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +802,7 @@ func (x *Inference) String() string {
 func (*Inference) ProtoMessage() {}
 
 func (x *Inference) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[10]
+	mi := &file_internal_conf_conf_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +815,7 @@ func (x *Inference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Inference.ProtoReflect.Descriptor instead.
 func (*Inference) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{10}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Inference) GetEndpoint() string {
@@ -785,7 +847,7 @@ type AI struct {
 
 func (x *AI) Reset() {
 	*x = AI{}
-	mi := &file_internal_conf_conf_proto_msgTypes[11]
+	mi := &file_internal_conf_conf_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -797,7 +859,7 @@ func (x *AI) String() string {
 func (*AI) ProtoMessage() {}
 
 func (x *AI) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[11]
+	mi := &file_internal_conf_conf_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -810,7 +872,7 @@ func (x *AI) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AI.ProtoReflect.Descriptor instead.
 func (*AI) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{11}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AI) GetMode() string {
@@ -866,7 +928,7 @@ var File_internal_conf_conf_proto protoreflect.FileDescriptor
 
 const file_internal_conf_conf_proto_rawDesc = "" +
 	"\n" +
-	"\x18internal/conf/conf.proto\x12\vaicook.conf\x1a\x1egoogle/protobuf/duration.proto\"\xa5\x02\n" +
+	"\x18internal/conf/conf.proto\x12\vaicook.conf\x1a\x1egoogle/protobuf/duration.proto\"\xd2\x02\n" +
 	"\tBootstrap\x12+\n" +
 	"\x06server\x18\x01 \x01(\v2\x13.aicook.conf.ServerR\x06server\x12%\n" +
 	"\x04data\x18\x02 \x01(\v2\x11.aicook.conf.DataR\x04data\x12\"\n" +
@@ -874,7 +936,11 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\tinference\x18\x04 \x01(\v2\x16.aicook.conf.InferenceR\tinference\x12\x1f\n" +
 	"\x02ai\x18\x05 \x01(\v2\x0f.aicook.conf.AIR\x02ai\x12%\n" +
 	"\x04auth\x18\x06 \x01(\v2\x11.aicook.conf.AuthR\x04auth\x12\"\n" +
-	"\x03log\x18\a \x01(\v2\x10.aicook.conf.LogR\x03log\"]\n" +
+	"\x03log\x18\a \x01(\v2\x10.aicook.conf.LogR\x03log\x12+\n" +
+	"\x06wechat\x18\b \x01(\v2\x13.aicook.conf.WechatR\x06wechat\"6\n" +
+	"\x06Wechat\x12\x14\n" +
+	"\x05appid\x18\x01 \x01(\tR\x05appid\x12\x16\n" +
+	"\x06secret\x18\x02 \x01(\tR\x06secret\"]\n" +
 	"\x04Auth\x12\x1d\n" +
 	"\n" +
 	"jwt_secret\x18\x01 \x01(\tR\tjwtSecret\x126\n" +
@@ -949,45 +1015,47 @@ func file_internal_conf_conf_proto_rawDescGZIP() []byte {
 	return file_internal_conf_conf_proto_rawDescData
 }
 
-var file_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_internal_conf_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: aicook.conf.Bootstrap
-	(*Auth)(nil),                // 1: aicook.conf.Auth
-	(*Log)(nil),                 // 2: aicook.conf.Log
-	(*Server)(nil),              // 3: aicook.conf.Server
-	(*HTTP)(nil),                // 4: aicook.conf.HTTP
-	(*GRPC)(nil),                // 5: aicook.conf.GRPC
-	(*Data)(nil),                // 6: aicook.conf.Data
-	(*PGDatabase)(nil),          // 7: aicook.conf.PGDatabase
-	(*Redis)(nil),               // 8: aicook.conf.Redis
-	(*OSS)(nil),                 // 9: aicook.conf.OSS
-	(*Inference)(nil),           // 10: aicook.conf.Inference
-	(*AI)(nil),                  // 11: aicook.conf.AI
-	(*durationpb.Duration)(nil), // 12: google.protobuf.Duration
+	(*Wechat)(nil),              // 1: aicook.conf.Wechat
+	(*Auth)(nil),                // 2: aicook.conf.Auth
+	(*Log)(nil),                 // 3: aicook.conf.Log
+	(*Server)(nil),              // 4: aicook.conf.Server
+	(*HTTP)(nil),                // 5: aicook.conf.HTTP
+	(*GRPC)(nil),                // 6: aicook.conf.GRPC
+	(*Data)(nil),                // 7: aicook.conf.Data
+	(*PGDatabase)(nil),          // 8: aicook.conf.PGDatabase
+	(*Redis)(nil),               // 9: aicook.conf.Redis
+	(*OSS)(nil),                 // 10: aicook.conf.OSS
+	(*Inference)(nil),           // 11: aicook.conf.Inference
+	(*AI)(nil),                  // 12: aicook.conf.AI
+	(*durationpb.Duration)(nil), // 13: google.protobuf.Duration
 }
 var file_internal_conf_conf_proto_depIdxs = []int32{
-	3,  // 0: aicook.conf.Bootstrap.server:type_name -> aicook.conf.Server
-	6,  // 1: aicook.conf.Bootstrap.data:type_name -> aicook.conf.Data
-	9,  // 2: aicook.conf.Bootstrap.oss:type_name -> aicook.conf.OSS
-	10, // 3: aicook.conf.Bootstrap.inference:type_name -> aicook.conf.Inference
-	11, // 4: aicook.conf.Bootstrap.ai:type_name -> aicook.conf.AI
-	1,  // 5: aicook.conf.Bootstrap.auth:type_name -> aicook.conf.Auth
-	2,  // 6: aicook.conf.Bootstrap.log:type_name -> aicook.conf.Log
-	12, // 7: aicook.conf.Auth.token_ttl:type_name -> google.protobuf.Duration
-	4,  // 8: aicook.conf.Server.http:type_name -> aicook.conf.HTTP
-	5,  // 9: aicook.conf.Server.grpc:type_name -> aicook.conf.GRPC
-	12, // 10: aicook.conf.HTTP.timeout:type_name -> google.protobuf.Duration
-	12, // 11: aicook.conf.GRPC.timeout:type_name -> google.protobuf.Duration
-	7,  // 12: aicook.conf.Data.pg_database:type_name -> aicook.conf.PGDatabase
-	8,  // 13: aicook.conf.Data.redis:type_name -> aicook.conf.Redis
-	12, // 14: aicook.conf.Redis.read_timeout:type_name -> google.protobuf.Duration
-	12, // 15: aicook.conf.Redis.write_timeout:type_name -> google.protobuf.Duration
-	12, // 16: aicook.conf.Inference.timeout:type_name -> google.protobuf.Duration
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	4,  // 0: aicook.conf.Bootstrap.server:type_name -> aicook.conf.Server
+	7,  // 1: aicook.conf.Bootstrap.data:type_name -> aicook.conf.Data
+	10, // 2: aicook.conf.Bootstrap.oss:type_name -> aicook.conf.OSS
+	11, // 3: aicook.conf.Bootstrap.inference:type_name -> aicook.conf.Inference
+	12, // 4: aicook.conf.Bootstrap.ai:type_name -> aicook.conf.AI
+	2,  // 5: aicook.conf.Bootstrap.auth:type_name -> aicook.conf.Auth
+	3,  // 6: aicook.conf.Bootstrap.log:type_name -> aicook.conf.Log
+	1,  // 7: aicook.conf.Bootstrap.wechat:type_name -> aicook.conf.Wechat
+	13, // 8: aicook.conf.Auth.token_ttl:type_name -> google.protobuf.Duration
+	5,  // 9: aicook.conf.Server.http:type_name -> aicook.conf.HTTP
+	6,  // 10: aicook.conf.Server.grpc:type_name -> aicook.conf.GRPC
+	13, // 11: aicook.conf.HTTP.timeout:type_name -> google.protobuf.Duration
+	13, // 12: aicook.conf.GRPC.timeout:type_name -> google.protobuf.Duration
+	8,  // 13: aicook.conf.Data.pg_database:type_name -> aicook.conf.PGDatabase
+	9,  // 14: aicook.conf.Data.redis:type_name -> aicook.conf.Redis
+	13, // 15: aicook.conf.Redis.read_timeout:type_name -> google.protobuf.Duration
+	13, // 16: aicook.conf.Redis.write_timeout:type_name -> google.protobuf.Duration
+	13, // 17: aicook.conf.Inference.timeout:type_name -> google.protobuf.Duration
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_internal_conf_conf_proto_init() }
@@ -1001,7 +1069,7 @@ func file_internal_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_conf_conf_proto_rawDesc), len(file_internal_conf_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

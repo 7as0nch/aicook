@@ -26,15 +26,23 @@ Page({
     maxMinutes: 60,
     saving: false,
     loaded: false,
+    memberId: '' as string,        // 从厨房管理跳过来时带上：编辑该成员的偏好
+    memberName: '' as string,      // 头部展示用
   },
 
-  onLoad() {
+  onLoad(query: Record<string, string>) {
+    const memberId = query?.member_id ? String(query.member_id) : '';
+    const memberName = query?.member_name ? decodeURIComponent(String(query.member_name)) : '';
+    this.setData({ memberId, memberName });
     void this.loadPreferences();
   },
 
   async loadPreferences() {
     try {
-      const res = await householdApi.getPreferences();
+      // 有 memberId → 读单个成员；否则读家庭维度（向后兼容）
+      const res = this.data.memberId
+        ? await householdApi.getMemberPreferences(this.data.memberId)
+        : await householdApi.getPreferences();
       const p = res.preferences;
       this.setData({
         flavor: p.flavor || [],
@@ -93,7 +101,11 @@ Page({
         max_difficulty: this.data.maxDifficulty,
         max_minutes: this.data.maxMinutes,
       };
-      await householdApi.updatePreferences(data);
+      if (this.data.memberId) {
+        await householdApi.updateMemberPreferences(this.data.memberId, data);
+      } else {
+        await householdApi.updatePreferences(data);
+      }
       wx.showToast({ title: '已保存', icon: 'success' });
       setTimeout(() => wx.navigateBack({ delta: 1 }), 600);
     } catch (e) {

@@ -51,6 +51,18 @@
   text-align: center;
 }
 
+/* chooseAvatar 必须挂在 button 上；清掉 button 默认背景/边框/外边距 */
+.prof__avatar-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0 auto 24rpx;
+  line-height: 1;
+  width: 200rpx;
+  height: 200rpx;
+}
+.prof__avatar-btn::after { border: none; } /* 微信 button 默认边框 */
+
 .prof__avatar {
   width: 200rpx;
   height: 200rpx;
@@ -109,4 +121,34 @@
   color: #1F1B16;
 }
 
-.prof__spacer { height: 80rpx; }
+/* 底部留白 = 保存按钮高度 + safe-area，让内容不被遮挡 */
+.prof__spacer { height: calc(180rpx + env(safe-area-inset-bottom)); }
+
+/* 底部固定保存条 */
+.prof__save-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #FFFFFF;
+  border-top: 1rpx solid #F4F2EE;
+  box-shadow: 0 -8rpx 24rpx rgba(31, 27, 22, 0.04);
+  z-index: 100;
+}
+
+.prof__save-btn {
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 24rpx 0;
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.28);
+}
+
+.prof__save-btn--saving {
+  background: #DDD8D0;
+  box-shadow: none;
+}

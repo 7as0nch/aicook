@@ -49,5 +49,8 @@
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents"
+  "usingComponents": {
+    "ai-sheet": "/components/ai-sheet/index",
+    "ai-fab": "/components/ai-fab/index"
+  }
 }

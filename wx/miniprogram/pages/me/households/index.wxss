@@ -315,11 +315,40 @@
   flex-shrink: 0;
 }
 
-.hh__member-name {
+.hh__member-body {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.hh__member-name {
   font-size: 28rpx;
   font-weight: 500;
   color: #1F1B16;
+  line-height: 1.2;
+}
+
+.hh__member-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.hh__member-tag {
+  font-size: 20rpx;
+  color: #A9743A;
+  background: #FFF6EE;
+  padding: 2rpx 12rpx;
+  border-radius: 10rpx;
+  line-height: 1.4;
+}
+
+.hh__member-tag-empty {
+  font-size: 22rpx;
+  color: #BFBFBF;
+  line-height: 1.2;
 }
 
 .hh__member-role {
@@ -329,6 +358,7 @@
   font-weight: 500;
   padding: 6rpx 18rpx;
   border-radius: 22rpx;
+  flex-shrink: 0;
 }
 
 .hh__member-role--admin {
@@ -336,12 +366,12 @@
   color: #EF6E00;
 }
 
-.hh__member-more {
-  font-size: 36rpx;
-  color: #9B978F;
-  margin-left: 12rpx;
-  font-weight: 700;
-  letter-spacing: -2rpx;
+.hh__member-arrow {
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 6rpx;
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .hh__members-divider {
@@ -357,4 +387,32 @@
   font-size: 26rpx;
 }
 
-.hh__spacer { height: 60rpx; }
+/* 给底部 FAB 留空间，避免被遮 */
+.hh__spacer { height: 200rpx; }
+
+/* 底部固定 CTA：新建厨房（替代右上角被胶囊挡的 + 按钮） */
+.hh__fab {
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  height: 92rpx;
+  background: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%);
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 46rpx;
+  box-shadow: 0 12rpx 28rpx rgba(255, 122, 0, 0.32);
+  z-index: 100;
+}
+
+.hh__fab-plus {
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1;
+  margin-right: 4rpx;
+}

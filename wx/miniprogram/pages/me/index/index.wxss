@@ -1,60 +1,32 @@
 .me {
   min-height: 100vh;
-  background: #FAFAF8;
-  padding: 0 48rpx 220rpx;
+  background: linear-gradient(180deg, #FFF1E2 0%, #FAFAF8 320rpx);
+  padding: 16rpx 32rpx 220rpx;
 }
 
-/* ========== 头 ========== */
-.me__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 32rpx 0 24rpx;
-}
-
-.me__title {
-  font-size: 46rpx;
-  font-weight: 700;
-  color: #1F1B16;
-  line-height: 1;
-}
-
-.me__bell {
-  width: 68rpx;
-  height: 68rpx;
-  border-radius: 50%;
+/* ========== 通用卡片 ========== */
+.me__card {
   background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.me__bell-icon {
-  width: 40rpx;
-  height: 40rpx;
+  border-radius: 32rpx;
+  box-shadow: 0 10rpx 28rpx rgba(31, 20, 8, 0.05);
+  margin-bottom: 24rpx;
 }
 
 /* ========== 用户卡 ========== */
 .me__user-card {
-  background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  border-radius: 40rpx;
-  padding: 30rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+  padding: 30rpx 30rpx 24rpx;
 }
 
 .me__user-row {
   display: flex;
   align-items: center;
   gap: 20rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 22rpx;
 }
 
 .me__avatar {
-  width: 120rpx;
-  height: 120rpx;
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 50%;
   background: #FFEEDC;
   display: flex;
@@ -66,50 +38,65 @@
 
 .me__avatar-img { width: 100%; height: 100%; }
 
-.me__avatar-emoji {
-  font-size: 60rpx;
-  line-height: 1;
+.me__avatar-default {
+  width: 56rpx;
+  height: 56rpx;
+  opacity: 0.6;
 }
 
 .me__user-body {
   flex: 1;
+  min-width: 0;
 }
 
 .me__user-name {
-  font-size: 36rpx;
+  font-size: 34rpx;
   font-weight: 600;
   color: #1F1B16;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .me__user-id {
-  font-size: 25rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 22rpx;
   color: #9B978F;
-  margin-top: 6rpx;
+  margin-top: 8rpx;
+  line-height: 1.2;
+}
+
+.me__user-id-copy {
+  font-size: 22rpx;
+  color: #9B978F;
+  opacity: 0.7;
 }
 
 .me__user-edit {
   background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  border-radius: 30rpx;
-  padding: 10rpx 24rpx;
+  border: 2rpx solid #F4D7B3;
+  border-radius: 28rpx;
+  padding: 10rpx 22rpx;
   font-size: 23rpx;
   font-weight: 500;
-  color: #6E6A62;
+  color: #EF6E00;
   line-height: 1.2;
   flex-shrink: 0;
 }
 
 .me__user-divider {
   height: 2rpx;
-  background: #EFEDE8;
-  margin: 0 -6rpx 16rpx;
+  background: #F4F2EE;
+  transform: scaleY(0.5);
+  margin: 0 -10rpx 18rpx;
 }
 
 .me__stats {
   display: flex;
   align-items: center;
-  padding: 4rpx 0;
 }
 
 .me__stat {
@@ -120,7 +107,7 @@
 }
 
 .me__stat-num {
-  font-size: 36rpx;
+  font-size: 38rpx;
   font-weight: 700;
   color: #1F1B16;
   line-height: 1.1;
@@ -129,34 +116,29 @@
 .me__stat-label {
   font-size: 22rpx;
   color: #9B978F;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
 }
 
 .me__stat-div {
   width: 1rpx;
-  height: 56rpx;
+  height: 48rpx;
   background: #EFEDE8;
   transform: scaleX(0.5);
 }
 
-/* ========== 温馨小厨房 ========== */
+/* ========== 我的厨房 ========== */
 .me__kitchen-card {
-  background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  border-radius: 40rpx;
-  padding: 30rpx;
   display: flex;
   align-items: center;
   gap: 20rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+  padding: 24rpx 26rpx;
 }
 
 .me__kitchen-icon-wrap {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 28rpx;
-  background: #FFF6EE;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #FFF1E2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,12 +146,13 @@
 }
 
 .me__kitchen-icon {
-  width: 48rpx;
-  height: 48rpx;
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .me__kitchen-body {
   flex: 1;
+  min-width: 0;
 }
 
 .me__kitchen-name {
@@ -180,7 +163,7 @@
 }
 
 .me__kitchen-sub {
-  font-size: 23rpx;
+  font-size: 22rpx;
   color: #9B978F;
   margin-top: 6rpx;
 }
@@ -188,35 +171,31 @@
 .me__kitchen-cta {
   display: flex;
   align-items: center;
-  background: #FFF6EE;
+  background: #FFF1E2;
   color: #EF6E00;
-  font-size: 25rpx;
+  font-size: 24rpx;
   font-weight: 500;
-  padding: 12rpx 24rpx;
-  border-radius: 32rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 28rpx;
+  flex-shrink: 0;
 }
 
 .me__kitchen-arrow {
-  width: 22rpx;
-  height: 22rpx;
-  margin-left: 6rpx;
+  width: 20rpx;
+  height: 20rpx;
+  margin-left: 4rpx;
 }
 
 /* ========== 家庭口味 ========== */
 .me__family-card {
-  background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  border-radius: 40rpx;
-  padding: 26rpx 30rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+  padding: 26rpx 30rpx 22rpx;
 }
 
 .me__family-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 18rpx;
+  margin-bottom: 16rpx;
 }
 
 .me__family-title {
@@ -226,30 +205,30 @@
 }
 
 .me__family-sub {
-  font-size: 23rpx;
+  font-size: 22rpx;
   color: #9B978F;
 }
 
 .me__member {
   display: flex;
   align-items: center;
-  padding: 12rpx 0;
+  padding: 10rpx 0;
 }
 
 .me__member-emoji {
-  width: 60rpx;
-  height: 60rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
-  background: #FFF6EE;
+  background: #FFF1E2;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30rpx;
+  font-size: 28rpx;
   margin-right: 16rpx;
 }
 
 .me__member-name {
-  font-size: 27rpx;
+  font-size: 26rpx;
   font-weight: 500;
   color: #1F1B16;
   margin-right: 16rpx;
@@ -264,65 +243,73 @@
 }
 
 .me__member-tag {
-  background: #FFF6EE;
+  background: #FFF1E2;
   color: #A9743A;
   font-size: 21rpx;
-  padding: 6rpx 14rpx;
-  border-radius: 14rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
 }
 
-.me__member-edit {
-  width: 56rpx;
-  height: 56rpx;
+.me__pref-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.me__member-edit-icon {
-  width: 32rpx;
-  height: 32rpx;
-}
-
-.me__add-member {
-  background: #FFF6EE;
+  gap: 8rpx;
+  background: #FFF1E2;
   color: #EF6E00;
-  text-align: center;
-  font-size: 25rpx;
+  font-size: 26rpx;
   font-weight: 500;
   padding: 18rpx 0;
   border-radius: 20rpx;
-  margin-top: 8rpx;
+  margin-top: 14rpx;
+}
+
+.me__pref-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+/* ========== 单行卡（烹饪历史等） ========== */
+.me__row-card {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 26rpx 30rpx;
+}
+
+.me__row-icon {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+}
+
+.me__row-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1F1B16;
+}
+
+.me__row-arrow {
+  width: 28rpx;
+  height: 28rpx;
 }
 
 /* ========== 设置卡 ========== */
-.me__settings-card,
-.me__extra-card {
-  background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  border-radius: 40rpx;
-  padding: 4rpx 30rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 20rpx 52rpx rgba(31, 20, 8, 0.05);
+.me__settings-card {
+  padding: 0 30rpx;
 }
 
 .me__set-row {
   display: flex;
   align-items: center;
-  padding: 22rpx 0;
+  gap: 22rpx;
+  padding: 24rpx 0;
 }
 
 .me__set-icon {
-  width: 42rpx;
-  height: 42rpx;
-  margin-right: 24rpx;
+  width: 36rpx;
+  height: 36rpx;
   flex-shrink: 0;
-}
-
-.me__set-icon--emoji {
-  font-size: 36rpx;
-  text-align: center;
-  line-height: 42rpx;
 }
 
 .me__set-text {
@@ -332,14 +319,23 @@
 }
 
 .me__set-arrow {
-  width: 32rpx;
-  height: 32rpx;
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.me__set-tag {
+  font-size: 21rpx;
+  color: #9B978F;
+  background: #F4F2EE;
+  padding: 4rpx 14rpx;
+  border-radius: 12rpx;
 }
 
 .me__set-divider {
   height: 2rpx;
   background: #F4F2EE;
-  margin-left: 66rpx;
+  margin-left: 58rpx;
+  transform: scaleY(0.5);
 }
 
 /* ========== 退出登录 ========== */
@@ -350,16 +346,17 @@
   background: #FFFFFF;
   border: 2rpx solid #F2D8D2;
   border-radius: 28rpx;
-  height: 92rpx;
+  height: 88rpx;
   color: #E5604A;
-  font-size: 29rpx;
+  font-size: 28rpx;
   font-weight: 600;
+  margin-top: 28rpx;
 }
 
 .me__logout-icon {
-  width: 36rpx;
-  height: 36rpx;
+  width: 32rpx;
+  height: 32rpx;
   margin-right: 12rpx;
 }
 
-.me__spacer { height: 100rpx; }
+.me__spacer { height: 80rpx; }

@@ -1,4 +1,4 @@
-package biz
+package kitchen
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	apierrors "github.com/chengjiang/aicook/backend/api/aicook/errors"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"gorm.io/gorm"
 )
 
@@ -35,7 +36,7 @@ type CreateInput struct {
 
 // Create 写入一条历史；当菜谱不存在或不属于当前 household 时返回 NotFound。
 // 写入成功后会顺带删除对应的 active cooking 记录（避免首页"正在做"与"做过"同时出现）。
-func (u *CookingHistoryUsecase) Create(ctx context.Context, actor Actor, input CreateInput) (*data.CookingHistory, error) {
+func (u *CookingHistoryUsecase) Create(ctx context.Context, actor common.Actor, input CreateInput) (*data.CookingHistory, error) {
 	if input.RecipeID <= 0 {
 		return nil, apierrors.ErrorInvalidId("recipe id")
 	}
@@ -109,7 +110,7 @@ func (u *CookingHistoryUsecase) Create(ctx context.Context, actor Actor, input C
 }
 
 // List 返回当前用户的历史，使用游标分页。
-func (u *CookingHistoryUsecase) List(ctx context.Context, actor Actor, limit int, beforeID int64) ([]*data.CookingHistory, int64, error) {
+func (u *CookingHistoryUsecase) List(ctx context.Context, actor common.Actor, limit int, beforeID int64) ([]*data.CookingHistory, int64, error) {
 	items, err := u.histories.ListByUser(ctx, actor.UserID, limit, beforeID)
 	if err != nil {
 		return nil, 0, err
@@ -122,12 +123,12 @@ func (u *CookingHistoryUsecase) List(ctx context.Context, actor Actor, limit int
 }
 
 // ListRecent 取最近做过的 N 条用于首页展示。
-func (u *CookingHistoryUsecase) ListRecent(ctx context.Context, actor Actor, limit int) ([]*data.CookingHistory, error) {
+func (u *CookingHistoryUsecase) ListRecent(ctx context.Context, actor common.Actor, limit int) ([]*data.CookingHistory, error) {
 	return u.histories.ListRecentForUser(ctx, actor.UserID, limit)
 }
 
 // ListRecentRecipeIDs 供推荐算法做"最近做过降权"使用，返回最近 withinDays 天内做过的菜谱 id（去重）。
-func (u *CookingHistoryUsecase) ListRecentRecipeIDs(ctx context.Context, actor Actor, withinDays int, limit int) ([]int64, error) {
+func (u *CookingHistoryUsecase) ListRecentRecipeIDs(ctx context.Context, actor common.Actor, withinDays int, limit int) ([]int64, error) {
 	return u.histories.ListRecentRecipeIDsForUser(ctx, actor.UserID, withinDays, limit)
 }
 

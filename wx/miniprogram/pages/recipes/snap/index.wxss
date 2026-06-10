@@ -120,66 +120,87 @@
   background: #2DBE7A;
 }
 
-/* 顶部按钮 */
+/* 顶部按钮：右侧留出微信胶囊（约 180rpx 宽 + 14rpx 间距）避免重叠 */
 .snap__topbar {
   position: absolute;
   left: 32rpx;
-  right: 32rpx;
+  right: calc(32rpx + 194rpx);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16rpx;
   z-index: 10;
 }
 
 .snap__top-btn {
-  width: 76rpx;
-  height: 76rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.92);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
 }
 
 .snap__top-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 36rpx;
+  height: 36rpx;
 }
 
 .snap__top-emoji {
-  font-size: 36rpx;
+  font-size: 32rpx;
   color: #1F1B16;
 }
 
+/* 标题紧贴返回按钮，避开胶囊；不再 flex:1 居中（居中位置会被胶囊挡） */
 .snap__top-title {
   color: #FFFFFF;
-  font-size: 34rpx;
+  font-size: 30rpx;
   font-weight: 600;
   text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4);
   flex: 1;
-  text-align: center;
+  text-align: left;
+  margin-left: 4rpx;
 }
 
 .snap__top-actions {
   display: flex;
-  gap: 16rpx;
+  gap: 12rpx;
+  flex-shrink: 0;
 }
 
-/* 快门按钮 */
-.snap__shutter {
+/* 底部操作行：快门居中 + 左右两个 side slot 放辅助按钮 */
+.snap__bottom-row {
   position: absolute;
-  bottom: 80rpx;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(80rpx + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 56rpx;
+  z-index: 8;
+}
+
+.snap__side-slot {
+  width: 144rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 快门按钮：单手友好下方居中 */
+.snap__shutter {
   width: 144rpx;
   height: 144rpx;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.28);
-  border: 6rpx solid rgba(255, 255, 255, 0.85);
+  border: 6rpx solid rgba(255, 255, 255, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.25);
 }
 
 .snap__shutter-inner {
@@ -187,13 +208,42 @@
   height: 112rpx;
   border-radius: 50%;
   background: #FFFFFF;
+  transition: transform 0.1s ease, background 0.1s ease;
 }
 
+.snap__shutter:active .snap__shutter-inner {
+  background: #FFE4CC;
+  transform: scale(0.92);
+}
+
+/* 快门旁的小"结果"按钮（拍前可见，提示有现成 chip 可编辑） */
+.snap__result-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.18);
+}
+
+.snap__result-pill-num {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #FF7A00;
+  line-height: 1;
+}
+
+.snap__result-pill-label {
+  font-size: 18rpx;
+  color: #5C544A;
+  margin-top: 2rpx;
+}
+
+/* 识别完成后底部：重拍 mini + 查看结果 CTA */
 .snap__retake {
-  position: absolute;
-  bottom: 80rpx;
-  left: 50%;
-  transform: translateX(-50%);
   padding: 22rpx 56rpx;
   background: rgba(31, 27, 22, 0.6);
   color: #FFFFFF;
@@ -202,17 +252,69 @@
   font-weight: 500;
 }
 
-/* ========== 底部 sheet ========== */
+.snap__retake-mini {
+  padding: 16rpx 28rpx;
+  background: rgba(31, 27, 22, 0.6);
+  color: #FFFFFF;
+  font-size: 24rpx;
+  border-radius: 9999rpx;
+  font-weight: 500;
+}
+
+.snap__result-cta {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 36rpx;
+  background: #FFFFFF;
+  color: #FF7A00;
+  border-radius: 9999rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.18);
+}
+
+.snap__result-cta-num {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-size: 24rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.snap__result-cta-label {
+  font-size: 28rpx;
+}
+
+/* ========== 底部 sheet（默认收起，识别完自动展开） ========== */
+.snap__sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 19;
+}
+
 .snap__sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #FFFFFF;
   border-top-left-radius: 56rpx;
   border-top-right-radius: 56rpx;
   padding: 24rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -8rpx 48rpx rgba(0, 0, 0, 0.1);
-  margin-top: -56rpx;
-  position: relative;
-  z-index: 5;
-  flex-shrink: 0;
+  box-shadow: 0 -8rpx 48rpx rgba(0, 0, 0, 0.15);
+  z-index: 20;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.snap__sheet--open {
+  transform: translateY(0);
 }
 
 .snap__handle {
@@ -245,18 +347,10 @@
   border-radius: 20rpx;
 }
 
-.snap__edit {
+.snap__edit-hint {
   margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  font-size: 27rpx;
+  font-size: 22rpx;
   color: #9B978F;
-}
-
-.snap__edit-icon {
-  width: 32rpx;
-  height: 32rpx;
 }
 
 /* chip 网格 */
@@ -268,16 +362,33 @@
 }
 
 .snap__chip {
+  position: relative;
   background: #FFF6EE;
   border: 2rpx solid #F4E6D3;
   color: #1F1B16;
   font-size: 27rpx;
   font-weight: 500;
-  padding: 14rpx 24rpx;
+  padding: 14rpx 36rpx 14rpx 24rpx;
   border-radius: 22rpx;
   display: flex;
   align-items: center;
   gap: 8rpx;
+}
+
+.snap__chip-del {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: rgba(31, 27, 22, 0.8);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .snap__chip-emoji {

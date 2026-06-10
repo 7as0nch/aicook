@@ -2,7 +2,7 @@
 import { recipeApi } from '../../../services/recipe.api';
 import { cookingApi } from '../../../services/cooking.api';
 import { kitchenApi } from '../../../services/kitchen.api';
-import { emit, EVENTS } from '../../../utils/eventbus';
+import { chatStore } from '../../../store/chat.store';
 import type { RecipeStep, RecipeDetail } from '../../../types/api';
 
 Page({
@@ -139,7 +139,7 @@ Page({
 
   onAskAI() {
     // 弹 ai-sheet 带步骤上下文
-    emit(EVENTS.AI_OPEN, {
+    chatStore.openSheet({
       scene: 'cooking_guide',
       recipe_id: this.data.recipeId,
       quote_context: {

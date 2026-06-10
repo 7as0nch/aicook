@@ -1,4 +1,4 @@
-package biz
+package ai
 
 import (
 	"bytes"
@@ -14,6 +14,8 @@ import (
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	kgraph "github.com/chengjiang/aicook/backend/internal/platform/airuntime/graph"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime/rag"
@@ -75,7 +77,7 @@ const (
 
 type KnowledgeUsecase struct {
 	repo            KnowledgeRepo
-	mediaRepo       MediaRepo
+	mediaRepo       user.MediaRepo
 	recipeRepo      *data.RecipeRepo
 	objectStorage   storage.ObjectStorage
 	knowledgeBucket string
@@ -1177,7 +1179,7 @@ func (u *KnowledgeUsecase) SaveHouseholdMemory(ctx context.Context, householdID,
 
 // ListHouseholdAIMemoriesForActor 供 HTTP：当前登录家庭记忆列表。
 func (u *KnowledgeUsecase) ListHouseholdAIMemoriesForActor(ctx context.Context, limit int) ([]*data.HouseholdAIMemory, error) {
-	actor := ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	if limit <= 0 {
 		limit = 50
 	}
@@ -1186,7 +1188,7 @@ func (u *KnowledgeUsecase) ListHouseholdAIMemoriesForActor(ctx context.Context, 
 
 // SaveHouseholdAIMemoryForActor 供 HTTP：按当前用户写入一条记忆。
 func (u *KnowledgeUsecase) SaveHouseholdAIMemoryForActor(ctx context.Context, content, scope string) error {
-	actor := ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	return u.SaveHouseholdMemory(ctx, actor.HouseholdID, actor.UserID, scope, content, "api")
 }
 

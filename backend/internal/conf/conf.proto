@@ -14,6 +14,14 @@ message Bootstrap {
   AI ai = 5;
   Auth auth = 6;
   Log log = 7;
+  Wechat wechat = 8;
+}
+
+message Wechat {
+  // 微信小程序 AppID（管理后台获取）
+  string appid = 1;
+  // 微信小程序 AppSecret（管理后台获取）。生产环境强烈建议从安全的密钥管理服务注入。
+  string secret = 2;
 }
 
 message Auth {

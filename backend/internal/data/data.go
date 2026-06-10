@@ -8,6 +8,7 @@ import (
 
 	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/conf"
+	"github.com/chengjiang/aicook/backend/internal/model"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	"github.com/chengjiang/aicook/backend/internal/platform/demo"
 	"github.com/chengjiang/aicook/backend/internal/platform/embeddings"
@@ -46,13 +47,21 @@ func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
 	ctx := context.Background()
 	if cfg.GetData().GetPgDatabase().GetAutoMigrate() {
 		// 当前仓库以 deploy/sql/base.sql 作为业务 schema 主来源。
-		// 只有在空库/本地引导场景下，才允许 AutoMigrate 创建基础表结构；
-		// 已存在业务表时跳过，避免 GORM 试图重命名或删除手写 SQL 建立的约束与索引。
-		// db.AutoMigrate(&model.RecipeKitchenTag{})
+		// 1) 空库首次引导：跑完整 AutoMigrate 创建所有表。
 		if !db.Migrator().HasTable(&CookingHistory{}) {
 			if err := persistence.AutoMigrate(ctx, db); err != nil {
 				return nil, nil, err
 			}
+		}
+		// 2) 已存在业务表：仅对"曾经增量加字段"的模型跑 AutoMigrate。
+		//    GORM AutoMigrate 只 ADD COLUMN / 新建索引，不会删/改既有列，
+		//    所以可以安全每次启动跑一遍，自动补齐手写 SQL 漏跑的迁移。
+		//    新增字段时把对应 model 加进这个列表即可。
+		incremental := []any{
+			&model.User{}, // wx_openid / wx_unionid（2026-06 微信登录）
+		}
+		if err := db.AutoMigrate(incremental...); err != nil {
+			return nil, nil, err
 		}
 	}
 	if err := demo.EnsureSeed(ctx, db); err != nil {

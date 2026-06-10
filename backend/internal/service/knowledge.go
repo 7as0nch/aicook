@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"strconv"
 
 	gca "github.com/7as0nch/gocommon/auth"
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/ai"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 )
@@ -13,16 +15,17 @@ import (
 type KnowledgeService struct {
 	v1.UnimplementedKnowledgeServiceServer
 
-	usecase *biz.KnowledgeUsecase
+	usecase *ai.KnowledgeUsecase
+	ai      *ai.AIUsecase
 }
 
-func NewKnowledgeService(usecase *biz.KnowledgeUsecase) *KnowledgeService {
-	return &KnowledgeService{usecase: usecase}
+func NewKnowledgeService(usecase *ai.KnowledgeUsecase, ai *ai.AIUsecase) *KnowledgeService {
+	return &KnowledgeService{usecase: usecase, ai: ai}
 }
 
 func (s *KnowledgeService) CreateKnowledgeBase(ctx context.Context, req *v1.CreateKnowledgeBaseRequest) (*v1.CreateKnowledgeBaseReply, error) {
-	actor := biz.ActorFromContext(ctx)
-	base, err := s.usecase.CreateBase(ctx, biz.CreateKnowledgeBaseRequest{
+	actor := common.ActorFromContext(ctx)
+	base, err := s.usecase.CreateBase(ctx, ai.CreateKnowledgeBaseRequest{
 		HouseholdID: actor.HouseholdID,
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
@@ -34,7 +37,7 @@ func (s *KnowledgeService) CreateKnowledgeBase(ctx context.Context, req *v1.Crea
 }
 
 func (s *KnowledgeService) ListKnowledgeBases(ctx context.Context, _ *v1.ListKnowledgeBasesRequest) (*v1.ListKnowledgeBasesReply, error) {
-	actor := biz.ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	items, err := s.usecase.ListBases(ctx, actor.HouseholdID)
 	if err != nil {
 		return nil, err
@@ -48,7 +51,7 @@ func (s *KnowledgeService) ListKnowledgeBases(ctx context.Context, _ *v1.ListKno
 }
 
 func (s *KnowledgeService) CreateKnowledgeDocument(ctx context.Context, req *v1.CreateKnowledgeDocumentRequest) (*v1.CreateKnowledgeDocumentReply, error) {
-	document, err := s.usecase.CreateDocument(ctx, biz.CreateKnowledgeDocumentRequest{
+	document, err := s.usecase.CreateDocument(ctx, ai.CreateKnowledgeDocumentRequest{
 		KnowledgeBaseID: req.GetKnowledgeBaseId(),
 		MediaAssetID:    req.GetMediaAssetId(),
 		Title:           req.GetTitle(),
@@ -125,6 +128,78 @@ func (s *KnowledgeService) CreateHouseholdAIMemory(ctx context.Context, req *v1.
 		return nil, err
 	}
 	return &v1.CreateHouseholdAIMemoryReply{Ok: true}, nil
+}
+
+// GetKnowledgeIngestStatus 按 media asset id 查询最近一次知识库入库进度，
+// 替代原 chat_http.go 的 GET /chat/knowledge-ingest/status。
+func (s *KnowledgeService) GetKnowledgeIngestStatus(ctx context.Context, req *v1.GetKnowledgeIngestStatusRequest) (*v1.GetKnowledgeIngestStatusReply, error) {
+	if err := requireAuthClaims(ctx); err != nil {
+		return nil, err
+	}
+	actor := common.ActorFromContext(ctx)
+	if actor.HouseholdID == 0 {
+		return nil, kerrors.Unauthorized("UNAUTHORIZED", "household required")
+	}
+	if req.GetAssetId() <= 0 {
+		return nil, kerrors.BadRequest("BAD_REQUEST", "asset_id is required")
+	}
+	view, err := s.usecase.GetIngestStatusByMediaAsset(ctx, actor.HouseholdID, req.GetAssetId())
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetKnowledgeIngestStatusReply{
+		Pending:         view.Pending,
+		Settled:         view.Settled,
+		Status:          view.Status,
+		ProcessingStage: view.ProcessingStage,
+		StageLabel:      view.StageLabel,
+		DocumentId:      view.DocumentID,
+		MediaAssetId:    view.MediaAssetID,
+		Title:           view.Title,
+		ChunkCount:      int32(view.ChunkCount),
+		Retryable:       view.Retryable,
+		Partial:         view.Partial,
+		FailureReason:   view.FailureReason,
+		Summary:         view.Summary,
+		LastErrorKind:   view.LastErrorKind,
+		LastErrorDetail: view.LastErrorDetail,
+	}, nil
+}
+
+// RetryKnowledgeDocument 触发知识文档异步重试入库，
+// 替代原 chat_http.go 的 POST /chat/knowledge-ingest/retry。
+func (s *KnowledgeService) RetryKnowledgeDocument(ctx context.Context, req *v1.RetryKnowledgeDocumentRequest) (*v1.RetryKnowledgeDocumentReply, error) {
+	if err := requireAuthClaims(ctx); err != nil {
+		return nil, err
+	}
+	if req.GetDocumentId() <= 0 {
+		return nil, kerrors.BadRequest("BAD_REQUEST", "document_id is required")
+	}
+	actor := common.ActorFromContext(ctx)
+	if actor.HouseholdID == 0 {
+		return nil, kerrors.Unauthorized("UNAUTHORIZED", "household required")
+	}
+	var sessionID int64
+	if req.SessionId != nil {
+		sessionID = req.GetSessionId()
+	}
+	doc, err := s.ai.QueueKnowledgeDocumentRetry(ctx, actor, sessionID, req.GetDocumentId())
+	if err != nil {
+		return nil, err
+	}
+	mediaAssetID := ""
+	if doc.MediaAssetID != nil && *doc.MediaAssetID > 0 {
+		mediaAssetID = strconv.FormatInt(*doc.MediaAssetID, 10)
+	}
+	return &v1.RetryKnowledgeDocumentReply{
+		Accepted:        true,
+		DocumentId:      strconv.FormatInt(doc.ID, 10),
+		MediaAssetId:    mediaAssetID,
+		Title:           doc.Title,
+		ProcessingStage: "fetch_object",
+		Status:          "processing",
+		StageLabel:      "准备重试…",
+	}, nil
 }
 
 func toProtoHouseholdAIMemory(m *data.HouseholdAIMemory) *v1.HouseholdAIMemory {

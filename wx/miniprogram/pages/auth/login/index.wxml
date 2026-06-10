@@ -1,49 +1,60 @@
 <view class="auth">
-  <view class="auth__top">
-    <view class="auth__brand">aicook</view>
-    <view class="auth__mascot">
-      <image class="auth__mascot-img" src="/assets/mascot/bao-smile.png" mode="aspectFit" />
-    </view>
-    <text class="auth__welcome">欢迎回来</text>
-    <text class="auth__sub">登录你的家庭智能厨房助手</text>
-  </view>
-
-  <view class="auth__form">
-    <view class="auth__field">
-      <text class="auth__label">账号</text>
-      <input
-        class="auth__input"
-        placeholder="请输入用户名"
-        value="{{username}}"
-        bindinput="onUsernameInput"
-      />
-    </view>
-    <view class="auth__field">
-      <text class="auth__label">密码</text>
-      <input
-        class="auth__input"
-        placeholder="请输入密码"
-        password
-        value="{{password}}"
-        bindinput="onPasswordInput"
-      />
+  <!-- 默认视图：仅微信一键登录 -->
+  <block wx:if="{{!showAccountForm}}">
+    <view class="auth__top">
+      <view class="auth__brand">aicook</view>
+      <view class="auth__mascot">
+        <image class="auth__mascot-img" src="/assets/mascot/bao-smile.png" mode="aspectFit" />
+      </view>
+      <text class="auth__welcome">欢迎来到 aicook</text>
+      <text class="auth__sub">AI 智能厨房助手 · 一键登录开启</text>
     </view>
 
-    <view class="auth__btn {{loading ? 'auth__btn--loading' : ''}}" bindtap="onLoginTap">
-      <text>{{loading ? '登录中…' : '登录'}}</text>
+    <view class="auth__wx-zone">
+      <view class="auth__wx-btn {{loading ? 'auth__wx-btn--loading' : ''}}" bindtap="onWxLogin">
+        <image class="auth__wx-icon" src="/assets/icons/wechat.svg" mode="aspectFit" />
+        <text>{{loading ? '登录中…' : '微信一键登录'}}</text>
+      </view>
+      <text class="auth__wx-tip">未注册的微信号将自动创建账号</text>
     </view>
 
-    <view class="auth__divider">
-      <view class="auth__divider-line"></view>
-      <text class="auth__divider-text">或</text>
-      <view class="auth__divider-line"></view>
+    <view class="auth__alt" bindtap="onShowAccountForm">其他登录方式</view>
+  </block>
+
+  <!-- 账号登录（隐藏入口，从「其他登录方式」进入） -->
+  <block wx:else>
+    <view class="auth__top auth__top--compact">
+      <view class="auth__back" bindtap="onHideAccountForm">‹ 返回微信登录</view>
+      <text class="auth__welcome">账号登录</text>
+      <text class="auth__sub">使用账号密码登录</text>
     </view>
 
-    <view class="auth__wx-btn {{loading ? 'auth__wx-btn--loading' : ''}}" bindtap="onWxLogin">
-      <image class="auth__wx-icon" src="/assets/icons/wechat.svg" mode="aspectFit" />
-      <text>微信一键登录</text>
-    </view>
+    <view class="auth__form">
+      <view class="auth__field">
+        <text class="auth__label">账号</text>
+        <input
+          class="auth__input"
+          placeholder="请输入用户名"
+          value="{{username}}"
+          bindinput="onUsernameInput"
+        />
+      </view>
+      <view class="auth__field">
+        <text class="auth__label">密码</text>
+        <input
+          class="auth__input"
+          placeholder="请输入密码"
+          password
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+      </view>
 
-    <view class="auth__link" bindtap="onGoRegister">还没有账号？立即注册</view>
-  </view>
+      <view class="auth__btn {{loading ? 'auth__btn--loading' : ''}}" bindtap="onLoginTap">
+        <text>{{loading ? '登录中…' : '登录'}}</text>
+      </view>
+
+      <view class="auth__link" bindtap="onGoRegister">还没有账号？立即注册</view>
+    </view>
+  </block>
 </view>

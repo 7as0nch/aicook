@@ -2,7 +2,7 @@
 // hero 图 + 标题 meta + 4 tab(食材/步骤/AI 指导/营养) + 底部 sticky bar
 import { recipeApi } from '../../../services/recipe.api';
 import { kitchenApi } from '../../../services/kitchen.api';
-import { emit, EVENTS } from '../../../utils/eventbus';
+import { chatStore } from '../../../store/chat.store';
 import type { Recipe, RecipeIngredient, RecipeStep } from '../../../types/api';
 
 type DetailTab = 'ingredients' | 'steps' | 'ai' | 'nutrition';
@@ -141,7 +141,7 @@ Page({
 
   onAskAI() {
     const title = this.data.recipe?.title || '当前菜谱';
-    emit(EVENTS.AI_OPEN, {
+    chatStore.openSheet({
       scene: 'recipe_detail',
       recipe_id: this.data.id,
       quote_context: {
@@ -160,7 +160,7 @@ Page({
       itemList: ['问 AI 这步怎么做'],
       success: (res) => {
         if (res.tapIndex === 0) {
-          emit(EVENTS.AI_OPEN, {
+          chatStore.openSheet({
             scene: 'cooking_guide',
             recipe_id: this.data.id,
             quote_context: {

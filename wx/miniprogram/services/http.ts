@@ -20,7 +20,7 @@ interface PersistedAuth {
 export type QueryValue = string | number | boolean | undefined | null;
 
 export interface RequestOptions<TData = unknown> {
-  url: string;                                          // 形如 /api/v1/recipes 或 /chat/sessions/123
+  url: string;                                          // 形如 /api/v1/recipes 或 /chat/send (SSE)
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   data?: TData;
   query?: Record<string, QueryValue> | object;
@@ -101,6 +101,23 @@ function handleAuthFailure(): void {
 export function request<TResp = unknown, TData = unknown>(
   opts: RequestOptions<TData>,
 ): Promise<TResp> {
+  // ① 全局守卫：required 请求但没有 token → 同步早退（不发请求）。
+  //    这样 cold start 还没跳到登录页前各 tab 页发出的请求不会真的命中后端，
+  //    避免日志被 401 刷屏 + 浪费带宽 + 不必要的 toast/redirect 闪烁。
+  const authMode = opts.auth ?? 'required';
+  if (authMode === 'required') {
+    const persisted = getItem<PersistedAuth>(STORAGE_KEYS.AUTH);
+    if (!persisted?.token) {
+      // 由 app.ts 的 onLaunch 或 redirectToLogin() 负责跳登录页；
+      // 这里只静默 reject，避免每个请求都 toast「登录已过期」。
+      return Promise.reject<TResp>({
+        code: 401,
+        reason: 'NO_TOKEN',
+        message: '未登录',
+      } as ApiError);
+    }
+  }
+
   const url = buildUrl(opts.url, opts.query);
   const header = buildHeader(opts);
   const method = opts.method ?? 'GET';

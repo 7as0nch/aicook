@@ -52,9 +52,9 @@ export const authStore: AuthStore = observable({
   restoreFromStorage: action(function (this: AuthStore) {
     const saved = getItem<PersistedAuth>(STORAGE_KEYS.AUTH);
     if (!saved) return;
+    // 只恢复 token；user / household 字段永远从后端 GetMe 拉最新
+    // （避免 DB 改了字段但本地 storage 缓存还是老的 → 显示和 DB 不一致）
     this.token = saved.token || '';
-    this.user = saved.user || null;
-    this.currentHousehold = saved.current_household || null;
   }),
 
   persist(this: AuthStore) {
@@ -63,10 +63,10 @@ export const authStore: AuthStore = observable({
       current_household_id: this.currentHousehold?.id,
     });
     try {
+      // 只持久化 token + current_household_id（HTTP 请求头需要），
+      // 不持久化 user / household 对象，强制每次启动都从后端拉。
       wx.setStorageSync(STORAGE_KEYS.AUTH, {
         token: this.token,
-        user: this.user,
-        current_household: this.currentHousehold,
         current_household_id: this.currentHousehold?.id,
       });
     } catch (e) {
@@ -94,6 +94,8 @@ export const authStore: AuthStore = observable({
     this.loading = true;
     try {
       const reply = await authApi.wxLogin(req);
+      // DEBUG: 打印后端返回的关键字段，便于排查 display_name / avatar_url 显示问题
+      console.log('[loginByWx] backend reply.user =', JSON.stringify(reply.user));
       this.token = reply.token;
       this.user = reply.user;
       this.currentHousehold = reply.current_household;
@@ -125,6 +127,8 @@ export const authStore: AuthStore = observable({
   refreshMe: action(async function (this: AuthStore) {
     if (!getCurrentToken()) return;
     const reply = await authApi.getMe();
+    // DEBUG: 打印后端返回的用户数据，便于排查 display_name 显示问题
+    console.log('[refreshMe] backend reply.user =', JSON.stringify(reply.user));
     this.user = reply.user;
     this.currentHousehold = reply.current_household;
     this.households = reply.households || [];

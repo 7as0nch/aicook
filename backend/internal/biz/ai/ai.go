@@ -1,4 +1,4 @@
-package biz
+package ai
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 
 	apierrors "github.com/chengjiang/aicook/backend/api/aicook/errors"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/kitchen"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -71,11 +73,11 @@ type ListMessagesRequest struct {
 type AIUsecase struct {
 	repo      AIRepo
 	aiRuntime *airuntime.Runtime
-	cooking   *CookingProgressUsecase
+	cooking   *kitchen.CookingProgressUsecase
 	knowledge *KnowledgeUsecase
 }
 
-func NewAIUsecase(repo *data.AIRepo, aiRuntime *airuntime.Runtime, cooking *CookingProgressUsecase, knowledge *KnowledgeUsecase) *AIUsecase {
+func NewAIUsecase(repo *data.AIRepo, aiRuntime *airuntime.Runtime, cooking *kitchen.CookingProgressUsecase, knowledge *KnowledgeUsecase) *AIUsecase {
 	usecase := &AIUsecase{
 		repo:      repo,
 		aiRuntime: aiRuntime,
@@ -89,7 +91,7 @@ func NewAIUsecase(repo *data.AIRepo, aiRuntime *airuntime.Runtime, cooking *Cook
 	return usecase
 }
 
-func (u *AIUsecase) activeCookingForPrompt(ctx context.Context, actor Actor) []airuntime.ActiveCookingSummary {
+func (u *AIUsecase) activeCookingForPrompt(ctx context.Context, actor common.Actor) []airuntime.ActiveCookingSummary {
 	if u.cooking == nil {
 		return nil
 	}
@@ -150,7 +152,7 @@ func (u *AIUsecase) SendMessage(ctx context.Context, sessionID int64, req SendMe
 	u.persistAssistantApprovalChoice(ctx, session.ID, req.ApprovalResponse)
 	session = u.updateSessionTitleIfNeeded(ctx, session, req.Text)
 
-	actor := ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	u.queueKnowledgeIngestFromAttachments(actor, session.ID, req.Attachments)
 
 	recentMessages, _ := u.repo.ListRecentMessages(ctx, session.ID, 6)
@@ -220,7 +222,7 @@ func (u *AIUsecase) StreamMessage(ctx context.Context, sessionID int64, req Send
 	u.persistAssistantApprovalChoice(ctx, session.ID, req.ApprovalResponse)
 	session = u.updateSessionTitleIfNeeded(ctx, session, req.Text)
 
-	actor := ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	u.queueKnowledgeIngestFromAttachments(actor, session.ID, req.Attachments)
 
 	recentMessages, _ := u.repo.ListRecentMessages(ctx, session.ID, 6)
@@ -268,7 +270,7 @@ func (u *AIUsecase) StreamMessage(ctx context.Context, sessionID int64, req Send
 }
 
 func (u *AIUsecase) ListSessions(ctx context.Context, req ListSessionsRequest) ([]*data.AISession, error) {
-	actor := ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	limit := req.Limit
 	if limit <= 0 {
 		limit = 20
@@ -400,7 +402,7 @@ func ensureSessionAccess(ctx context.Context, session *data.AISession) (*data.AI
 	if session == nil {
 		return nil, apierrors.ErrorNotFound("ai session not found")
 	}
-	actor := ActorFromContext(ctx)
+	actor := common.ActorFromContext(ctx)
 	if actor.HouseholdID > 0 && session.HouseholdID != actor.HouseholdID {
 		return nil, apierrors.ErrorNotFound("ai session not found")
 	}
@@ -569,7 +571,7 @@ func (u *AIUsecase) persistAssistantApprovalChoice(ctx context.Context, sessionI
 	_ = u.repo.UpdateMessageResponseMetaJSON(ctx, sessionID, msg.ID, datatypes.JSON(out))
 }
 
-func (u *AIUsecase) queueKnowledgeIngestFromAttachments(actor Actor, sessionID int64, attachments []airuntime.Attachment) {
+func (u *AIUsecase) queueKnowledgeIngestFromAttachments(actor common.Actor, sessionID int64, attachments []airuntime.Attachment) {
 	if u == nil || u.knowledge == nil || actor.HouseholdID == 0 {
 		return
 	}
@@ -606,7 +608,7 @@ func (u *AIUsecase) queueKnowledgeIngestFromAttachments(actor Actor, sessionID i
 	}
 }
 
-func (u *AIUsecase) QueueKnowledgeDocumentRetry(ctx context.Context, actor Actor, sessionID, documentID int64) (*data.KnowledgeDocument, error) {
+func (u *AIUsecase) QueueKnowledgeDocumentRetry(ctx context.Context, actor common.Actor, sessionID, documentID int64) (*data.KnowledgeDocument, error) {
 	if u == nil || u.knowledge == nil {
 		return nil, errors.New("knowledge usecase not configured")
 	}
@@ -693,7 +695,7 @@ func (u *AIUsecase) ManageKnowledgeIngest(ctx context.Context, householdID, user
 			}
 			return result, nil
 		}
-		_, err := u.QueueKnowledgeDocumentRetry(ctx, Actor{HouseholdID: householdID, UserID: userID}, sessionID, doc.ID)
+		_, err := u.QueueKnowledgeDocumentRetry(ctx, common.Actor{HouseholdID: householdID, UserID: userID}, sessionID, doc.ID)
 		if err != nil {
 			return nil, err
 		}

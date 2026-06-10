@@ -5,7 +5,7 @@
       wx:if="{{!captured}}"
       class="snap__camera"
       device-position="{{devicePosition}}"
-      flash="{{flashOn ? 'on' : 'off'}}"
+      flash="off"
       binderror="onCameraError"
     />
     <image wx:else class="snap__captured" src="{{capturedPath}}" mode="aspectFill" />
@@ -45,41 +45,62 @@
       <text>对准冰箱食材，点击下方拍照</text>
     </view>
 
-    <!-- 顶部按钮 -->
+    <!-- 顶部：只保留返回 + 标题（去掉闪光/翻转两个无用按钮） -->
     <view class="snap__topbar" style="top: {{statusBarHeight + 6}}px">
       <view class="snap__top-btn" bindtap="onBack">
         <image class="snap__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
       </view>
       <view class="snap__top-title">食材识别</view>
-      <view class="snap__top-actions">
-        <view class="snap__top-btn" bindtap="onFlashToggle">
-          <text class="snap__top-emoji">{{flashOn ? '⚡' : '⚡'}}</text>
-        </view>
-        <view class="snap__top-btn" bindtap="onCameraSwitch">
-          <text class="snap__top-emoji">⟳</text>
+    </view>
+
+    <!-- 底部操作行：快门 + 旁边的"结果"小按钮（默认状态：未拍） -->
+    <view wx:if="{{!captured}}" class="snap__bottom-row">
+      <view class="snap__side-slot"></view>
+      <view class="snap__shutter" bindtap="onShutterTap">
+        <view class="snap__shutter-inner"></view>
+      </view>
+      <view class="snap__side-slot">
+        <view wx:if="{{chips.length}}" class="snap__result-pill" bindtap="onOpenSheet">
+          <text class="snap__result-pill-num">{{chips.length}}</text>
+          <text class="snap__result-pill-label">结果</text>
         </view>
       </view>
     </view>
 
-    <!-- 底部拍照按钮（未识别时） -->
-    <view wx:if="{{!recognized && !captured}}" class="snap__shutter" bindtap="onShutterTap">
-      <view class="snap__shutter-inner"></view>
+    <!-- 拍摄完识别中 -->
+    <view wx:if="{{captured && recognizing}}" class="snap__bottom-row">
+      <view class="snap__side-slot"></view>
+      <view class="snap__retake" bindtap="onRetake">
+        <text>重拍</text>
+      </view>
+      <view class="snap__side-slot"></view>
     </view>
-    <view wx:if="{{captured && !recognizing}}" class="snap__retake" bindtap="onRetake">
-      <text>重拍</text>
+
+    <!-- 识别完成后底部：重拍 + 切换结果抽屉 -->
+    <view wx:if="{{recognized && !recognizing}}" class="snap__bottom-row">
+      <view class="snap__side-slot">
+        <view class="snap__retake-mini" bindtap="onRetake">
+          <text>重拍</text>
+        </view>
+      </view>
+      <view class="snap__result-cta" bindtap="onToggleSheet">
+        <text class="snap__result-cta-num">{{chips.length}}</text>
+        <text class="snap__result-cta-label">{{sheetOpen ? '收起 ▾' : '查看结果 ▴'}}</text>
+      </view>
+      <view class="snap__side-slot"></view>
     </view>
   </view>
 
-  <!-- 底部 sheet：识别结果 -->
-  <view class="snap__sheet">
-    <view class="snap__handle"></view>
+  <!-- 半透明蒙层：抽屉打开时点击关闭 -->
+  <view wx:if="{{sheetOpen}}" class="snap__sheet-mask" bindtap="onCloseSheet"></view>
+
+  <!-- 底部 sheet：默认收起，识别完自动展开 -->
+  <view class="snap__sheet {{sheetOpen ? 'snap__sheet--open' : ''}}">
+    <view class="snap__handle" bindtap="onCloseSheet"></view>
     <view class="snap__sheet-head">
       <text class="snap__sheet-title">识别结果</text>
       <view class="snap__count-chip">{{chips.length}} 种</view>
-      <view class="snap__edit" bindtap="onChipAdd">
-        <image class="snap__edit-icon" src="/assets/icons/edit.png" mode="aspectFit" />
-        <text>编辑</text>
-      </view>
+      <view wx:if="{{chips.length}}" class="snap__edit-hint">长按删除</view>
     </view>
 
     <view class="snap__chips">
@@ -87,11 +108,12 @@
         wx:for="{{chips}}"
         wx:key="id"
         class="snap__chip"
-        data-name="{{item.name}}"
-        bindtap="onChipClose"
+        data-id="{{item.id}}"
+        bindlongpress="onChipLongpress"
       >
         <text class="snap__chip-emoji">{{item.emoji}}</text>
         <text class="snap__chip-name">{{item.name}}</text>
+        <view class="snap__chip-del" data-id="{{item.id}}" catchtap="onChipDelete">×</view>
       </view>
       <view class="snap__chip snap__chip--add" bindtap="onChipAdd">+ 添加</view>
     </view>

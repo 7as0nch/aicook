@@ -4,7 +4,8 @@ import { createStoreBindings } from 'mobx-miniprogram-bindings';
 import { authStore } from '../../../store/auth.store';
 import { householdStore } from '../../../store/household.store';
 import { recipeApi } from '../../../services/recipe.api';
-import { emit, EVENTS } from '../../../utils/eventbus';
+import { chatStore } from '../../../store/chat.store';
+import { hasToken } from '../../../utils/auth-guard';
 import type { Recipe, TodayRecipe } from '../../../types/api';
 
 interface QuickEntry {
@@ -46,7 +47,7 @@ Page({
       fields: ['user'],
       actions: [],
     });
-    void this.loadAll();
+    // 不在这里调 loadAll：onShow 紧接着会跑（且更适合 tabbar 切换场景的刷新策略）
   },
 
   onUnload() {
@@ -55,21 +56,20 @@ Page({
   },
 
   onShow() {
-    const tabBar = this.getTabBar?.();
-    if (tabBar) tabBar.setData({ selected: 0 });
+    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    // 未登录早退：app.ts 已经在 onLaunch reLaunch 到登录页；
+    // 这里再加一道防线，避免任何来路把首页带起来时还发请求。
+    if (!hasToken()) return;
     const user = authStore.user;
     this.setData({
       greeting: user ? `你好，${user.display_name || user.username}` : '欢迎来到馋猫厨房',
     });
-    // 首次有缓存则跳过；30s 内不重复拉取；切 household 后会通过事件主动刷新
+    // 首次有缓存则跳过；30s 内不重复拉取；切 household 后通过事件主动刷新
     const now = Date.now();
     const last = (this as unknown as { _lastLoadAt?: number })._lastLoadAt || 0;
     if (this.data.suggested.length === 0 || now - last > 30000) {
-      // 推迟到下一帧执行，避免阻塞页面切换动画
-      setTimeout(() => {
-        (this as unknown as { _lastLoadAt?: number })._lastLoadAt = Date.now();
-        void this.loadAll();
-      }, 0);
+      (this as unknown as { _lastLoadAt?: number })._lastLoadAt = now;
+      void this.loadAll();
     }
   },
 
@@ -79,6 +79,8 @@ Page({
   },
 
   async loadAll() {
+    // 数据加载入口再做一次同步守卫，避免被 onShow 之外的路径（事件回调等）误触发
+    if (!hasToken()) return;
     this.setData({ loading: true });
     try {
       // 并行拉取今日推荐 + 灵感推荐 + chip 标签
@@ -164,7 +166,7 @@ Page({
     const entry = this.data.quickEntries.find(x => x.id === id);
     if (!entry) return;
     if (entry.aiOpen) {
-      emit(EVENTS.AI_OPEN);
+      chatStore.openSheet({ scene: 'chat' });
       return;
     }
     if (entry.url) {

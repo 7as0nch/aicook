@@ -441,7 +441,7 @@ export interface AIReply {
   is_fallback?: boolean
   reply_sources: SourceSnippet[]
   reply_metadata?: AIResponseMeta
-  /** 厨艺 AI 文档附件入库：前端可轮询 /chat/knowledge-ingest/status */
+  /** 厨艺 AI 文档附件入库：前端可轮询 /api/v1/knowledge/ingest-status?asset_id=… */
   knowledge_ingest_watch?: Array<{ asset_id: string; name?: string }>
 }
 
@@ -1991,7 +1991,8 @@ export interface ChatKnowledgeIngestStatus {
 }
 
 export async function fetchChatKnowledgeIngestStatus(assetId: ID): Promise<ChatKnowledgeIngestStatus> {
-  const payload = await request<any>(`/chat/knowledge-ingest/status?asset_id=${encodeURIComponent(String(assetId))}`)
+  // 后端已迁移到 KnowledgeService.GetKnowledgeIngestStatus（proto RPC）
+  const payload = await request<any>(`/api/v1/knowledge/ingest-status?asset_id=${encodeURIComponent(String(assetId))}`)
   return {
     pending: Boolean(payload.pending),
     settled: Boolean(payload.settled),
@@ -2012,10 +2013,11 @@ export async function fetchChatKnowledgeIngestStatus(assetId: ID): Promise<ChatK
 }
 
 export async function retryChatKnowledgeIngest(documentId: ID, sessionId?: ID) {
-  const payload = await request<any>('/chat/knowledge-ingest/retry', {
+  // 后端已迁移到 KnowledgeService.RetryKnowledgeDocument（proto RPC）
+  // 注意：proto 路径以 document_id 作为 URL path 参数，body 里只剩 session_id
+  const payload = await request<any>(`/api/v1/knowledge/documents/${encodeURIComponent(String(documentId))}/retry`, {
     method: 'POST',
     body: JSON.stringify({
-      document_id: String(documentId),
       ...(sessionId ? { session_id: String(sessionId) } : {}),
     }),
   })
@@ -2039,7 +2041,8 @@ export async function listAiMessages(
   if (limit > 0) query.set('limit', String(limit))
   if (options?.beforeMessageId) query.set('before_message_id', String(options.beforeMessageId))
   const suffix = query.toString() ? `?${query.toString()}` : ''
-  const payload = await request<{ session?: any; messages?: any[]; has_more?: boolean }>(`/chat/sessions/${sessionId}/messages${suffix}`)
+  // 后端已迁移到 AIService.ListMessages（proto RPC），支持 before_message_id 游标分页
+  const payload = await request<{ session?: any; messages?: any[]; has_more?: boolean }>(`/api/v1/ai/sessions/${sessionId}/messages${suffix}`)
   return {
     session: payload.session ? normalizeAiSession(payload.session) : undefined,
     messages: Array.isArray(payload.messages) ? payload.messages.map(normalizeAiHistoryMessage) : [],

@@ -9,11 +9,11 @@ import (
 	gcm "github.com/7as0nch/gocommon/middleware"
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/auth"
-	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/selector"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
@@ -49,15 +49,17 @@ func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratosht
 	return server
 }
 
-func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService, chatHandler *AIChatHandler, wxLoginHandler *WxLoginHandler) *kratoshttp.Server {
+func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService, chatHandler *AIChatHandler) *kratoshttp.Server {
 	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second
 	}
 
+	// 公共操作（无需 JWT）：注册、密码登录、微信一键登录
 	publicOperations := map[string]bool{
 		"/aicook.v1.AuthService/Register": true,
 		"/aicook.v1.AuthService/Login":    true,
+		"/aicook.v1.AuthService/WxLogin":  true,
 	}
 
 	options := []kratoshttp.ServerOption{
@@ -97,8 +99,6 @@ func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo
 		_, _ = w.Write([]byte("ok"))
 	})
 	chatHandler.Register(mux)
-	wxLoginHandler.Register(mux)
 	server.HandlePrefix("/", mux)
 	return server
 }
-

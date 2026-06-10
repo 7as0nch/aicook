@@ -1,4 +1,4 @@
-package biz
+package recipe
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 )
 
 // RecommendUsecase 实现首页"今日推荐"逻辑。
@@ -62,7 +63,7 @@ type TodayRecipe struct {
 }
 
 // ListToday 返回当前用户的今日推荐列表，长度不超过 limit；不足时尽量返回已有的菜谱。
-func (u *RecommendUsecase) ListToday(ctx context.Context, actor Actor, limit int) ([]*TodayRecipe, error) {
+func (u *RecommendUsecase) ListToday(ctx context.Context, actor common.Actor, limit int) ([]*TodayRecipe, error) {
 	if limit <= 0 {
 		limit = 8
 	}

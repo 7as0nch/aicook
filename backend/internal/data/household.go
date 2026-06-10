@@ -53,13 +53,18 @@ type HouseholdMemberWithUser struct {
 	MemberID    int64
 	UserID      int64
 	Role        string
-	DisplayName string
+	DisplayName string // 真实账号用 users.display_name；虚拟成员用 hm.display_name
 	Username    string
 	AvatarURL   string
-	CreatedAt   int64 // unix ms
+	Emoji       string // 仅虚拟成员有值；真实账号头像走 AvatarURL
+	Preferences []byte // jsonb 原始字节，由调用方反序列化为 HouseholdPreferences
+	CreatedAt   int64  // unix ms
 }
 
 // ListMembers 返回家庭成员列表（含用户信息）。按 created_at 升序，owner/admin 总在前。
+//
+// display_name 与 emoji 走 COALESCE：虚拟成员（user_id=0）优先用 hm.display_name；
+// 真实账号 fallback users.display_name。这样前端不用关心成员是否是虚拟的。
 func (r *HouseholdRepo) ListMembers(ctx context.Context, householdID int64) ([]*HouseholdMemberWithUser, error) {
 	type row struct {
 		MemberID    int64
@@ -67,12 +72,26 @@ func (r *HouseholdRepo) ListMembers(ctx context.Context, householdID int64) ([]*
 		Role        string
 		DisplayName string
 		Username    string
+		AvatarURL   string
+		Emoji       string
+		Preferences []byte
 		CreatedAt   int64
 	}
 	var rows []row
+	// 注意：EXTRACT(EPOCH ...) * 1000 在 PG 里返回 double precision/numeric，
+	// driver 直接发字符串 "1780973851304.452" 会 scan 到 int64 失败。
+	// 必须显式 ::bigint 截断小数部分。
 	err := r.db.WithContext(ctx).
 		Table("household_members AS hm").
-		Select("hm.id AS member_id, hm.user_id AS user_id, hm.role AS role, u.display_name AS display_name, u.username AS username, EXTRACT(EPOCH FROM hm.created_at) * 1000 AS created_at").
+		Select(`hm.id AS member_id,
+			hm.user_id AS user_id,
+			hm.role AS role,
+			COALESCE(NULLIF(hm.display_name, ''), u.display_name, '') AS display_name,
+			COALESCE(u.username, '') AS username,
+			COALESCE(u.avatar_url, '') AS avatar_url,
+			COALESCE(hm.emoji, '') AS emoji,
+			hm.preferences AS preferences,
+			(EXTRACT(EPOCH FROM hm.created_at) * 1000)::bigint AS created_at`).
 		Joins("LEFT JOIN users u ON u.id = hm.user_id AND u.deleted_at IS NULL").
 		Where("hm.household_id = ? AND hm.deleted_at IS NULL", householdID).
 		Order("CASE hm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, hm.created_at ASC").
@@ -88,10 +107,76 @@ func (r *HouseholdRepo) ListMembers(ctx context.Context, householdID int64) ([]*
 			Role:        r.Role,
 			DisplayName: r.DisplayName,
 			Username:    r.Username,
+			AvatarURL:   r.AvatarURL,
+			Emoji:       r.Emoji,
+			Preferences: r.Preferences,
 			CreatedAt:   r.CreatedAt,
 		})
 	}
 	return out, nil
+}
+
+// GetMember 按 member_id 查 HouseholdMember；不存在返回 gorm.ErrRecordNotFound。
+func (r *HouseholdRepo) GetMember(ctx context.Context, memberID int64) (*HouseholdMember, error) {
+	var m HouseholdMember
+	if err := r.db.WithContext(ctx).First(&m, "id = ?", memberID).Error; err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+// GetMemberByActor 按 household + user 反查 member（用于 owner 校验）。
+func (r *HouseholdRepo) GetMemberByActor(ctx context.Context, householdID, userID int64) (*HouseholdMember, error) {
+	var m HouseholdMember
+	if err := r.db.WithContext(ctx).
+		Where("household_id = ? AND user_id = ?", householdID, userID).
+		First(&m).Error; err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+// CreateMember 直接插入一条 HouseholdMember（虚拟成员场景 UserID=0）。
+func (r *HouseholdRepo) CreateMember(ctx context.Context, member *HouseholdMember) error {
+	if member.ID == 0 {
+		member.ID = utils.GetSFID()
+	}
+	return r.db.WithContext(ctx).Create(member).Error
+}
+
+// SoftDeleteMember 软删一条 member（设置 deleted_at）。
+func (r *HouseholdRepo) SoftDeleteMember(ctx context.Context, memberID int64) error {
+	return r.db.WithContext(ctx).Delete(&HouseholdMember{}, "id = ?", memberID).Error
+}
+
+// UpdateMemberPreferences 整体替换某成员的 preferences JSONB。
+func (r *HouseholdRepo) UpdateMemberPreferences(ctx context.Context, memberID int64, preferences []byte) error {
+	return r.db.WithContext(ctx).Model(&HouseholdMember{}).
+		Where("id = ?", memberID).
+		Update("preferences", preferences).Error
+}
+
+// ListPreferencesJSONByHousehold 按家庭返回所有成员 preferences 字节（推荐算法用）。
+// 调用方按需反序列化。
+func (r *HouseholdRepo) ListPreferencesJSONByHousehold(ctx context.Context, householdID int64) ([][]byte, error) {
+	var blobs [][]byte
+	rows, err := r.db.WithContext(ctx).
+		Table("household_members").
+		Select("preferences").
+		Where("household_id = ? AND deleted_at IS NULL", householdID).
+		Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var b []byte
+		if err := rows.Scan(&b); err != nil {
+			return nil, err
+		}
+		blobs = append(blobs, b)
+	}
+	return blobs, rows.Err()
 }
 
 func (r *HouseholdRepo) FindByShareCode(ctx context.Context, shareCode string) (*Household, error) {

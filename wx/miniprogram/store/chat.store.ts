@@ -27,6 +27,35 @@ export const chatStore = observable({
   // 持有当前流任务，便于停止生成
   _currentTask: null as SSETask | null,
 
+  // ===== V10: sheet 全局状态（取代 ai-sheet 内部 data） =====
+  // 所有页面共享同一份状态，关闭时全局同步，杜绝跨页面残留收起动画
+  sheetVisible: false as boolean,
+  sheetExpanded: false as boolean,
+  sheetScene: '' as string,
+  sheetRecipeId: undefined as string | undefined,
+  sheetQuoteContext: null as Record<string, unknown> | null,
+
+  openSheet: action(function (this: typeof chatStore, payload?: { scene?: string; recipe_id?: string | number; quote_context?: Record<string, unknown> }) {
+    this.sheetVisible = true;
+    this.sheetExpanded = this.messages.length > 0;
+    this.sheetScene = payload?.scene || '';
+    this.sheetRecipeId = payload?.recipe_id !== undefined ? String(payload.recipe_id) : undefined;
+    this.sheetQuoteContext = payload?.quote_context || null;
+  }),
+
+  closeSheet: action(function (this: typeof chatStore) {
+    this.sheetVisible = false;
+    this.sheetExpanded = false;
+  }),
+
+  toggleSheetExpanded: action(function (this: typeof chatStore) {
+    this.sheetExpanded = !this.sheetExpanded;
+  }),
+
+  setSheetExpanded: action(function (this: typeof chatStore, expanded: boolean) {
+    this.sheetExpanded = expanded;
+  }),
+
   reset: action(function (this: typeof chatStore) {
     this.session = null;
     this.messages = [];

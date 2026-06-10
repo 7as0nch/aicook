@@ -136,4 +136,33 @@
   color: #9B978F;
 }
 
-.pref__spacer { height: 80rpx; }
+.pref__spacer { height: calc(180rpx + env(safe-area-inset-bottom)); }
+
+/* 底部固定保存条 */
+.pref__save-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #FFFFFF;
+  border-top: 1rpx solid #F4F2EE;
+  box-shadow: 0 -8rpx 24rpx rgba(31, 27, 22, 0.04);
+  z-index: 100;
+}
+
+.pref__save-btn {
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 24rpx 0;
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.28);
+}
+
+.pref__save-btn--saving {
+  background: #DDD8D0;
+  box-shadow: none;
+}

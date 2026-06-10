@@ -4,22 +4,23 @@ import (
 	"context"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
 )
 
 type MediaService struct {
 	v1.UnimplementedMediaServiceServer
 
-	usecase *biz.MediaUsecase
+	usecase *user.MediaUsecase
 }
 
-func NewMediaService(usecase *biz.MediaUsecase) *MediaService {
+func NewMediaService(usecase *user.MediaUsecase) *MediaService {
 	return &MediaService{usecase: usecase}
 }
 
 func (s *MediaService) PrepareMediaUpload(ctx context.Context, req *v1.PrepareMediaUploadRequest) (*v1.PrepareMediaUploadReply, error) {
-	actor := biz.ActorFromContext(ctx)
-	result, err := s.usecase.PrepareUpload(ctx, biz.PrepareUploadRequest{
+	actor := common.ActorFromContext(ctx)
+	result, err := s.usecase.PrepareUpload(ctx, user.PrepareUploadRequest{
 		HouseholdID: actor.HouseholdID,
 		UserID:      actor.UserID,
 		MediaKind:   req.GetMediaKind(),

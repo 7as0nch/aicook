@@ -7,7 +7,16 @@ import (
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/logging"
+
+	kratosjson "github.com/go-kratos/kratos/v2/encoding/json"
 )
+
+func init() {
+	// Kratos 默认 protojson 用 json_name（驼峰 displayName/avatarUrl），
+	// 与本仓库前端 / 小程序 / frontend 全部约定的 snake_case（display_name/avatar_url）不一致，
+	// 导致字段全部读不到。这里强制使用 proto 字段名输出 snake_case。
+	kratosjson.MarshalOptions.UseProtoNames = true
+}
 
 const version = "0.1.0"
 

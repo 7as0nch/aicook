@@ -1,4 +1,5 @@
 .auth {
+  position: relative;
   min-height: 100vh;
   background: linear-gradient(180deg, #FFF6EE 0%, #FFFFFF 50%);
   padding: 0 56rpx;
@@ -10,6 +11,43 @@
   align-items: center;
   padding-top: 140rpx;
   padding-bottom: 60rpx;
+}
+
+.auth__top--compact {
+  align-items: flex-start;
+  padding-top: 80rpx;
+  padding-bottom: 32rpx;
+}
+
+.auth__back {
+  font-size: 28rpx;
+  color: #5C544A;
+  margin-bottom: 32rpx;
+  padding: 8rpx 0;
+}
+
+/* ===== 默认视图：微信登录区 ===== */
+.auth__wx-zone {
+  margin-top: 32rpx;
+}
+
+.auth__wx-tip {
+  display: block;
+  text-align: center;
+  margin-top: 24rpx;
+  color: #9B978F;
+  font-size: 22rpx;
+}
+
+.auth__alt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(80rpx + env(safe-area-inset-bottom));
+  text-align: center;
+  color: #9B978F;
+  font-size: 26rpx;
+  padding: 16rpx 0;
 }
 
 .auth__brand {

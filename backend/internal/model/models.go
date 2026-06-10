@@ -46,8 +46,12 @@ type User struct {
 	DisplayName string `gorm:"size:60;not null" json:"display_name"`
 	Email       string `gorm:"size:120;uniqueIndex" json:"email"`
 	Status      string `gorm:"size:20;default:'active'" json:"status"`
-	// AvatarAssetID 指向 media_assets.id；空表示未设置头像。
+	// AvatarAssetID 指向 media_assets.id；空表示未设置自上传头像。
+	// 优先级：AvatarAssetID（自上传）> AvatarURL（外部直链，比如微信默认头像）。
 	AvatarAssetID *int64 `gorm:"type:bigint;index" json:"avatar_asset_id,string,omitempty"`
+	// AvatarURL 外部直链，主要给微信一键登录拿到的 wx avatar_url 兜底用。
+	// 长度 512 足够覆盖微信 thirdwx.qlogo.cn 的最长串。
+	AvatarURL string `gorm:"size:512;default:''" json:"avatar_url"`
 	// WxOpenid 微信小程序登录的 openid；空表示该用户未通过微信登录绑定。
 	WxOpenid string `gorm:"size:64;uniqueIndex" json:"-"`
 	// WxUnionid 跨小程序/公众号 unionid，可空。
@@ -55,11 +59,27 @@ type User struct {
 }
 
 // HouseholdMember 支持一个用户加入多个厨房，并为角色扩展预留空间。
+//
+// UserID 语义：
+//   - > 0  绑定到真实账号（users.id），display_name/emoji 优先取 users 表
+//   - = 0  「虚拟成员」（家人但没微信账号），display_name/emoji 直接读本表字段
+//
+// 注意：旧的 UNIQUE(household_id, user_id) 在迁移
+// migrate_add_household_member_preferences.sql 里被改为 partial unique
+// （仅 user_id>0 时去重），这样多个虚拟成员才能共存。这里去掉
+// GORM 层的 uniqueIndex 标记，由 SQL 端管控。
 type HouseholdMember struct {
 	BaseModel
-	HouseholdID int64  `gorm:"type:bigint;not null;uniqueIndex:idx_household_member,priority:1;index" json:"household_id,string"`
-	UserID      int64  `gorm:"type:bigint;not null;uniqueIndex:idx_household_member,priority:2;index" json:"user_id,string"`
+	HouseholdID int64  `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	UserID      int64  `gorm:"type:bigint;not null;index" json:"user_id,string"`
 	Role        string `gorm:"size:20;not null;default:'member'" json:"role"`
+	// DisplayName：虚拟成员的展示名；真实账号留空（由 users.display_name 决定）。
+	DisplayName string `gorm:"size:60;not null;default:''" json:"display_name"`
+	// Emoji：成员头像 emoji（如「🐱」「👩」）。
+	Emoji string `gorm:"size:8;not null;default:''" json:"emoji"`
+	// PreferencesJSON：成员个人口味偏好（与 household-level 解耦）。
+	// 结构对应 biz/user.HouseholdPreferences。
+	PreferencesJSON datatypes.JSON `gorm:"column:preferences;type:jsonb;not null;default:'{}'::jsonb" json:"preferences,omitempty"`
 }
 
 // KitchenTag 用于区分不同厨房特色菜谱聚合，例如“家常菜”“快手菜”。

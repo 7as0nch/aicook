@@ -12,6 +12,9 @@
   background: #FFFFFF;
   box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.04);
   z-index: 100;
+  /* V10: 提前合成为 GPU 层，减少切 tab 时的 reflow 抖动 */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .tab-row {

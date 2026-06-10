@@ -61,6 +61,22 @@ service KnowledgeService {
       body: "*"
     };
   }
+
+  // 查询某次上传 media_asset 对应的知识入库（chunk 化、索引化）状态。
+  // 用于厨艺 AI 聊天附件入库进度轮询。
+  rpc GetKnowledgeIngestStatus(GetKnowledgeIngestStatusRequest) returns (GetKnowledgeIngestStatusReply) {
+    option (google.api.http) = {
+      get: "/api/v1/knowledge/ingest-status"
+    };
+  }
+
+  // 失败/部分失败时手工触发某文档的重新入库。
+  rpc RetryKnowledgeDocument(RetryKnowledgeDocumentRequest) returns (RetryKnowledgeDocumentReply) {
+    option (google.api.http) = {
+      post: "/api/v1/knowledge/documents/{document_id}/retry"
+      body: "*"
+    };
+  }
 }
 
 message CreateKnowledgeBaseRequest {
@@ -141,4 +157,48 @@ message CreateHouseholdAIMemoryRequest {
 
 message CreateHouseholdAIMemoryReply {
   bool ok = 1;
+}
+
+message GetKnowledgeIngestStatusRequest {
+  // 上传图片/文件返回的 media asset id
+  int64 asset_id = 1;
+}
+
+// 入库状态视图，对齐 biz/knowledge.go KnowledgeIngestStatusView。
+// pending=true 表示文档尚未创建（排队中）；settled=true 表示无需继续轮询。
+message GetKnowledgeIngestStatusReply {
+  bool pending = 1;
+  bool settled = 2;
+  string status = 3;
+  string processing_stage = 4;
+  // 人类可读的进度文案（如「正在切分文本…」）
+  string stage_label = 5;
+  // 用 string 而不是 int64，避免前端 JSON 大数精度丢失（与原 JSON 协议对齐）
+  string document_id = 6;
+  string media_asset_id = 7;
+  string title = 8;
+  int32 chunk_count = 9;
+  bool retryable = 10;
+  bool partial = 11;
+  string failure_reason = 12;
+  string summary = 13;
+  string last_error_kind = 14;
+  string last_error_detail = 15;
+}
+
+message RetryKnowledgeDocumentRequest {
+  int64 document_id = 1;
+  // 可选：触发该文档原属的 AI session 上下文（用于通知绑定）
+  optional int64 session_id = 2;
+}
+
+message RetryKnowledgeDocumentReply {
+  bool accepted = 1;
+  // 用 string ID 避免前端大数精度丢失（与原 JSON 协议对齐）
+  string document_id = 2;
+  string media_asset_id = 3;
+  string title = 4;
+  string processing_stage = 5;
+  string status = 6;
+  string stage_label = 7;
 }

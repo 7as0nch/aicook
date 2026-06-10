@@ -1,24 +1,20 @@
 <view class="me">
-  <!-- 顶部白条 -->
-  <view class="me__head">
-    <text class="me__title">我的</text>
-    <view class="me__bell">
-      <image class="me__bell-icon" src="/assets/icons/bell.png" mode="aspectFit" />
-    </view>
-  </view>
-
   <!-- 用户卡 -->
-  <view class="me__user-card" bindtap="onAvatarTap">
+  <view class="me__card me__user-card">
     <view class="me__user-row">
-      <view class="me__avatar">
+      <view class="me__avatar" bindtap="onAvatarTap">
         <image wx:if="{{user && user.avatar_url}}" class="me__avatar-img" src="{{user.avatar_url}}" mode="aspectFill" />
-        <text wx:else class="me__avatar-emoji">🐱</text>
+        <image wx:else class="me__avatar-default" src="/assets/icons/me.png" mode="aspectFit" />
       </view>
       <view class="me__user-body">
-        <view class="me__user-name">{{user ? (user.display_name || user.username) : '点击登录'}}</view>
-        <view class="me__user-id">{{user && user.username ? 'ID  ' + user.username : '未登录'}}</view>
+        <view class="me__user-name">{{user && user.display_name ? user.display_name : '点击登录'}}</view>
+        <view wx:if="{{user && user.username}}" class="me__user-id" bindtap="onCopyId">
+          <text>ID  {{user.username}}</text>
+          <text class="me__user-id-copy">⎘</text>
+        </view>
+        <view wx:else class="me__user-id">未登录</view>
       </view>
-      <view wx:if="{{user}}" class="me__user-edit">编辑资料</view>
+      <view wx:if="{{user}}" class="me__user-edit" bindtap="onAvatarTap">编辑资料</view>
     </view>
     <view class="me__user-divider"></view>
     <view class="me__stats">
@@ -39,91 +35,53 @@
     </view>
   </view>
 
-  <!-- 温馨小厨房 -->
-  <view class="me__kitchen-card" bindtap="onHouseholdTap">
+  <!-- 我的厨房 -->
+  <view class="me__card me__kitchen-card" bindtap="onHouseholdTap">
     <view class="me__kitchen-icon-wrap">
       <image class="me__kitchen-icon" src="/assets/icons/pot.png" mode="aspectFit" />
     </view>
     <view class="me__kitchen-body">
-      <view class="me__kitchen-name">{{currentHousehold && currentHousehold.name ? currentHousehold.name : '温馨小厨房'}}</view>
+      <view class="me__kitchen-name">{{currentHousehold && currentHousehold.name ? currentHousehold.name : '我的厨房'}}</view>
       <view class="me__kitchen-sub">{{members.length || 1}} 位成员 · 你是管理员</view>
     </view>
     <view class="me__kitchen-cta">
       <text>管理</text>
-      <image class="me__kitchen-arrow" src="/assets/icons/right.png" mode="aspectFit" />
+      <image class="me__kitchen-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
   </view>
 
-  <!-- 家庭口味 -->
-  <view class="me__family-card">
-    <view class="me__family-head">
-      <text class="me__family-title">家庭口味</text>
-      <text class="me__family-sub">每个人的偏好</text>
-    </view>
-    <view wx:for="{{members}}" wx:key="id" class="me__member">
-      <view class="me__member-emoji">{{item.emoji}}</view>
-      <view class="me__member-name">{{item.name}}</view>
-      <view class="me__member-tags">
-        <view wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="me__member-tag">{{tag}}</view>
-      </view>
-      <view class="me__member-edit" bindtap="onPreferencesTap">
-        <image class="me__member-edit-icon" src="/assets/icons/edit.png" mode="aspectFit" />
-      </view>
-    </view>
-    <view class="me__add-member" bindtap="onPreferencesTap">+ 编辑口味偏好</view>
+  <!-- 烹饪历史（按用户要求，上移到设置卡之前） -->
+  <view class="me__card me__row-card" data-url="/pages/me/history/index/index" bindtap="onMenuTap">
+    <image class="me__row-icon" src="/assets/icons/clock.png" mode="aspectFit" />
+    <view class="me__row-text">烹饪历史</view>
+    <image class="me__row-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
   </view>
 
   <!-- 设置卡 -->
-  <view class="me__settings-card">
+  <view class="me__card me__settings-card">
+    <view class="me__set-row" data-url="" bindtap="onMenuTap">
+      <image class="me__set-icon" src="/assets/icons/bell.png" mode="aspectFit" />
+      <view class="me__set-text">消息通知</view>
+      <view class="me__set-tag">即将上线</view>
+      <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
+    </view>
+    <view class="me__set-divider"></view>
     <view class="me__set-row" data-url="" bindtap="onMenuTap">
       <image class="me__set-icon" src="/assets/icons/info.png" mode="aspectFit" />
       <view class="me__set-text">关于 aicook</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
+      <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="me__set-divider"></view>
     <view class="me__set-row" data-url="" bindtap="onMenuTap">
       <image class="me__set-icon" src="/assets/icons/shield.png" mode="aspectFit" />
       <view class="me__set-text">用户隐私政策</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
+      <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="me__set-divider"></view>
     <view class="me__set-row" data-url="" bindtap="onMenuTap">
       <image class="me__set-icon" src="/assets/icons/help.png" mode="aspectFit" />
       <view class="me__set-text">帮助与反馈</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
-    </view>
-  </view>
-
-  <!-- 我的菜单（更多功能） -->
-  <view class="me__extra-card">
-    <view class="me__set-row" data-url="/pages/recipes/list/index?creator=fav" bindtap="onMenuTap">
-      <image class="me__set-icon" src="/assets/icons/star.svg" mode="aspectFit" />
-      <view class="me__set-text">我的收藏</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
-    </view>
-    <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="/pages/recipes/list/index?creator=me" bindtap="onMenuTap">
-      <image class="me__set-icon" src="/assets/icons/recipe.png" mode="aspectFit" />
-      <view class="me__set-text">我的菜谱</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
-    </view>
-    <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="/pages/me/history/index/index" bindtap="onMenuTap">
-      <image class="me__set-icon" src="/assets/icons/clock.png" mode="aspectFit" />
-      <view class="me__set-text">烹饪历史</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
-    </view>
-    <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="/pages/me/inventory/index/index" bindtap="onMenuTap">
-      <image class="me__set-icon" src="/assets/icons/snow.png" mode="aspectFit" />
-      <view class="me__set-text">冰箱库存</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
-    </view>
-    <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="/pages/me/households/index" bindtap="onMenuTap">
-      <image class="me__set-icon" src="/assets/icons/pot.png" mode="aspectFit" />
-      <view class="me__set-text">家庭管理</view>
-      <image class="me__set-arrow" src="/assets/icons/right.png" mode="aspectFit" />
+      <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
   </view>
 

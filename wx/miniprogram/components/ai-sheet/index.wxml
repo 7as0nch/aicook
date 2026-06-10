@@ -1,6 +1,6 @@
-<view class="ais-mask {{visible ? 'ais-mask--visible' : ''}}" bindtap="onMaskTap">
+<view class="ais-mask {{sheetVisible ? 'ais-mask--visible' : 'ais-mask--no-anim'}}" bindtap="onMaskTap">
   <view
-    class="ais {{expanded ? 'ais--expanded' : ''}} {{dragging ? 'ais--dragging' : ''}}"
+    class="ais {{sheetExpanded ? 'ais--expanded' : ''}} {{dragging ? 'ais--dragging' : ''}} {{!sheetVisible ? 'ais--no-anim' : ''}}"
     style="{{sheetStyle}}"
     catchtap="onSheetTap"
   >
@@ -29,7 +29,7 @@
           <view class="ais__icon-btn {{historyVisible ? 'ais__icon-btn--active' : ''}}" catchtap="onOpenHistory">
             <image class="ais__icon-btn-img" src="/assets/icons/clock.png" mode="aspectFit" />
           </view>
-          <view class="ais__icon-btn" catchtap="onToggleExpand">{{expanded ? '▾' : '⤢'}}</view>
+          <view class="ais__icon-btn" catchtap="onToggleExpand">{{sheetExpanded ? '▾' : '⤢'}}</view>
           <view class="ais__icon-btn" catchtap="onClose">×</view>
         </view>
       </view>

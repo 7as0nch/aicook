@@ -47,11 +47,11 @@ Page({
     recognizing: false,
     recognized: false,
     chips: [] as IngredChip[],
-    flashOn: false,
     devicePosition: 'back' as 'back' | 'front',
     statusBarHeight: 20,
     capturedPath: '',
     error: '',
+    sheetOpen: false,            // 抽屉是否展开：默认收起
   },
 
   onLoad() {
@@ -73,12 +73,16 @@ Page({
     });
   },
 
-  onFlashToggle() {
-    this.setData({ flashOn: !this.data.flashOn });
+  onToggleSheet() {
+    this.setData({ sheetOpen: !this.data.sheetOpen });
   },
 
-  onCameraSwitch() {
-    this.setData({ devicePosition: this.data.devicePosition === 'back' ? 'front' : 'back' });
+  onOpenSheet() {
+    this.setData({ sheetOpen: true });
+  },
+
+  onCloseSheet() {
+    this.setData({ sheetOpen: false });
   },
 
   onShutterTap() {
@@ -129,7 +133,8 @@ Page({
         name,
         emoji: emojiFor(name),
       }));
-      this.setData({ recognizing: false, recognized: true, chips });
+      // 识别完成自动展开抽屉
+      this.setData({ recognizing: false, recognized: true, chips, sheetOpen: true });
     } catch (err) {
       console.error('process image error', err);
       this.setData({
@@ -170,10 +175,28 @@ Page({
     });
   },
 
-  onChipClose(e: WechatMiniprogram.CustomEvent<{ name: string }>) {
-    const name = e.detail?.name;
-    this.setData({
-      chips: this.data.chips.filter(c => c.name !== name),
+  // 点击 chip 上的 × 直接删除
+  onChipDelete(e: WechatMiniprogram.BaseEvent) {
+    const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
+    if (!id) return;
+    this.setData({ chips: this.data.chips.filter(c => c.id !== id) });
+  },
+
+  // 长按 chip 弹确认删除
+  onChipLongpress(e: WechatMiniprogram.BaseEvent) {
+    const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
+    const target = this.data.chips.find(c => c.id === id);
+    if (!target) return;
+    wx.showModal({
+      title: '删除食材',
+      content: `确定移除「${target.name}」吗？`,
+      confirmText: '删除',
+      confirmColor: '#E5604A',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({ chips: this.data.chips.filter(c => c.id !== id) });
+        }
+      },
     });
   },
 

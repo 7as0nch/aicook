@@ -117,7 +117,7 @@
       <image class="plan__shopping-cart" src="/assets/icons/cart.svg" mode="aspectFit" />
       <text class="plan__shopping-title">本周采购清单</text>
       <text class="plan__shopping-count">已采购 {{shoppingCheckedCount}} / {{shoppingTotal}}</text>
-      <image class="plan__shopping-arrow" src="/assets/icons/right.png" mode="aspectFit" />
+      <image class="plan__shopping-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="plan__shopping-progress">
       <view class="plan__shopping-progress-fill" style="width: {{shoppingProgressPct}}%"></view>

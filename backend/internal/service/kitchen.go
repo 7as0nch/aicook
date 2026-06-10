@@ -6,7 +6,9 @@ import (
 	"time"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/kitchen"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -16,19 +18,19 @@ import (
 type KitchenService struct {
 	v1.UnimplementedKitchenServiceServer
 
-	usecase *biz.KitchenOpsUsecase
-	media   *biz.MediaUsecase
-	history *biz.CookingHistoryUsecase
+	usecase *kitchen.KitchenOpsUsecase
+	media   *user.MediaUsecase
+	history *kitchen.CookingHistoryUsecase
 }
 
-func NewKitchenService(usecase *biz.KitchenOpsUsecase, media *biz.MediaUsecase, history *biz.CookingHistoryUsecase) *KitchenService {
+func NewKitchenService(usecase *kitchen.KitchenOpsUsecase, media *user.MediaUsecase, history *kitchen.CookingHistoryUsecase) *KitchenService {
 	return &KitchenService{usecase: usecase, media: media, history: history}
 }
 
-func requireKitchenActor(ctx context.Context) (biz.Actor, error) {
-	a := biz.ActorFromContext(ctx)
+func requireKitchenActor(ctx context.Context) (common.Actor, error) {
+	a := common.ActorFromContext(ctx)
 	if a.HouseholdID <= 0 || a.UserID <= 0 {
-		return biz.Actor{}, kerrors.Unauthorized("UNAUTHORIZED", "unauthorized")
+		return common.Actor{}, kerrors.Unauthorized("UNAUTHORIZED", "unauthorized")
 	}
 	return a, nil
 }
@@ -37,7 +39,7 @@ func (s *KitchenService) GetCurrentMealPlan(ctx context.Context, req *v1.GetCurr
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	plan, err := s.usecase.GetWeekPlan(ctx, biz.ActorFromContext(ctx), req.GetWeekStart())
+	plan, err := s.usecase.GetWeekPlan(ctx, common.ActorFromContext(ctx), req.GetWeekStart())
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +58,7 @@ func (s *KitchenService) SaveCurrentMealPlan(ctx context.Context, req *v1.SaveCu
 	if err != nil {
 		return nil, err
 	}
-	plan, err := s.usecase.SaveWeekPlan(ctx, biz.ActorFromContext(ctx), biz.MealPlanSaveInput{
+	plan, err := s.usecase.SaveWeekPlan(ctx, common.ActorFromContext(ctx), kitchen.MealPlanSaveInput{
 		WeekStartDate: req.GetWeekStartDate(),
 		Days:          days,
 	}, "manual")
@@ -74,7 +76,7 @@ func (s *KitchenService) GenerateCurrentMealPlan(ctx context.Context, req *v1.Ge
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	plan, err := s.usecase.GenerateWeekPlan(ctx, biz.ActorFromContext(ctx), req.GetWeekStart())
+	plan, err := s.usecase.GenerateWeekPlan(ctx, common.ActorFromContext(ctx), req.GetWeekStart())
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +91,7 @@ func (s *KitchenService) GetCurrentShoppingList(ctx context.Context, req *v1.Get
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	list, items, err := s.usecase.GetOrGenerateShoppingList(ctx, biz.ActorFromContext(ctx), req.GetWeekStart())
+	list, items, err := s.usecase.GetOrGenerateShoppingList(ctx, common.ActorFromContext(ctx), req.GetWeekStart())
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +105,7 @@ func (s *KitchenService) GenerateShoppingList(ctx context.Context, req *v1.Gener
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	list, items, err := s.usecase.GenerateShoppingList(ctx, biz.ActorFromContext(ctx), req.GetWeekStart())
+	list, items, err := s.usecase.GenerateShoppingList(ctx, common.ActorFromContext(ctx), req.GetWeekStart())
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +119,7 @@ func (s *KitchenService) PatchShoppingListItem(ctx context.Context, req *v1.Patc
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	patch := biz.ShoppingListItemPatch{}
+	patch := kitchen.ShoppingListItemPatch{}
 	if req.Checked != nil {
 		v := *req.Checked
 		patch.Checked = &v
@@ -131,7 +133,7 @@ func (s *KitchenService) PatchShoppingListItem(ctx context.Context, req *v1.Patc
 	if req.Category != nil {
 		patch.Category = req.Category
 	}
-	item, err := s.usecase.UpdateShoppingItem(ctx, biz.ActorFromContext(ctx), req.GetListId(), req.GetItemId(), patch)
+	item, err := s.usecase.UpdateShoppingItem(ctx, common.ActorFromContext(ctx), req.GetListId(), req.GetItemId(), patch)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +144,7 @@ func (s *KitchenService) CompleteShoppingList(ctx context.Context, req *v1.Compl
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	list, err := s.usecase.CompleteShoppingList(ctx, biz.ActorFromContext(ctx), req.GetListId())
+	list, err := s.usecase.CompleteShoppingList(ctx, common.ActorFromContext(ctx), req.GetListId())
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +155,7 @@ func (s *KitchenService) ListInventoryItems(ctx context.Context, req *v1.ListInv
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	items, err := s.usecase.ListInventory(ctx, biz.ActorFromContext(ctx), req.GetKeyword())
+	items, err := s.usecase.ListInventory(ctx, common.ActorFromContext(ctx), req.GetKeyword())
 	if err != nil {
 		return nil, err
 	}
@@ -169,13 +171,13 @@ func (s *KitchenService) UpsertInventoryItems(ctx context.Context, req *v1.Upser
 		return nil, err
 	}
 	now := time.Now()
-	inputs := make([]biz.InventoryInput, 0, len(req.GetItems()))
+	inputs := make([]kitchen.InventoryInput, 0, len(req.GetItems()))
 	for _, row := range req.GetItems() {
 		if row == nil {
 			continue
 		}
 		lastSeen := now
-		inputs = append(inputs, biz.InventoryInput{
+		inputs = append(inputs, kitchen.InventoryInput{
 			ID:            row.GetId(),
 			Kind:          row.GetKind(),
 			Name:          row.GetName(),
@@ -189,7 +191,7 @@ func (s *KitchenService) UpsertInventoryItems(ctx context.Context, req *v1.Upser
 			LastSeenAt:    &lastSeen,
 		})
 	}
-	items, err := s.usecase.UpsertInventory(ctx, biz.ActorFromContext(ctx), inputs)
+	items, err := s.usecase.UpsertInventory(ctx, common.ActorFromContext(ctx), inputs)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +206,7 @@ func (s *KitchenService) PatchInventoryItem(ctx context.Context, req *v1.PatchIn
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	in := biz.InventoryInput{
+	in := kitchen.InventoryInput{
 		Kind:          req.GetKind(),
 		Name:          req.GetName(),
 		Category:      req.GetCategory(),
@@ -223,7 +225,7 @@ func (s *KitchenService) PatchInventoryItem(ctx context.Context, req *v1.PatchIn
 		t := req.GetLastSeenAt().AsTime()
 		in.LastSeenAt = &t
 	}
-	item, err := s.usecase.UpdateInventory(ctx, biz.ActorFromContext(ctx), req.GetItemId(), in)
+	item, err := s.usecase.UpdateInventory(ctx, common.ActorFromContext(ctx), req.GetItemId(), in)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +236,7 @@ func (s *KitchenService) ListInventoryRecommendations(ctx context.Context, req *
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	items, err := s.usecase.RecommendRecipesByInventory(ctx, biz.ActorFromContext(ctx), int(req.GetLimit()))
+	items, err := s.usecase.RecommendRecipesByInventory(ctx, common.ActorFromContext(ctx), int(req.GetLimit()))
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +268,7 @@ func (s *KitchenService) CreateRecipeShare(ctx context.Context, req *v1.CreateRe
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	share, detail, err := s.usecase.CreateRecipeShare(ctx, biz.ActorFromContext(ctx), req.GetId())
+	share, detail, err := s.usecase.CreateRecipeShare(ctx, common.ActorFromContext(ctx), req.GetId())
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +312,7 @@ func (s *KitchenService) ImportRecipeShare(ctx context.Context, req *v1.ImportRe
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	recipe, err := s.usecase.ImportRecipeShare(ctx, biz.ActorFromContext(ctx), req.GetShareCode())
+	recipe, err := s.usecase.ImportRecipeShare(ctx, common.ActorFromContext(ctx), req.GetShareCode())
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +326,7 @@ func (s *KitchenService) CreateCookingHistory(ctx context.Context, req *v1.Creat
 	if err != nil {
 		return nil, err
 	}
-	entry, err := s.history.Create(ctx, actor, biz.CreateInput{
+	entry, err := s.history.Create(ctx, actor, kitchen.CreateInput{
 		RecipeID:           req.GetRecipeId(),
 		StartedAtMS:        req.GetStartedAtMs(),
 		CompletedAtMS:      req.GetCompletedAtMs(),
@@ -400,7 +402,7 @@ func (s *KitchenService) toProtoCookingHistoryEntry(ctx context.Context, entry *
 	}
 }
 
-func mealPlanWeekViewToProto(v *biz.MealPlanWeekView) (*v1.MealPlanWeek, error) {
+func mealPlanWeekViewToProto(v *kitchen.MealPlanWeekView) (*v1.MealPlanWeek, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -425,7 +427,7 @@ func mealPlanWeekViewToProto(v *biz.MealPlanWeekView) (*v1.MealPlanWeek, error) 
 	}, nil
 }
 
-func daysStructToSaveInput(st *structpb.Struct) (map[string]map[biz.MealSlot][]biz.MealPlanDishInput, error) {
+func daysStructToSaveInput(st *structpb.Struct) (map[string]map[kitchen.MealSlot][]kitchen.MealPlanDishInput, error) {
 	if st == nil {
 		return nil, nil
 	}
@@ -441,14 +443,14 @@ func daysStructToSaveInput(st *structpb.Struct) (map[string]map[biz.MealSlot][]b
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return nil, err
 	}
-	out := make(map[string]map[biz.MealSlot][]biz.MealPlanDishInput, len(raw))
+	out := make(map[string]map[kitchen.MealSlot][]kitchen.MealPlanDishInput, len(raw))
 	for day, slots := range raw {
-		out[day] = make(map[biz.MealSlot][]biz.MealPlanDishInput)
+		out[day] = make(map[kitchen.MealSlot][]kitchen.MealPlanDishInput)
 		for slot, dishes := range slots {
-			ms := biz.MealSlot(slot)
-			inputs := make([]biz.MealPlanDishInput, 0, len(dishes))
+			ms := kitchen.MealSlot(slot)
+			inputs := make([]kitchen.MealPlanDishInput, 0, len(dishes))
 			for _, d := range dishes {
-				inputs = append(inputs, biz.MealPlanDishInput{
+				inputs = append(inputs, kitchen.MealPlanDishInput{
 					RecipeID:    d.RecipeID,
 					RecipeTitle: d.RecipeTitle,
 					Note:        d.Note,
@@ -567,4 +569,3 @@ func coerceIntAny(v any) int {
 		return 0
 	}
 }
-

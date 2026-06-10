@@ -4,16 +4,16 @@ import (
 	"context"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/ai"
 )
 
 type VoiceService struct {
 	v1.UnimplementedVoiceServiceServer
 
-	usecase *biz.VoiceUsecase
+	usecase *ai.VoiceUsecase
 }
 
-func NewVoiceService(usecase *biz.VoiceUsecase) *VoiceService {
+func NewVoiceService(usecase *ai.VoiceUsecase) *VoiceService {
 	return &VoiceService{usecase: usecase}
 }
 

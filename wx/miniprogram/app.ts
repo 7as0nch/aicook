@@ -29,10 +29,12 @@ App({
         console.warn('[app] refreshMe failed', err);
       });
     } else {
-      // 未登录：延迟跳到登录页（避免和 tabbar 初始化冲突）
-      setTimeout(() => {
-        wx.reLaunch({ url: '/pages/auth/login/index' });
-      }, 50);
+      // 未登录：立即跳登录页。
+      // 注意：原来用 setTimeout(50ms) 是为了避开 tabBar 初始化时序问题，但
+      // 这 50ms 窗口里首页 onLoad/onShow 会先跑、触发 N 个 401 请求。
+      // http.ts 已增加 token 同步守卫拦截，再加上这里立即 reLaunch，
+      // 双保险消除空请求洪水。
+      wx.reLaunch({ url: '/pages/auth/login/index' });
     }
 
     // 4. 监听网络变化（弱网提示）

@@ -5,6 +5,7 @@ import { authStore } from '../../../store/auth.store';
 import { recipeApi } from '../../../services/recipe.api';
 import { kitchenApi } from '../../../services/kitchen.api';
 import { householdApi } from '../../../services/household.api';
+import { hasToken } from '../../../utils/auth-guard';
 import type { CookingHistoryEntry, HouseholdMemberDetail } from '../../../types/api';
 
 interface MenuItem { id: string; emoji: string; text: string; url: string; }
@@ -27,17 +28,8 @@ Page({
     myRecipesCount: 0,
     streakDays: 0,
     members: [] as MemberRow[],
-    menus: [
-      { id: 'fav', emoji: '⭐', text: '我的收藏', url: '/pages/recipes/list/index?creator=fav' },
-      { id: 'mine', emoji: '📖', text: '我的菜谱', url: '/pages/recipes/list/index?creator=me' },
-      { id: 'history', emoji: '📜', text: '烹饪历史', url: '/pages/me/history/index/index' },
-      { id: 'inventory', emoji: '🧊', text: '冰箱库存', url: '/pages/me/inventory/index/index' },
-      { id: 'preferences', emoji: '🌶️', text: '口味偏好', url: '/pages/me/preferences/index' },
-      { id: 'households', emoji: '🏡', text: '家庭管理', url: '/pages/me/households/index' },
-      { id: 'about', emoji: 'ℹ️', text: '关于 aicook', url: '' },
-      { id: 'privacy', emoji: '🔒', text: '用户隐私政策', url: '' },
-      { id: 'help', emoji: '❓', text: '帮助与反馈', url: '' },
-    ] as MenuItem[],
+    // 旧版菜单已 inline 到 wxml；保留空数组防止 storeBindings / wxml 误引用
+    menus: [] as MenuItem[],
   },
 
   onLoad() {
@@ -47,24 +39,27 @@ Page({
       fields: ['user', 'currentHousehold', 'households'] as const,
       actions: [] as const,
     });
+    // onLoad 不发请求；交给 onShow 在登录态确认后再 load
+  },
+
+  onShow() {
+    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    if (!hasToken()) return;
     // 若 store 已有 user，但 wxml 渲染需要从 setData 触发，主动 refresh
     if (!authStore.user) {
       authStore.refreshMe().catch(() => undefined);
     }
-    void this.loadStats();
-  },
-
-  onShow() {
-    this.getTabBar?.()?.setData({ selected: 3 });
-    // 推迟到下一帧，避免阻塞 tab 切换渲染
-    setTimeout(() => {
-      const now = Date.now();
-      const last = (this as unknown as { _lastMembersAt?: number })._lastMembersAt || 0;
-      if (this.data.members.length === 0 || now - last > 30000) {
-        (this as unknown as { _lastMembersAt?: number })._lastMembersAt = Date.now();
-        this.refreshMembers();
-      }
-    }, 0);
+    const now = Date.now();
+    const last = (this as unknown as { _lastStatsAt?: number })._lastStatsAt || 0;
+    if ((this.data.favoritesCount === 0 && this.data.myRecipesCount === 0) || now - last > 30000) {
+      (this as unknown as { _lastStatsAt?: number })._lastStatsAt = now;
+      void this.loadStats();
+    }
+    const lastMembers = (this as unknown as { _lastMembersAt?: number })._lastMembersAt || 0;
+    if (this.data.members.length === 0 || now - lastMembers > 30000) {
+      (this as unknown as { _lastMembersAt?: number })._lastMembersAt = now;
+      this.refreshMembers();
+    }
   },
 
   onUnload() {
@@ -73,6 +68,7 @@ Page({
   },
 
   async loadStats() {
+    if (!hasToken()) return;
     // 三个 API 单独 try/catch，任何失败都不影响其它数据
     let favCount = 0;
     let myCount = 0;
@@ -97,6 +93,7 @@ Page({
   },
 
   async refreshMembers() {
+    if (!hasToken()) return;
     const household = authStore.currentHousehold as { id?: string | number; name?: string } | null;
     if (!household?.id) {
       this.setData({ members: [] });
@@ -136,6 +133,18 @@ Page({
 
   onHouseholdTap() {
     wx.navigateTo({ url: '/pages/me/households/index' });
+  },
+
+  // 复制用户 ID 到剪贴板
+  onCopyId() {
+    const username = (authStore.user as { username?: string } | null)?.username;
+    if (!username) return;
+    wx.setClipboardData({
+      data: username,
+      success: () => {
+        wx.showToast({ title: '已复制 ID', icon: 'success' });
+      },
+    });
   },
 
   onPreferencesTap() {

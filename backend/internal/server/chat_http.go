@@ -1,5 +1,19 @@
 package server
 
+// chat_http.go 仅保留 SSE 流式端点 POST /chat/send。
+//
+// 设计取舍：Kratos 自动生成的 HTTP/gRPC handler 是单响应模型，无法直接吐
+// Server-Sent Events。AI 对话需要流式回放 answer_delta / reasoning_delta /
+// tool_call / recipe_card / approval / done 等多类事件，所以保持原生 net/http
+// handler。
+//
+// 其余原来这里的端点已经迁移到 proto：
+//   - GET /chat/sessions/{id}/messages       → AIService.ListMessages
+//   - GET /chat/knowledge-ingest/status      → KnowledgeService.GetKnowledgeIngestStatus
+//   - POST /chat/knowledge-ingest/retry      → KnowledgeService.RetryKnowledgeDocument
+//
+// WxLogin 也已经从 server/wx_login_http.go 迁移到 AuthService.WxLogin。
+
 import (
 	"context"
 	"encoding/json"
@@ -7,18 +21,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	gca "github.com/7as0nch/gocommon/auth"
 	"github.com/chengjiang/aicook/backend/internal/auth"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/ai"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 )
 
 type AIChatHandler struct {
-	usecase   *biz.AIUsecase
-	knowledge *biz.KnowledgeUsecase
+	usecase   *ai.AIUsecase
+	knowledge *ai.KnowledgeUsecase
 	authRepo  gca.AuthRepo
 }
 
@@ -37,11 +51,6 @@ type chatSendRequest struct {
 	WebSearchEnabled   bool                        `json:"web_search_enabled"`
 	ImageRecipeEnabled bool                        `json:"image_recipe_enabled"`
 	ApprovalResponse   *airuntime.ApprovalResponse `json:"approval_response,omitempty"`
-}
-
-type chatKnowledgeRetryRequest struct {
-	SessionID  chatSessionID `json:"session_id"`
-	DocumentID string        `json:"document_id"`
 }
 
 func (id *chatSessionID) UnmarshalJSON(data []byte) error {
@@ -69,7 +78,7 @@ func (id chatSessionID) Int64() (int64, error) {
 	return strconv.ParseInt(string(id), 10, 64)
 }
 
-func NewAIChatHandler(usecase *biz.AIUsecase, knowledge *biz.KnowledgeUsecase, authRepo gca.AuthRepo) *AIChatHandler {
+func NewAIChatHandler(usecase *ai.AIUsecase, knowledge *ai.KnowledgeUsecase, authRepo gca.AuthRepo) *AIChatHandler {
 	return &AIChatHandler{
 		usecase:   usecase,
 		knowledge: knowledge,
@@ -79,9 +88,6 @@ func NewAIChatHandler(usecase *biz.AIUsecase, knowledge *biz.KnowledgeUsecase, a
 
 func (h *AIChatHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /chat/send", h.handleSend)
-	mux.HandleFunc("GET /chat/sessions/{session_id}/messages", h.handleListMessages)
-	mux.HandleFunc("GET /chat/knowledge-ingest/status", h.handleKnowledgeIngestStatus)
-	mux.HandleFunc("POST /chat/knowledge-ingest/retry", h.handleKnowledgeIngestRetry)
 }
 
 func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +148,7 @@ func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
 	}
 	flusher.Flush()
 
-	reply, err := h.usecase.StreamMessage(ctx, sessionID, biz.SendMessageRequest{
+	reply, err := h.usecase.StreamMessage(ctx, sessionID, ai.SendMessageRequest{
 		Text:               req.Text,
 		Scene:              req.Scene,
 		Attachments:        req.Attachments,
@@ -299,84 +305,13 @@ func knowledgeIngestAttachmentType(t string) bool {
 	}
 }
 
-func (h *AIChatHandler) handleKnowledgeIngestStatus(w http.ResponseWriter, r *http.Request) {
-	if h.knowledge == nil {
-		writeErrorJSON(w, http.StatusServiceUnavailable, "knowledge not configured")
-		return
-	}
-	assetIDStr := strings.TrimSpace(r.URL.Query().Get("asset_id"))
-	if assetIDStr == "" {
-		writeErrorJSON(w, http.StatusBadRequest, "asset_id is required")
-		return
-	}
-	assetID, err := strconv.ParseInt(assetIDStr, 10, 64)
-	if err != nil || assetID <= 0 {
-		writeErrorJSON(w, http.StatusBadRequest, "invalid asset_id")
-		return
-	}
-	ctx := h.authContext(r)
-	actor := biz.ActorFromContext(ctx)
-	if actor.HouseholdID == 0 {
-		writeErrorJSON(w, http.StatusUnauthorized, "household required")
-		return
-	}
-	st, err := h.knowledge.GetIngestStatusByMediaAsset(ctx, actor.HouseholdID, assetID)
-	if err != nil {
-		writeErrorJSON(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	writeJSON(w, st)
-}
-
-func (h *AIChatHandler) handleKnowledgeIngestRetry(w http.ResponseWriter, r *http.Request) {
-	if h.knowledge == nil {
-		writeErrorJSON(w, http.StatusServiceUnavailable, "knowledge not configured")
-		return
-	}
-	var req chatKnowledgeRetryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorJSON(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	documentID, err := strconv.ParseInt(strings.TrimSpace(req.DocumentID), 10, 64)
-	if err != nil || documentID <= 0 {
-		writeErrorJSON(w, http.StatusBadRequest, "invalid document_id")
-		return
-	}
-	sessionID, err := req.SessionID.Int64()
-	if err != nil {
-		writeErrorJSON(w, http.StatusBadRequest, "invalid session_id")
-		return
-	}
-	ctx := h.authContext(r)
-	actor := biz.ActorFromContext(ctx)
-	if actor.HouseholdID == 0 {
-		writeErrorJSON(w, http.StatusUnauthorized, "household required")
-		return
-	}
-	doc, err := h.usecase.QueueKnowledgeDocumentRetry(ctx, actor, sessionID, documentID)
-	if err != nil {
-		writeErrorJSON(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	writeJSON(w, map[string]any{
-		"accepted":         true,
-		"document_id":      strconv.FormatInt(doc.ID, 10),
-		"media_asset_id":   formatNullableID(doc.MediaAssetID),
-		"title":            doc.Title,
-		"processing_stage": "fetch_object",
-		"status":           "processing",
-		"stage_label":      "准备重试…",
-	})
-}
-
 func (h *AIChatHandler) ensureSession(ctx context.Context, sessionID int64, scene string, req chatSendRequest) (*data.AISession, error) {
 	if sessionID > 0 {
 		return h.usecase.GetSession(ctx, sessionID)
 	}
 
-	actor := biz.ActorFromContext(ctx)
-	return h.usecase.CreateSession(ctx, biz.CreateSessionRequest{
+	actor := common.ActorFromContext(ctx)
+	return h.usecase.CreateSession(ctx, ai.CreateSessionRequest{
 		HouseholdID: actor.HouseholdID,
 		UserID:      actor.UserID,
 		Scene:       scene,
@@ -384,38 +319,6 @@ func (h *AIChatHandler) ensureSession(ctx context.Context, sessionID int64, scen
 		RecipeID:    req.RecipeID,
 		ContextJSON: req.Context,
 	})
-}
-
-func (h *AIChatHandler) handleListMessages(w http.ResponseWriter, r *http.Request) {
-	ctx := h.authContext(r)
-
-	sessionID, err := strconv.ParseInt(strings.TrimSpace(r.PathValue("session_id")), 10, 64)
-	if err != nil || sessionID <= 0 {
-		writeErrorJSON(w, http.StatusBadRequest, "invalid session_id")
-		return
-	}
-	limit, _ := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("limit")))
-	if limit <= 0 {
-		limit = 5
-	}
-	beforeMessageID, _ := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("before_message_id")), 10, 64)
-
-	session, messages, hasMore, err := h.usecase.ListMessagesPage(ctx, biz.ListMessagesRequest{
-		SessionID:       sessionID,
-		Limit:           limit,
-		BeforeMessageID: beforeMessageID,
-	})
-	if err != nil {
-		writeErrorJSON(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	response := map[string]any{
-		"session":  buildSessionPayload(session),
-		"messages": buildMessagePayloads(messages),
-		"has_more": hasMore,
-	}
-	writeJSON(w, response)
 }
 
 func (h *AIChatHandler) authContext(r *http.Request) context.Context {
@@ -456,90 +359,4 @@ func writeErrorJSON(w http.ResponseWriter, statusCode int, message string) {
 			"message": message,
 		},
 	})
-}
-
-func formatNullableID(id *int64) string {
-	if id == nil || *id <= 0 {
-		return ""
-	}
-	return strconv.FormatInt(*id, 10)
-}
-
-func buildSessionPayload(session *data.AISession) map[string]any {
-	if session == nil {
-		return nil
-	}
-	return map[string]any{
-		"id":           strconv.FormatInt(session.ID, 10),
-		"household_id": strconv.FormatInt(session.HouseholdID, 10),
-		"user_id":      strconv.FormatInt(session.UserID, 10),
-		"scene":        session.Scene,
-		"title":        session.Title,
-		"created_at":   formatJSONTime(session.CreatedAt),
-		"updated_at":   formatJSONTime(session.UpdatedAt),
-	}
-}
-
-func buildMessagePayloads(messages []*data.AIMessage) []map[string]any {
-	items := make([]map[string]any, 0, len(messages))
-	for _, message := range messages {
-		items = append(items, buildMessagePayload(message))
-	}
-	return items
-}
-
-func buildMessagePayload(message *data.AIMessage) map[string]any {
-	if message == nil {
-		return nil
-	}
-	var quote airuntime.QuoteContext
-	_ = json.Unmarshal(message.QuoteContextJSON, &quote)
-	var attachments []airuntime.Attachment
-	_ = json.Unmarshal(message.AttachmentsJSON, &attachments)
-	var envelope struct {
-		Sources  []airuntime.Source `json:"sources"`
-		Metadata map[string]any     `json:"metadata"`
-	}
-	_ = json.Unmarshal(message.ResponseMetaJSON, &envelope)
-	sources := make([]map[string]any, 0, len(envelope.Sources))
-	for _, source := range envelope.Sources {
-		sources = append(sources, map[string]any{
-			"title":        source.Title,
-			"document_id":  source.DocumentID,
-			"snippet":      source.Snippet,
-			"site_name":    source.SiteName,
-			"publish_time": source.PublishTime,
-			"logo_url":     source.LogoURL,
-		})
-	}
-	attachmentItems := make([]map[string]any, 0, len(attachments))
-	for _, attachment := range attachments {
-		attachmentItems = append(attachmentItems, map[string]any{
-			"type":         attachment.Type,
-			"url":          attachment.URL,
-			"content_type": attachment.ContentType,
-			"name":         attachment.Name,
-			"asset_id":     attachment.AssetID,
-		})
-	}
-	return map[string]any{
-		"id":               strconv.FormatInt(message.ID, 10),
-		"ai_session_id":    strconv.FormatInt(message.AISessionID, 10),
-		"role":             message.Role,
-		"content":          message.Content,
-		"mode":             message.Mode,
-		"quote_context":    map[string]any{"selected_text": quote.SelectedText, "selection_source": quote.SelectionSource, "surrounding_text": quote.SurroundingText, "scene": quote.Scene},
-		"attachments":      attachmentItems,
-		"response_sources": sources,
-		"response_meta":    envelope.Metadata,
-		"created_at":       formatJSONTime(message.CreatedAt),
-		"updated_at":       formatJSONTime(message.UpdatedAt),
-	}
-}
-
-func formatJSONTime(value time.Time) string {
-	if value.IsZero() {
-		return ""
-	}
-	return value.Format(time.RFC3339Nano)
 }

@@ -1,9 +1,5 @@
 <view class="hh">
-  <custom-navbar title="厨房管理">
-    <view slot="right" class="hh__nav-btn hh__nav-btn--primary" bindtap="onCreate">
-      <text>+</text>
-    </view>
-  </custom-navbar>
+  <custom-navbar title="厨房管理"></custom-navbar>
 
   <!-- 当前厨房卡 -->
   <view class="hh__active">
@@ -59,15 +55,27 @@
   <view class="hh__members-card">
     <block wx:for="{{members}}" wx:key="id">
       <view wx:if="{{index > 0}}" class="hh__members-divider"></view>
-      <view class="hh__member-row">
+      <view class="hh__member-row" data-id="{{item.id}}" data-name="{{item.name}}" data-is-owner="{{item.isOwner}}" bindtap="onMemberTap">
         <view class="hh__member-avatar">{{item.emoji}}</view>
-        <text class="hh__member-name">{{item.name}}</text>
+        <view class="hh__member-body">
+          <text class="hh__member-name">{{item.name}}</text>
+          <view wx:if="{{item.tags && item.tags.length}}" class="hh__member-tags">
+            <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="hh__member-tag">{{tag}}</text>
+          </view>
+          <text wx:else class="hh__member-tag-empty">未设置口味偏好</text>
+        </view>
         <view class="hh__member-role {{item.isOwner ? 'hh__member-role--admin' : ''}}">{{item.role}}</view>
-        <view class="hh__member-more">⋯</view>
+        <image class="hh__member-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
       </view>
     </block>
     <view wx:if="{{!members.length}}" class="hh__empty">暂无成员</view>
   </view>
 
   <view class="hh__spacer"></view>
+
+  <!-- 底部固定 CTA：添加（成员 / 新厨房二选一）-->
+  <view class="hh__fab" bindtap="onCreate">
+    <text class="hh__fab-plus">+</text>
+    <text>添加</text>
+  </view>
 </view>

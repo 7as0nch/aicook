@@ -11,6 +11,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz"
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/platform/wechat"
 	"github.com/chengjiang/aicook/backend/internal/server"
 	"github.com/chengjiang/aicook/backend/internal/service"
 )
@@ -21,5 +22,6 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 		biz.ProviderSet,
 		service.ProviderSet,
 		server.ProviderSet,
+		wechat.ProviderSet,
 	))
 }

@@ -1,3 +1,14 @@
-<view class="ai-fab" style="bottom: {{bottom}};" bindtap="onTap">
+<view
+  class="ai-fab ai-fab--side-{{bubbleSide}} {{dragging ? 'ai-fab--dragging' : ''}}"
+  style="{{fabPositioned ? 'left:' + fabX + 'px;top:' + fabY + 'px;right:auto;bottom:auto;' : 'right:32rpx;bottom:' + bottom + ';'}}"
+  catchtouchstart="onTouchStart"
+  catchtouchmove="onTouchMove"
+  catchtouchend="onTouchEnd"
+  catchtouchcancel="onTouchEnd"
+>
+  <!-- 招呼气泡：进入页面随机一句，3.5s 后消失；方向跟着浮球位置切换避免溢出屏幕 -->
+  <view wx:if="{{greetingVisible}}" class="ai-fab__bubble">
+    <text class="ai-fab__bubble-text">{{greetingText}}</text>
+  </view>
   <image class="ai-fab__img" src="{{iconSrc || '/assets/mascot/bao-default.png'}}" mode="aspectFit" />
 </view>

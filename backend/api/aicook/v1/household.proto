@@ -80,6 +80,40 @@ service HouseholdService {
       get: "/api/v1/households/{household_id}/members"
     };
   }
+
+  // AddHouseholdMember 新增「虚拟成员」（user_id=0），用于家庭里没微信账号的家人。
+  // 权限：仅当前 actor 是 household owner。
+  rpc AddHouseholdMember(AddHouseholdMemberRequest) returns (AddHouseholdMemberReply) {
+    option (google.api.http) = {
+      post: "/api/v1/households/{household_id}/members"
+      body: "*"
+    };
+  }
+
+  // RemoveHouseholdMember 从家庭里移除成员（软删）。
+  // 权限：仅 owner；不允许移除 owner 本人。
+  rpc RemoveHouseholdMember(RemoveHouseholdMemberRequest) returns (RemoveHouseholdMemberReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/households/members/{member_id}"
+    };
+  }
+
+  // GetMemberPreferences 读单个成员的个人口味偏好。
+  // 权限：任意家庭成员都可读（用于显示）。
+  rpc GetMemberPreferences(GetMemberPreferencesRequest) returns (GetMemberPreferencesReply) {
+    option (google.api.http) = {
+      get: "/api/v1/households/members/{member_id}/preferences"
+    };
+  }
+
+  // UpdateMemberPreferences 改单个成员的个人口味偏好。
+  // 权限：owner 或本人（member.user_id == actor.user_id）。
+  rpc UpdateMemberPreferences(UpdateMemberPreferencesRequest) returns (UpdateMemberPreferencesReply) {
+    option (google.api.http) = {
+      put: "/api/v1/households/members/{member_id}/preferences"
+      body: "*"
+    };
+  }
 }
 
 message CreateHouseholdRequest {
@@ -203,4 +237,43 @@ message HouseholdMemberDetail {
 
 message ListHouseholdMembersReply {
   repeated HouseholdMemberDetail members = 1;
+}
+
+// --- 成员个人化扩展 ----------------------------------------------------
+
+message AddHouseholdMemberRequest {
+  int64 household_id = 1;
+  // 必填：成员显示名（虚拟成员可由 owner 自定，如「妈妈」「儿子」）。
+  string display_name = 2;
+  // 可选：头像 emoji；为空时由前端默认指派。
+  string emoji = 3;
+  // 可选：直接带上初始口味偏好。
+  HouseholdPreferences preferences = 4;
+}
+
+message AddHouseholdMemberReply {
+  HouseholdMemberDetail member = 1;
+}
+
+message RemoveHouseholdMemberRequest {
+  int64 member_id = 1;
+}
+
+message RemoveHouseholdMemberReply {}
+
+message GetMemberPreferencesRequest {
+  int64 member_id = 1;
+}
+
+message GetMemberPreferencesReply {
+  HouseholdPreferences preferences = 1;
+}
+
+message UpdateMemberPreferencesRequest {
+  int64 member_id = 1;
+  HouseholdPreferences preferences = 2;
+}
+
+message UpdateMemberPreferencesReply {
+  HouseholdPreferences preferences = 1;
 }

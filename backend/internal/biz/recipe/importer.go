@@ -1,4 +1,4 @@
-package biz
+package recipe
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 	"github.com/chengjiang/aicook/backend/internal/platform/inference"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
@@ -29,7 +30,7 @@ type CreateImageRecipeRequest struct {
 
 type ImportUsecase struct {
 	repo          ImportRepo
-	mediaRepo     MediaRepo
+	mediaRepo     user.MediaRepo
 	recipeRepo    RecipeRepo
 	objectStorage storage.ObjectStorage
 	inference     *inference.Client

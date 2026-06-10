@@ -4,22 +4,23 @@ import (
 	"context"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
-	"github.com/chengjiang/aicook/backend/internal/biz"
+	"github.com/chengjiang/aicook/backend/internal/biz/ai"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 )
 
 type AIService struct {
 	v1.UnimplementedAIServiceServer
 
-	usecase *biz.AIUsecase
+	usecase *ai.AIUsecase
 }
 
-func NewAIService(usecase *biz.AIUsecase) *AIService {
+func NewAIService(usecase *ai.AIUsecase) *AIService {
 	return &AIService{usecase: usecase}
 }
 
 func (s *AIService) CreateSession(ctx context.Context, req *v1.CreateSessionRequest) (*v1.CreateSessionReply, error) {
-	actor := biz.ActorFromContext(ctx)
-	session, err := s.usecase.CreateSession(ctx, biz.CreateSessionRequest{
+	actor := common.ActorFromContext(ctx)
+	session, err := s.usecase.CreateSession(ctx, ai.CreateSessionRequest{
 		HouseholdID: actor.HouseholdID,
 		UserID:      actor.UserID,
 		Scene:       req.GetScene(),
@@ -34,7 +35,7 @@ func (s *AIService) CreateSession(ctx context.Context, req *v1.CreateSessionRequ
 }
 
 func (s *AIService) SendMessage(ctx context.Context, req *v1.SendMessageRequest) (*v1.SendMessageReply, error) {
-	reply, err := s.usecase.SendMessage(ctx, req.GetSessionId(), biz.SendMessageRequest{
+	reply, err := s.usecase.SendMessage(ctx, req.GetSessionId(), ai.SendMessageRequest{
 		Text:         req.GetText(),
 		Scene:        req.GetScene(),
 		Attachments:  fromProtoAttachments(req.GetAttachments()),
@@ -55,7 +56,7 @@ func (s *AIService) SendMessage(ctx context.Context, req *v1.SendMessageRequest)
 }
 
 func (s *AIService) ListSessions(ctx context.Context, req *v1.ListSessionsRequest) (*v1.ListSessionsReply, error) {
-	sessions, err := s.usecase.ListSessions(ctx, biz.ListSessionsRequest{
+	sessions, err := s.usecase.ListSessions(ctx, ai.ListSessionsRequest{
 		Scene: req.GetScene(),
 		Limit: int(req.GetLimit()),
 	})
@@ -73,9 +74,10 @@ func (s *AIService) ListSessions(ctx context.Context, req *v1.ListSessionsReques
 }
 
 func (s *AIService) ListMessages(ctx context.Context, req *v1.ListMessagesRequest) (*v1.ListMessagesReply, error) {
-	session, messages, err := s.usecase.ListMessages(ctx, biz.ListMessagesRequest{
-		SessionID: req.GetSessionId(),
-		Limit:     int(req.GetLimit()),
+	session, messages, hasMore, err := s.usecase.ListMessagesPage(ctx, ai.ListMessagesRequest{
+		SessionID:       req.GetSessionId(),
+		Limit:           int(req.GetLimit()),
+		BeforeMessageID: req.GetBeforeMessageId(),
 	})
 	if err != nil {
 		return nil, err
@@ -84,6 +86,7 @@ func (s *AIService) ListMessages(ctx context.Context, req *v1.ListMessagesReques
 	reply := &v1.ListMessagesReply{
 		Session:  toProtoAISession(session),
 		Messages: make([]*v1.AIMessage, 0, len(messages)),
+		HasMore:  hasMore,
 	}
 	for _, message := range messages {
 		reply.Messages = append(reply.Messages, toProtoAIMessage(message))

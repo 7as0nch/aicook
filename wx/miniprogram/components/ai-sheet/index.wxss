@@ -13,6 +13,12 @@
   pointer-events: auto;
 }
 
+/* V10: sheet 关闭/未打开态彻底禁用 transition —— 避免切页时旧 sheet DOM 还在播放收起动画 */
+.ais-mask--no-anim,
+.ais-mask--no-anim .ais {
+  transition: none !important;
+}
+
 .ais {
   position: absolute;
   left: 0;
@@ -32,6 +38,11 @@
 
 .ais-mask--visible .ais {
   transform: translateY(0);
+}
+
+/* V10: 即便 mask 已隐藏，如果 sheet 节点上有 no-anim class 也强制禁用 transition */
+.ais.ais--no-anim {
+  transition: none !important;
 }
 
 /* 展开到全屏 */

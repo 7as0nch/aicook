@@ -1,15 +1,16 @@
-package biz
+package ai
 
 import (
 	"context"
 
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/platform/inference"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
 )
 
 type VoiceUsecase struct {
-	mediaRepo     MediaRepo
+	mediaRepo     user.MediaRepo
 	objectStorage storage.ObjectStorage
 	inference     *inference.Client
 }

@@ -14,4 +14,3 @@ var ProviderSet = wire.NewSet(
 	NewCookingService,
 	NewKitchenService,
 )
-

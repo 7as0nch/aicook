@@ -1,4 +1,4 @@
-package biz
+package kitchen
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/utils"
 )
 
@@ -85,7 +86,7 @@ func NewKitchenOpsUsecase(repo *data.KitchenOpsRepo, recipeRepo *data.RecipeRepo
 	}
 }
 
-func (u *KitchenOpsUsecase) GetWeekPlan(ctx context.Context, actor Actor, weekStartRaw string) (*MealPlanWeekView, error) {
+func (u *KitchenOpsUsecase) GetWeekPlan(ctx context.Context, actor common.Actor, weekStartRaw string) (*MealPlanWeekView, error) {
 	weekStart, err := parseWeekStart(weekStartRaw)
 	if err != nil {
 		return nil, err
@@ -97,7 +98,7 @@ func (u *KitchenOpsUsecase) GetWeekPlan(ctx context.Context, actor Actor, weekSt
 	return buildMealPlanView(plan, items, weekStart), nil
 }
 
-func (u *KitchenOpsUsecase) SaveWeekPlan(ctx context.Context, actor Actor, input MealPlanSaveInput, source string) (*MealPlanWeekView, error) {
+func (u *KitchenOpsUsecase) SaveWeekPlan(ctx context.Context, actor common.Actor, input MealPlanSaveInput, source string) (*MealPlanWeekView, error) {
 	weekStart, err := parseWeekStart(input.WeekStartDate)
 	if err != nil {
 		return nil, err
@@ -143,7 +144,7 @@ func (u *KitchenOpsUsecase) SaveWeekPlan(ctx context.Context, actor Actor, input
 	return buildMealPlanView(plan, items, weekStart), nil
 }
 
-func (u *KitchenOpsUsecase) GenerateWeekPlan(ctx context.Context, actor Actor, weekStartRaw string) (*MealPlanWeekView, error) {
+func (u *KitchenOpsUsecase) GenerateWeekPlan(ctx context.Context, actor common.Actor, weekStartRaw string) (*MealPlanWeekView, error) {
 	weekStart, err := parseWeekStart(weekStartRaw)
 	if err != nil {
 		return nil, err
@@ -177,7 +178,7 @@ func (u *KitchenOpsUsecase) GenerateWeekPlan(ctx context.Context, actor Actor, w
 	return u.SaveWeekPlan(ctx, actor, input, "ai")
 }
 
-func (u *KitchenOpsUsecase) GetOrGenerateShoppingList(ctx context.Context, actor Actor, weekStartRaw string) (*data.ShoppingList, []*data.ShoppingListItem, error) {
+func (u *KitchenOpsUsecase) GetOrGenerateShoppingList(ctx context.Context, actor common.Actor, weekStartRaw string) (*data.ShoppingList, []*data.ShoppingListItem, error) {
 	weekStart, err := parseWeekStart(weekStartRaw)
 	if err != nil {
 		return nil, nil, err
@@ -192,7 +193,7 @@ func (u *KitchenOpsUsecase) GetOrGenerateShoppingList(ctx context.Context, actor
 	return u.GenerateShoppingList(ctx, actor, weekStartRaw)
 }
 
-func (u *KitchenOpsUsecase) GenerateShoppingList(ctx context.Context, actor Actor, weekStartRaw string) (*data.ShoppingList, []*data.ShoppingListItem, error) {
+func (u *KitchenOpsUsecase) GenerateShoppingList(ctx context.Context, actor common.Actor, weekStartRaw string) (*data.ShoppingList, []*data.ShoppingListItem, error) {
 	weekStart, err := parseWeekStart(weekStartRaw)
 	if err != nil {
 		return nil, nil, err
@@ -266,7 +267,7 @@ func (u *KitchenOpsUsecase) GenerateShoppingList(ctx context.Context, actor Acto
 	return list, shoppingItems, nil
 }
 
-func (u *KitchenOpsUsecase) UpdateShoppingItem(ctx context.Context, actor Actor, listID, itemID int64, patch ShoppingListItemPatch) (*data.ShoppingListItem, error) {
+func (u *KitchenOpsUsecase) UpdateShoppingItem(ctx context.Context, actor common.Actor, listID, itemID int64, patch ShoppingListItemPatch) (*data.ShoppingListItem, error) {
 	updates := map[string]any{}
 	if patch.Checked != nil {
 		updates["checked"] = *patch.Checked
@@ -288,7 +289,7 @@ func (u *KitchenOpsUsecase) UpdateShoppingItem(ctx context.Context, actor Actor,
 	return u.repo.UpdateShoppingListItem(ctx, actor.HouseholdID, listID, itemID, updates)
 }
 
-func (u *KitchenOpsUsecase) CompleteShoppingList(ctx context.Context, actor Actor, listID int64) (*data.ShoppingList, error) {
+func (u *KitchenOpsUsecase) CompleteShoppingList(ctx context.Context, actor common.Actor, listID int64) (*data.ShoppingList, error) {
 	current, currentItems, err := u.repo.FindShoppingListByID(ctx, actor.HouseholdID, listID)
 	if err != nil {
 		return nil, err
@@ -316,11 +317,11 @@ func (u *KitchenOpsUsecase) CompleteShoppingList(ctx context.Context, actor Acto
 	return u.repo.CompleteShoppingList(ctx, actor.HouseholdID, current.ID, inventoryItems)
 }
 
-func (u *KitchenOpsUsecase) ListInventory(ctx context.Context, actor Actor, keyword string) ([]*data.InventoryItem, error) {
+func (u *KitchenOpsUsecase) ListInventory(ctx context.Context, actor common.Actor, keyword string) ([]*data.InventoryItem, error) {
 	return u.repo.ListInventory(ctx, actor.HouseholdID, keyword)
 }
 
-func (u *KitchenOpsUsecase) UpsertInventory(ctx context.Context, actor Actor, inputs []InventoryInput) ([]*data.InventoryItem, error) {
+func (u *KitchenOpsUsecase) UpsertInventory(ctx context.Context, actor common.Actor, inputs []InventoryInput) ([]*data.InventoryItem, error) {
 	items := make([]*data.InventoryItem, 0, len(inputs))
 	now := time.Now()
 	for _, input := range inputs {
@@ -352,7 +353,7 @@ func (u *KitchenOpsUsecase) UpsertInventory(ctx context.Context, actor Actor, in
 	return u.repo.ListInventory(ctx, actor.HouseholdID, "")
 }
 
-func (u *KitchenOpsUsecase) UpdateInventory(ctx context.Context, actor Actor, itemID int64, input InventoryInput) (*data.InventoryItem, error) {
+func (u *KitchenOpsUsecase) UpdateInventory(ctx context.Context, actor common.Actor, itemID int64, input InventoryInput) (*data.InventoryItem, error) {
 	updates := map[string]any{
 		"kind":            fallbackString(input.Kind, "ingredient"),
 		"name":            strings.TrimSpace(input.Name),
@@ -370,7 +371,7 @@ func (u *KitchenOpsUsecase) UpdateInventory(ctx context.Context, actor Actor, it
 	return u.repo.UpdateInventoryItem(ctx, actor.HouseholdID, itemID, updates)
 }
 
-func (u *KitchenOpsUsecase) RecommendRecipesByInventory(ctx context.Context, actor Actor, limit int) ([]map[string]any, error) {
+func (u *KitchenOpsUsecase) RecommendRecipesByInventory(ctx context.Context, actor common.Actor, limit int) ([]map[string]any, error) {
 	if limit <= 0 {
 		limit = 12
 	}
@@ -441,7 +442,7 @@ func (u *KitchenOpsUsecase) RecommendRecipesByInventory(ctx context.Context, act
 	return out, nil
 }
 
-func (u *KitchenOpsUsecase) CreateRecipeShare(ctx context.Context, actor Actor, recipeID int64) (*data.RecipeShare, *data.RecipeDetail, error) {
+func (u *KitchenOpsUsecase) CreateRecipeShare(ctx context.Context, actor common.Actor, recipeID int64) (*data.RecipeShare, *data.RecipeDetail, error) {
 	detail, err := u.recipeRepo.GetDetail(ctx, actor.HouseholdID, recipeID)
 	if err != nil {
 		return nil, nil, err
@@ -482,7 +483,7 @@ func (u *KitchenOpsUsecase) PreviewRecipeShare(ctx context.Context, shareCode st
 	return share, detail, nil
 }
 
-func (u *KitchenOpsUsecase) ImportRecipeShare(ctx context.Context, actor Actor, shareCode string) (*data.Recipe, error) {
+func (u *KitchenOpsUsecase) ImportRecipeShare(ctx context.Context, actor common.Actor, shareCode string) (*data.Recipe, error) {
 	share, err := u.repo.FindRecipeShareByCode(ctx, strings.TrimSpace(shareCode))
 	if err != nil {
 		return nil, err

@@ -4,13 +4,13 @@
       <!-- 在第 3 项前插入中间浮按占位 -->
       <view wx:if="{{idx === 2}}" class="tab-fab-slot"></view>
       <view
-        class="tab-item {{selected === idx ? 'active' : ''}}"
+        class="tab-item {{tabSelected === idx ? 'active' : ''}}"
         data-path="{{item.pagePath}}"
         data-index="{{idx}}"
         bindtap="switchTab"
       >
         <!-- icon 插槽：image src 优先，emoji fallback；后续替换为正式图标 -->
-        <image wx:if="{{item.iconSrc}}" class="tab-icon-img" src="{{selected === idx ? item.activeIconSrc : item.iconSrc}}" mode="aspectFit"></image>
+        <image wx:if="{{item.iconSrc}}" class="tab-icon-img" src="{{tabSelected === idx ? item.activeIconSrc : item.iconSrc}}" mode="aspectFit"></image>
         <text wx:else class="tab-icon">{{item.iconFallback}}</text>
         <text class="tab-label">{{item.text}}</text>
       </view>

@@ -38,4 +38,3 @@ func NewGRPCServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *
 	}
 	return server
 }
-

@@ -1,24 +1,30 @@
 <view class="prof">
-  <custom-navbar title="个人资料">
-    <view slot="right" class="prof__nav-save {{saving ? 'prof__nav-save--saving' : ''}}" bindtap="onSave">
-      <text>{{saving ? '保存中…' : '保存'}}</text>
-    </view>
-  </custom-navbar>
+  <custom-navbar title="个人资料"></custom-navbar>
 
-  <!-- 头像 -->
-  <view class="prof__avatar-row" bindtap="onAvatarTap">
-    <view class="prof__avatar">
-      <image wx:if="{{avatarUrl}}" class="prof__avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
-      <image wx:else class="prof__avatar-default" src="/assets/icons/me.png" mode="aspectFit" />
-    </view>
-    <text class="prof__avatar-tip">点击更换头像</text>
+  <!-- 头像：必须用 button + open-type="chooseAvatar" 才能拿到真实微信头像 -->
+  <view class="prof__avatar-row">
+    <button class="prof__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+      <view class="prof__avatar">
+        <image wx:if="{{avatarUrl}}" class="prof__avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+        <image wx:else class="prof__avatar-default" src="/assets/icons/me.png" mode="aspectFit" />
+      </view>
+    </button>
+    <text class="prof__avatar-tip">点击设置头像（可选微信头像）</text>
   </view>
 
   <!-- 字段 -->
   <view class="prof__card">
     <view class="prof__field">
       <text class="prof__label">昵称</text>
-      <input class="prof__input" placeholder="请输入昵称" value="{{displayName}}" bindinput="onDisplayNameInput" />
+      <!-- type="nickname" 让微信键盘上方出现「使用微信昵称」推荐项 -->
+      <input
+        class="prof__input"
+        type="nickname"
+        placeholder="点击使用微信昵称"
+        value="{{displayName}}"
+        bindinput="onDisplayNameInput"
+        bindblur="onDisplayNameBlur"
+      />
     </view>
     <view class="prof__field">
       <text class="prof__label">用户名</text>
@@ -35,4 +41,11 @@
   </view>
 
   <view class="prof__spacer"></view>
+
+  <!-- 底部固定保存按钮（替代原右上角按钮，避免被微信胶囊遮挡） -->
+  <view class="prof__save-bar">
+    <view class="prof__save-btn {{saving ? 'prof__save-btn--saving' : ''}}" bindtap="onSave">
+      <text>{{saving ? '保存中…' : '保存'}}</text>
+    </view>
+  </view>
 </view>
