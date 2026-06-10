@@ -1,0 +1,63 @@
+.idlg__mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 27, 22, 0.45);
+  z-index: 100;
+}
+
+.idlg {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #FFFFFF;
+  border-radius: 36rpx 36rpx 0 0;
+  padding: 40rpx 48rpx 24rpx;
+  z-index: 101;
+}
+
+.idlg__title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.idlg__input {
+  background: #F4F5F7;
+  border-radius: 24rpx;
+  height: 88rpx;
+  padding: 0 28rpx;
+  font-size: 28rpx;
+  color: #1F1B16;
+  margin-bottom: 20rpx;
+}
+
+.idlg__actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 12rpx;
+}
+
+.idlg__btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  background: #F4F5F7;
+  color: #6E6A62;
+}
+
+.idlg__btn--primary {
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.idlg__safe {
+  height: env(safe-area-inset-bottom);
+}

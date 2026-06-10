@@ -1470,7 +1470,8 @@ export async function saveCurrentMealPlan(input: {
             Object.entries(slots).map(([slot, dishes]) => [
               slot,
               (dishes ?? []).map((dish) => ({
-                recipe_id: dish.recipe_id ? Number(dish.recipe_id) : undefined,
+                // 雪花 ID 超出 JS Number 精度（2^53），days 经 protobuf Struct 传输必须用字符串承载
+                recipe_id: dish.recipe_id ? String(dish.recipe_id) : undefined,
                 recipe_title: dish.recipe_title,
                 note: dish.note ?? '',
               })),

@@ -106,8 +106,10 @@ Page({
             contentType: 'image/jpeg',
             sizeBytes: f.size || 0,
           });
+          // proto MediaAsset 的字段是 storage_url（预签名访问地址），不存在 url 字段；
+          // 兜底用本地临时路径做即时预览
           this.setData({
-            images: [...this.data.images, { url: asset.url, asset_id: asset.id }],
+            images: [...this.data.images, { url: asset.storage_url || f.tempFilePath, asset_id: String(asset.id) }],
           });
         } catch (e) {
           wx.showToast({ title: '上传失败', icon: 'none' });
@@ -166,9 +168,9 @@ Page({
         const path = res?.tempFilePath;
         if (!path) return;
         const info = await new Promise<{ size: number }>((resolve) => {
-          (wx as unknown as { getFileInfo: Function }).getFileInfo({
+          wx.getFileSystemManager().getFileInfo({
             filePath: path,
-            success: (r: { size: number }) => resolve({ size: r.size }),
+            success: (r) => resolve({ size: r.size }),
             fail: () => resolve({ size: 0 }),
           });
         });

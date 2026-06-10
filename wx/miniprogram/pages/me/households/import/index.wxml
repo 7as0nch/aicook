@@ -1,0 +1,56 @@
+<view class="imp">
+  <custom-navbar title="导入分享菜谱" />
+
+  <view wx:if="{{loading}}" class="imp__loading">加载中…</view>
+
+  <view wx:elif="{{loadError}}" class="imp__error">
+    <text class="imp__error-emoji">😿</text>
+    <text class="imp__error-text">分享码无效或已过期</text>
+    <view class="imp__error-btn" bindtap="onBack">返回</view>
+  </view>
+
+  <block wx:else>
+    <view class="imp__head">
+      <text class="imp__head-name">来自「{{householdName}}」</text>
+      <text class="imp__head-sub">共 {{recipes.length}} 道菜谱，勾选后导入到我的厨房</text>
+    </view>
+
+    <view class="imp__select-all" bindtap="onToggleAll">
+      <view class="imp__check {{allSelected ? 'imp__check--on' : ''}}">{{allSelected ? '✓' : ''}}</view>
+      <text>全选</text>
+      <text class="imp__select-count">已选 {{selectedCount}} / {{recipes.length}}</text>
+    </view>
+
+    <view class="imp__list">
+      <view
+        wx:for="{{recipes}}"
+        wx:key="id"
+        class="imp__item"
+        data-id="{{item.id}}"
+        bindtap="onItemToggle"
+      >
+        <view class="imp__check {{item.selected ? 'imp__check--on' : ''}}">{{item.selected ? '✓' : ''}}</view>
+        <view class="imp__item-img">
+          <image wx:if="{{item.cover_image_url}}" src="{{item.cover_image_url}}" mode="aspectFill" class="imp__item-img-i" />
+          <text wx:else class="imp__item-emoji">🍽️</text>
+        </view>
+        <view class="imp__item-body">
+          <text class="imp__item-name">{{item.title}}</text>
+          <text wx:if="{{item.meta}}" class="imp__item-meta">{{item.meta}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{!recipes.length}}" class="imp__empty">对方厨房还没有菜谱</view>
+    </view>
+
+    <view class="imp__spacer"></view>
+
+    <view class="imp__bar">
+      <view
+        class="imp__import-btn {{importing || !selectedCount ? 'imp__import-btn--disabled' : ''}}"
+        bindtap="onImport"
+      >{{importing ? '导入中…' : '导入所选菜谱'}}</view>
+      <view class="imp__bar-safe"></view>
+    </view>
+  </block>
+</view>

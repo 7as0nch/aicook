@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
@@ -11,7 +10,6 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
-	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -43,33 +41,21 @@ func (s *KitchenService) GetCurrentMealPlan(ctx context.Context, req *v1.GetCurr
 	if err != nil {
 		return nil, err
 	}
-	p, err := mealPlanWeekViewToProto(plan)
-	if err != nil {
-		return nil, err
-	}
-	return &v1.GetCurrentMealPlanReply{Plan: p}, nil
+	return &v1.GetCurrentMealPlanReply{Plan: mealPlanWeekViewToProto(plan)}, nil
 }
 
 func (s *KitchenService) SaveCurrentMealPlan(ctx context.Context, req *v1.SaveCurrentMealPlanRequest) (*v1.SaveCurrentMealPlanReply, error) {
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err
 	}
-	days, err := daysStructToSaveInput(req.GetDays())
-	if err != nil {
-		return nil, err
-	}
 	plan, err := s.usecase.SaveWeekPlan(ctx, common.ActorFromContext(ctx), kitchen.MealPlanSaveInput{
 		WeekStartDate: req.GetWeekStartDate(),
-		Days:          days,
+		Days:          daysToSaveInput(req.GetDays()),
 	}, "manual")
 	if err != nil {
 		return nil, err
 	}
-	p, err := mealPlanWeekViewToProto(plan)
-	if err != nil {
-		return nil, err
-	}
-	return &v1.SaveCurrentMealPlanReply{Plan: p}, nil
+	return &v1.SaveCurrentMealPlanReply{Plan: mealPlanWeekViewToProto(plan)}, nil
 }
 
 func (s *KitchenService) GenerateCurrentMealPlan(ctx context.Context, req *v1.GenerateCurrentMealPlanRequest) (*v1.GenerateCurrentMealPlanReply, error) {
@@ -80,11 +66,7 @@ func (s *KitchenService) GenerateCurrentMealPlan(ctx context.Context, req *v1.Ge
 	if err != nil {
 		return nil, err
 	}
-	p, err := mealPlanWeekViewToProto(plan)
-	if err != nil {
-		return nil, err
-	}
-	return &v1.GenerateCurrentMealPlanReply{Plan: p}, nil
+	return &v1.GenerateCurrentMealPlanReply{Plan: mealPlanWeekViewToProto(plan)}, nil
 }
 
 func (s *KitchenService) GetCurrentShoppingList(ctx context.Context, req *v1.GetCurrentShoppingListRequest) (*v1.GetCurrentShoppingListReply, error) {
@@ -402,64 +384,82 @@ func (s *KitchenService) toProtoCookingHistoryEntry(ctx context.Context, entry *
 	}
 }
 
-func mealPlanWeekViewToProto(v *kitchen.MealPlanWeekView) (*v1.MealPlanWeek, error) {
+// mealPlanWeekViewToProto 把 biz 层周计划视图转为 proto。
+// days 是强类型 map<string, MealPlanDaySlots>，int64 字段由 protojson 自动以字符串序列化，无需手写转换。
+func mealPlanWeekViewToProto(v *kitchen.MealPlanWeekView) *v1.MealPlanWeek {
 	if v == nil {
-		return nil, nil
+		return nil
 	}
-	b, err := json.Marshal(v.Days)
-	if err != nil {
-		return nil, err
-	}
-	var top map[string]any
-	if err := json.Unmarshal(b, &top); err != nil {
-		return nil, err
-	}
-	daysSt, err := structpb.NewStruct(top)
-	if err != nil {
-		return nil, err
+	days := make(map[string]*v1.MealPlanDaySlots, len(v.Days))
+	for day, slots := range v.Days {
+		ds := &v1.MealPlanDaySlots{}
+		for slot, dishes := range slots {
+			arr := make([]*v1.MealPlanDish, 0, len(dishes))
+			for _, d := range dishes {
+				dish := &v1.MealPlanDish{
+					Id:          d.ID,
+					RecipeTitle: d.RecipeTitle,
+					Note:        d.Note,
+				}
+				if d.RecipeID != nil {
+					dish.RecipeId = d.RecipeID
+				}
+				arr = append(arr, dish)
+			}
+			switch slot {
+			case kitchen.MealSlotBreakfast:
+				ds.Breakfast = arr
+			case kitchen.MealSlotLunch:
+				ds.Lunch = arr
+			case kitchen.MealSlotDinner:
+				ds.Dinner = arr
+			}
+		}
+		days[day] = ds
 	}
 	return &v1.MealPlanWeek{
 		Id:            v.ID,
 		WeekStartDate: v.WeekStartDate,
 		Timezone:      v.Timezone,
 		Source:        v.Source,
-		Days:          daysSt,
-	}, nil
+		Days:          days,
+	}
 }
 
-func daysStructToSaveInput(st *structpb.Struct) (map[string]map[kitchen.MealSlot][]kitchen.MealPlanDishInput, error) {
-	if st == nil {
-		return nil, nil
+// daysToSaveInput 把强类型 proto days 转为 biz 层保存输入。
+// protojson 已把 int64 字段（字符串或数字）解析为 int64，这里直接读取即可。
+func daysToSaveInput(days map[string]*v1.MealPlanDaySlots) map[string]map[kitchen.MealSlot][]kitchen.MealPlanDishInput {
+	if len(days) == 0 {
+		return nil
 	}
-	b, err := json.Marshal(st.AsMap())
-	if err != nil {
-		return nil, err
-	}
-	var raw map[string]map[string][]struct {
-		RecipeID    *int64 `json:"recipe_id"`
-		RecipeTitle string `json:"recipe_title"`
-		Note        string `json:"note"`
-	}
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return nil, err
-	}
-	out := make(map[string]map[kitchen.MealSlot][]kitchen.MealPlanDishInput, len(raw))
-	for day, slots := range raw {
-		out[day] = make(map[kitchen.MealSlot][]kitchen.MealPlanDishInput)
-		for slot, dishes := range slots {
-			ms := kitchen.MealSlot(slot)
-			inputs := make([]kitchen.MealPlanDishInput, 0, len(dishes))
-			for _, d := range dishes {
-				inputs = append(inputs, kitchen.MealPlanDishInput{
-					RecipeID:    d.RecipeID,
-					RecipeTitle: d.RecipeTitle,
-					Note:        d.Note,
-				})
-			}
-			out[day][ms] = inputs
+	out := make(map[string]map[kitchen.MealSlot][]kitchen.MealPlanDishInput, len(days))
+	for day, slots := range days {
+		if slots == nil {
+			continue
+		}
+		out[day] = map[kitchen.MealSlot][]kitchen.MealPlanDishInput{
+			kitchen.MealSlotBreakfast: dishInputsFromProto(slots.GetBreakfast()),
+			kitchen.MealSlotLunch:     dishInputsFromProto(slots.GetLunch()),
+			kitchen.MealSlotDinner:    dishInputsFromProto(slots.GetDinner()),
 		}
 	}
-	return out, nil
+	return out
+}
+
+func dishInputsFromProto(dishes []*v1.MealPlanDish) []kitchen.MealPlanDishInput {
+	inputs := make([]kitchen.MealPlanDishInput, 0, len(dishes))
+	for _, d := range dishes {
+		var recipeID *int64
+		if rid := d.GetRecipeId(); rid != 0 {
+			recipeID = &rid
+		}
+		inputs = append(inputs, kitchen.MealPlanDishInput{
+			RecipeID:    recipeID,
+			RecipeTitle: d.GetRecipeTitle(),
+			Note:        d.GetNote(),
+		})
+	}
+	return inputs
 }
 
 func toProtoShoppingListSummary(list *data.ShoppingList) *v1.ShoppingList {

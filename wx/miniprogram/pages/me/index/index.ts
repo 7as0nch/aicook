@@ -6,6 +6,7 @@ import { recipeApi } from '../../../services/recipe.api';
 import { kitchenApi } from '../../../services/kitchen.api';
 import { householdApi } from '../../../services/household.api';
 import { hasToken } from '../../../utils/auth-guard';
+import { computeStreakDays } from '../../../utils/time';
 import type { CookingHistoryEntry, HouseholdMemberDetail } from '../../../types/api';
 
 interface MenuItem { id: string; emoji: string; text: string; url: string; }
@@ -27,6 +28,8 @@ Page({
     favoritesCount: 0,
     myRecipesCount: 0,
     streakDays: 0,
+    // 首次加载统计前显示骨架，避免闪 0
+    statsLoading: true,
     members: [] as MemberRow[],
     // 旧版菜单已 inline 到 wxml；保留空数组防止 storeBindings / wxml 误引用
     menus: [] as MenuItem[],
@@ -83,12 +86,14 @@ Page({
     } catch (e) { /* ignore */ }
     try {
       const historyRes = await kitchenApi.listRecentCookingHistory(30);
-      streak = computeStreak((historyRes as { entries?: CookingHistoryEntry[] }).entries || []);
+      const entries = (historyRes as { entries?: CookingHistoryEntry[] }).entries || [];
+      streak = computeStreakDays(entries.map((it) => it.completed_at || it.started_at));
     } catch (e) { /* ignore */ }
     this.setData({
       favoritesCount: favCount,
       myRecipesCount: myCount,
       streakDays: streak,
+      statsLoading: false,
     });
   },
 
@@ -183,32 +188,3 @@ Page({
   },
 });
 
-function computeStreak(items: CookingHistoryEntry[]): number {
-  if (!items.length) return 0;
-  const dayKeys = new Set<string>();
-  for (const it of items) {
-    const t = it.completed_at || it.started_at;
-    if (!t) continue;
-    const d = new Date(t);
-    dayKeys.add(`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`);
-  }
-  let streak = 0;
-  const cursor = new Date();
-  while (true) {
-    const k = `${cursor.getFullYear()}-${cursor.getMonth()+1}-${cursor.getDate()}`;
-    if (dayKeys.has(k)) {
-      streak++;
-      cursor.setDate(cursor.getDate() - 1);
-    } else {
-      // 允许今天还没打卡时从昨天开始
-      if (streak === 0) {
-        cursor.setDate(cursor.getDate() - 1);
-        const k2 = `${cursor.getFullYear()}-${cursor.getMonth()+1}-${cursor.getDate()}`;
-        if (!dayKeys.has(k2)) break;
-        continue;
-      }
-      break;
-    }
-  }
-  return streak;
-}

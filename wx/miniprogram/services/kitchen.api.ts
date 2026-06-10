@@ -5,6 +5,7 @@ import type {
   Int64Like,
   InventoryItem,
   InventoryRecommendation,
+  MealPlanDays,
   MealPlanWeek,
   Recipe,
   RecipeShareSummary,
@@ -15,7 +16,7 @@ import type {
 
 export interface SaveMealPlanReq {
   week_start_date: string;
-  days: Record<string, unknown>;
+  days: MealPlanDays;
 }
 
 export interface UpsertInventoryItem {

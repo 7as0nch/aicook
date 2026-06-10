@@ -9,6 +9,7 @@
     "build:npm": "node scripts/build-npm.js",
     "watch": "gulp watch",
     "typecheck": "tsc --noEmit",
+    "gen:types": "node scripts/gen-types.js",
     "lint": "eslint \"miniprogram/**/*.{ts,wxs}\"",
     "lint:fix": "eslint --fix \"miniprogram/**/*.{ts,wxs}\""
   },
@@ -27,6 +28,7 @@
     "gulp-typescript": "^6.0.0-alpha.1",
     "miniprogram-api-typings": "^5.1.2",
     "miniprogram-ci": "^2.1.31",
+    "ts-proto": "2.11.8",
     "typescript": "^5.3.3"
   }
 }

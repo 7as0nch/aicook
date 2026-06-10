@@ -1511,15 +1511,15 @@ const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	"\arecipes\x18\x01 \x03(\v2\x11.aicook.v1.RecipeR\arecipes\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x03R\x05total2\xd9\b\n" +
 	"\rRecipeService\x12b\n" +
-	"\vListRecipes\x12\x1d.aicook.v1.ListRecipesRequest\x1a\x1b.aicook.v1.ListRecipesReply\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/api/v1/recipes\x12s\n" +
-	"\x0fGetRecipeDetail\x12!.aicook.v1.GetRecipeDetailRequest\x1a\x1f.aicook.v1.GetRecipeDetailReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/v1/recipes/{id}\x12}\n" +
-	"\x11CreateRecipeDraft\x12#.aicook.v1.CreateRecipeDraftRequest\x1a!.aicook.v1.CreateRecipeDraftReply\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/recipes:draft\x12m\n" +
-	"\fUpdateRecipe\x12\x1e.aicook.v1.UpdateRecipeRequest\x1a\x1c.aicook.v1.UpdateRecipeReply\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\x1a\x14/api/v1/recipes/{id}\x12j\n" +
-	"\fDeleteRecipe\x12\x1e.aicook.v1.DeleteRecipeRequest\x1a\x1c.aicook.v1.DeleteRecipeReply\"\x1c\x82\xd3\xe4\x93\x02\x16*\x14/api/v1/recipes/{id}\x12w\n" +
-	"\x10ListTodayRecipes\x12\".aicook.v1.ListTodayRecipesRequest\x1a .aicook.v1.ListTodayRecipesReply\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v1/recipes/today\x12\x8c\x01\n" +
+	"\vListRecipes\x12\x1d.aicook.v1.ListRecipesRequest\x1a\x1b.aicook.v1.ListRecipesReply\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/api/v1/recipes\x12w\n" +
+	"\x10ListTodayRecipes\x12\".aicook.v1.ListTodayRecipesRequest\x1a .aicook.v1.ListTodayRecipesReply\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v1/recipes/today\x12x\n" +
+	"\x0fListMyFavorites\x12!.aicook.v1.ListMyFavoritesRequest\x1a\x1f.aicook.v1.ListMyFavoritesReply\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/v1/recipes/favorites\x12}\n" +
+	"\x11CreateRecipeDraft\x12#.aicook.v1.CreateRecipeDraftRequest\x1a!.aicook.v1.CreateRecipeDraftReply\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/recipes:draft\x12\x8c\x01\n" +
 	"\x11AddRecipeFavorite\x12#.aicook.v1.AddRecipeFavoriteRequest\x1a!.aicook.v1.AddRecipeFavoriteReply\"/\x82\xd3\xe4\x93\x02):\x01*\"$/api/v1/recipes/{recipe_id}/favorite\x12\x92\x01\n" +
-	"\x14RemoveRecipeFavorite\x12&.aicook.v1.RemoveRecipeFavoriteRequest\x1a$.aicook.v1.RemoveRecipeFavoriteReply\",\x82\xd3\xe4\x93\x02&*$/api/v1/recipes/{recipe_id}/favorite\x12x\n" +
-	"\x0fListMyFavorites\x12!.aicook.v1.ListMyFavoritesRequest\x1a\x1f.aicook.v1.ListMyFavoritesReply\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/v1/recipes/favoritesB7Z5github.com/chengjiang/aicook/backend/api/aicook/v1;v1b\x06proto3"
+	"\x14RemoveRecipeFavorite\x12&.aicook.v1.RemoveRecipeFavoriteRequest\x1a$.aicook.v1.RemoveRecipeFavoriteReply\",\x82\xd3\xe4\x93\x02&*$/api/v1/recipes/{recipe_id}/favorite\x12s\n" +
+	"\x0fGetRecipeDetail\x12!.aicook.v1.GetRecipeDetailRequest\x1a\x1f.aicook.v1.GetRecipeDetailReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/v1/recipes/{id}\x12m\n" +
+	"\fUpdateRecipe\x12\x1e.aicook.v1.UpdateRecipeRequest\x1a\x1c.aicook.v1.UpdateRecipeReply\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\x1a\x14/api/v1/recipes/{id}\x12j\n" +
+	"\fDeleteRecipe\x12\x1e.aicook.v1.DeleteRecipeRequest\x1a\x1c.aicook.v1.DeleteRecipeReply\"\x1c\x82\xd3\xe4\x93\x02\x16*\x14/api/v1/recipes/{id}B7Z5github.com/chengjiang/aicook/backend/api/aicook/v1;v1b\x06proto3"
 
 var (
 	file_api_aicook_v1_recipe_proto_rawDescOnce sync.Once
@@ -1577,23 +1577,23 @@ var file_api_aicook_v1_recipe_proto_depIdxs = []int32{
 	22, // 12: aicook.v1.AddRecipeFavoriteReply.recipe:type_name -> aicook.v1.Recipe
 	22, // 13: aicook.v1.ListMyFavoritesReply.recipes:type_name -> aicook.v1.Recipe
 	0,  // 14: aicook.v1.RecipeService.ListRecipes:input_type -> aicook.v1.ListRecipesRequest
-	2,  // 15: aicook.v1.RecipeService.GetRecipeDetail:input_type -> aicook.v1.GetRecipeDetailRequest
-	6,  // 16: aicook.v1.RecipeService.CreateRecipeDraft:input_type -> aicook.v1.CreateRecipeDraftRequest
-	8,  // 17: aicook.v1.RecipeService.UpdateRecipe:input_type -> aicook.v1.UpdateRecipeRequest
-	10, // 18: aicook.v1.RecipeService.DeleteRecipe:input_type -> aicook.v1.DeleteRecipeRequest
-	14, // 19: aicook.v1.RecipeService.ListTodayRecipes:input_type -> aicook.v1.ListTodayRecipesRequest
-	16, // 20: aicook.v1.RecipeService.AddRecipeFavorite:input_type -> aicook.v1.AddRecipeFavoriteRequest
-	18, // 21: aicook.v1.RecipeService.RemoveRecipeFavorite:input_type -> aicook.v1.RemoveRecipeFavoriteRequest
-	20, // 22: aicook.v1.RecipeService.ListMyFavorites:input_type -> aicook.v1.ListMyFavoritesRequest
+	14, // 15: aicook.v1.RecipeService.ListTodayRecipes:input_type -> aicook.v1.ListTodayRecipesRequest
+	20, // 16: aicook.v1.RecipeService.ListMyFavorites:input_type -> aicook.v1.ListMyFavoritesRequest
+	6,  // 17: aicook.v1.RecipeService.CreateRecipeDraft:input_type -> aicook.v1.CreateRecipeDraftRequest
+	16, // 18: aicook.v1.RecipeService.AddRecipeFavorite:input_type -> aicook.v1.AddRecipeFavoriteRequest
+	18, // 19: aicook.v1.RecipeService.RemoveRecipeFavorite:input_type -> aicook.v1.RemoveRecipeFavoriteRequest
+	2,  // 20: aicook.v1.RecipeService.GetRecipeDetail:input_type -> aicook.v1.GetRecipeDetailRequest
+	8,  // 21: aicook.v1.RecipeService.UpdateRecipe:input_type -> aicook.v1.UpdateRecipeRequest
+	10, // 22: aicook.v1.RecipeService.DeleteRecipe:input_type -> aicook.v1.DeleteRecipeRequest
 	1,  // 23: aicook.v1.RecipeService.ListRecipes:output_type -> aicook.v1.ListRecipesReply
-	3,  // 24: aicook.v1.RecipeService.GetRecipeDetail:output_type -> aicook.v1.GetRecipeDetailReply
-	7,  // 25: aicook.v1.RecipeService.CreateRecipeDraft:output_type -> aicook.v1.CreateRecipeDraftReply
-	9,  // 26: aicook.v1.RecipeService.UpdateRecipe:output_type -> aicook.v1.UpdateRecipeReply
-	11, // 27: aicook.v1.RecipeService.DeleteRecipe:output_type -> aicook.v1.DeleteRecipeReply
-	15, // 28: aicook.v1.RecipeService.ListTodayRecipes:output_type -> aicook.v1.ListTodayRecipesReply
-	17, // 29: aicook.v1.RecipeService.AddRecipeFavorite:output_type -> aicook.v1.AddRecipeFavoriteReply
-	19, // 30: aicook.v1.RecipeService.RemoveRecipeFavorite:output_type -> aicook.v1.RemoveRecipeFavoriteReply
-	21, // 31: aicook.v1.RecipeService.ListMyFavorites:output_type -> aicook.v1.ListMyFavoritesReply
+	15, // 24: aicook.v1.RecipeService.ListTodayRecipes:output_type -> aicook.v1.ListTodayRecipesReply
+	21, // 25: aicook.v1.RecipeService.ListMyFavorites:output_type -> aicook.v1.ListMyFavoritesReply
+	7,  // 26: aicook.v1.RecipeService.CreateRecipeDraft:output_type -> aicook.v1.CreateRecipeDraftReply
+	17, // 27: aicook.v1.RecipeService.AddRecipeFavorite:output_type -> aicook.v1.AddRecipeFavoriteReply
+	19, // 28: aicook.v1.RecipeService.RemoveRecipeFavorite:output_type -> aicook.v1.RemoveRecipeFavoriteReply
+	3,  // 29: aicook.v1.RecipeService.GetRecipeDetail:output_type -> aicook.v1.GetRecipeDetailReply
+	9,  // 30: aicook.v1.RecipeService.UpdateRecipe:output_type -> aicook.v1.UpdateRecipeReply
+	11, // 31: aicook.v1.RecipeService.DeleteRecipe:output_type -> aicook.v1.DeleteRecipeReply
 	23, // [23:32] is the sub-list for method output_type
 	14, // [14:23] is the sub-list for method input_type
 	14, // [14:14] is the sub-list for extension type_name

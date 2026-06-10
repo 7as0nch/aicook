@@ -1,42 +1,16 @@
 // 两步式媒体上传封装
 // 流程：
-//   1) 调用后端 PrepareMediaUpload 拿到 asset_id + 预签名 upload_url + upload_headers
-//   2) 用 wx.uploadFile / wx.request PUT 直传到对象存储
-//   3) 调用 CompleteMediaUpload 通知后端上传完成，拿到 MediaAsset
-// 注意：OSS PUT 直传必须用 wx.uploadFile 不行（multipart 会破坏签名），需用 wx.getFileSystemManager 读 ArrayBuffer + wx.request PUT。
+//   1) mediaApi.prepareUpload 拿到 asset_id + 预签名 upload_url + upload_headers
+//   2) wx.request PUT 直传到对象存储
+//   3) mediaApi.completeUpload 通知后端上传完成，拿到 MediaAsset
+// 注意：OSS PUT 直传不能用 wx.uploadFile（multipart 会破坏签名），
+// 需用 wx.getFileSystemManager 读 ArrayBuffer + wx.request PUT。
+// 上传相关类型统一定义在 services/media.api.ts，本文件不再重复声明。
 
-import { request } from './http';
-
-// 后端返回的预签名头
-interface UploadHeaderKV {
-  key: string;
-  value: string;
-}
-
-// PrepareMediaUpload 入参/出参（与 backend/api/aicook/v1/media.proto 对齐）
-export interface PrepareUploadReq {
-  media_kind: 'image' | 'audio' | 'video' | 'document';
-  file_name: string;
-  content_type: string;
-  size_bytes: number;
-}
-
-export interface PrepareUploadResp {
-  asset_id: string;
-  upload_url: string;
-  upload_method?: 'PUT' | 'POST';
-  upload_headers?: UploadHeaderKV[];
-  expires_in_seconds?: number;
-}
-
-// CompleteMediaUpload 出参
-export interface MediaAsset {
-  id: string;
-  url: string;
-  media_kind: string;
-  content_type: string;
-  size_bytes: number;
-}
+import { UPLOAD_TIMEOUT_MS } from './http';
+import { mediaApi } from './media.api';
+import type { PrepareUploadReq, PrepareUploadReply } from './media.api';
+import type { MediaAsset } from '../types/api';
 
 // 选媒体的入参
 export interface PickMediaOptions {
@@ -75,18 +49,15 @@ export async function uploadFile(params: {
   sizeBytes: number;
 }): Promise<MediaAsset> {
   // Step 1: 申请预签名
-  const prep = await request<PrepareUploadResp>({
-    url: '/api/v1/media/uploads:prepare',
-    method: 'POST',
-    data: {
+  const prep = await mediaApi.prepareUpload(
+    {
       media_kind: params.mediaKind,
       file_name: params.fileName || extractName(params.tempFilePath),
       content_type: params.contentType,
       size_bytes: params.sizeBytes,
-    } as PrepareUploadReq,
-    loading: '上传中',
-    toastError: true,
-  });
+    },
+    { loading: '上传中', toastError: true },
+  );
 
   // Step 2: PUT 直传 OSS
   await putToOss(params.tempFilePath, prep);
@@ -94,12 +65,7 @@ export async function uploadFile(params: {
   // Step 3: 通知后端完成
   // 注意：proto CompleteMediaUploadReply 把 MediaAsset 套在 { asset: {...} } 里，
   // 不要把整个 response 当成 MediaAsset 用（会拿到 undefined.id → 后续序列化成 "undefined" 字符串）。
-  const reply = await request<{ asset: MediaAsset }>({
-    url: `/api/v1/media/uploads/${encodeURIComponent(prep.asset_id)}:complete`,
-    method: 'POST',
-    data: { asset_id: prep.asset_id },
-    loading: false,
-  });
+  const reply = await mediaApi.completeUpload(prep.asset_id);
   if (!reply?.asset?.id) {
     throw new Error('upload complete: missing asset.id');
   }
@@ -122,7 +88,7 @@ function readFileAsBuffer(localPath: string): Promise<ArrayBuffer> {
 }
 
 // 用 wx.request PUT 把 ArrayBuffer 上传到 OSS（不能用 wx.uploadFile，那是 multipart）
-async function putToOss(localPath: string, prep: PrepareUploadResp): Promise<void> {
+async function putToOss(localPath: string, prep: PrepareUploadReply): Promise<void> {
   const buf = await readFileAsBuffer(localPath);
   const header: Record<string, string> = {};
   if (prep.upload_headers) {
@@ -133,9 +99,10 @@ async function putToOss(localPath: string, prep: PrepareUploadResp): Promise<voi
   await new Promise<void>((resolve, reject) => {
     wx.request({
       url: prep.upload_url,
-      method: prep.upload_method ?? 'PUT',
+      method: 'PUT',
       data: buf,
       header,
+      timeout: UPLOAD_TIMEOUT_MS,
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve();

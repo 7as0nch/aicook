@@ -22,3 +22,21 @@ export function safeJsonParse<T>(text: string, fallback: T): T {
     return fallback;
   }
 }
+
+// 难度 1-5 → 文案；缺失返回空串（不显示，不造假）
+export function difficultyLabel(d?: number): string {
+  if (!d) return '';
+  if (d <= 2) return '简单';
+  if (d === 3) return '中等';
+  return '较难';
+}
+
+// 菜谱卡片副标题：只拼真实存在的字段（proto Recipe 没有 servings 等字段，不要编造）
+export function recipeMetaLabel(r: { total_minutes?: number; difficulty?: number; category?: string }): string {
+  const parts: string[] = [];
+  if (r.category) parts.push(r.category);
+  if (r.total_minutes) parts.push(`${r.total_minutes}分钟`);
+  const dl = difficultyLabel(r.difficulty);
+  if (dl) parts.push(dl);
+  return parts.join(' · ');
+}

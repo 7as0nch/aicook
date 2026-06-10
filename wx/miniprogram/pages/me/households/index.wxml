@@ -43,7 +43,7 @@
     <view wx:if="{{others.length}}" class="hh__switch-divider"></view>
     <view class="hh__join-row" bindtap="onJoin">
       <text class="hh__join-plus">+</text>
-      <text>新建 / 加入厨房</text>
+      <text>用分享码导入菜谱</text>
     </view>
   </view>
 
@@ -78,4 +78,14 @@
     <text class="hh__fab-plus">+</text>
     <text>添加</text>
   </view>
+
+  <!-- 通用输入弹层（添加成员 / 新建厨房 / 导入分享码 复用）-->
+  <input-dialog
+    visible="{{dlg.visible}}"
+    title="{{dlg.title}}"
+    placeholder="{{dlg.placeholder}}"
+    confirmText="{{dlg.confirmText}}"
+    bind:confirm="onDlgConfirm"
+    bind:close="onDlgClose"
+  />
 </view>

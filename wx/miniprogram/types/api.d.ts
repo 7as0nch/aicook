@@ -1,6 +1,16 @@
 // 后端业务实体的 TypeScript 类型定义
 // 与 backend/api/aicook/v1/*.proto 对齐；后端用 protojson 序列化时数字字段以 string 形式返回（int64 防精度丢失），
 // 前端统一以 string | number 兼容，必要处使用 String() 转换。
+//
+// 【迁移中】本文件为历史手写类型，权威类型由 `pnpm gen:types` 从 backend proto 自动生成到
+// types/generated/（字段 snake_case、int64→string、Timestamp→string，与后端序列化行为一致）。
+// 新代码请直接引用 types/generated/ 下的类型，不要再往本文件添加与 proto 对应的类型；
+// 本文件存量类型随页面改造逐步迁移后删除。
+//
+// 【Int64Like 使用准则】后端 ID 是雪花算法 int64（已超出 JS Number 2^53 精度上限）：
+//   1. 持有 ID 时永远当字符串用，进 URL/请求体前一律 String(id)，严禁 Number(id)；
+//   2. 比较用 String(a) === String(b)，严禁参与算术运算；
+//   3. protojson 对 int64 的请求体同时接受字符串与数字，发字符串永远安全。
 
 export type Int64Like = string | number;
 
@@ -149,13 +159,36 @@ export interface TodayRecipe {
 
 // === 周计划 / 购物清单 ===
 
+// 周计划中某餐次的一道菜（对应 backend biz/kitchen.MealPlanDish）。
+// 注意：days 经 protobuf Struct 传输，id/recipe_id 以字符串承载（雪花 ID 超出 double 精度）。
+export interface MealPlanDish {
+  id?: Int64Like;
+  recipe_id?: Int64Like;
+  recipe_title?: string;
+  note?: string;
+}
+
+// 餐次 key 与 backend biz/kitchen.MealSlot 对齐
+export type MealSlotKey = 'breakfast' | 'lunch' | 'dinner';
+
 export interface MealPlanWeek {
   id: Int64Like;
   week_start_date: string;          // YYYY-MM-DD
   timezone?: string;
   source?: string;
-  days?: Record<string, unknown>;   // protobuf Struct - 后端规范结构灵活
+  // 外层 key 为星期名 monday..sunday（不是日期串！），内层 key 为餐次
+  days?: Record<string, Partial<Record<MealSlotKey, MealPlanDish[]>>>;
 }
+
+// 保存周计划时的单道菜输入（recipe_id 必须为字符串，防精度丢失）
+export interface MealPlanDishInput {
+  recipe_id?: string;
+  recipe_title: string;
+  note?: string;
+}
+
+// 整周 days 结构（key 为星期名 monday..sunday），保存与读取共用，对应 proto map<string, MealPlanDaySlots>
+export type MealPlanDays = Record<string, Partial<Record<MealSlotKey, MealPlanDishInput[]>>>;
 
 export interface ShoppingList {
   id: Int64Like;

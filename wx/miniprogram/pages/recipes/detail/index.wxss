@@ -54,6 +54,19 @@
   height: 40rpx;
 }
 
+/* 编辑入口（仅本家庭菜谱显示）*/
+.rd__top-btn--edit {
+  width: auto;
+  padding: 0 28rpx;
+  border-radius: 38rpx;
+}
+
+.rd__top-edit-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #FF7A00;
+}
+
 /* ========== 内容卡 ========== */
 .rd__sheet {
   position: relative;

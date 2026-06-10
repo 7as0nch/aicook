@@ -91,6 +91,14 @@ func (h *AIChatHandler) Register(mux *http.ServeMux) {
 }
 
 func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
+	// 鉴权先行：本端点不经过 Kratos JWT 中间件，必须在解析请求体之前拒绝匿名请求，
+	// 否则会回退到默认身份执行 AI 调用（消耗配额且读写共享默认家庭的会话）。
+	ctx, err := h.authContext(r)
+	if err != nil {
+		writeErrorJSON(w, http.StatusUnauthorized, "UNAUTHORIZED", "未登录或登录已过期，请重新登录")
+		return
+	}
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
@@ -108,8 +116,6 @@ func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "text, attachments or approval_response is required", http.StatusBadRequest)
 		return
 	}
-
-	ctx := h.authContext(r)
 
 	scene := strings.TrimSpace(req.Scene)
 	if scene == "" {
@@ -321,15 +327,20 @@ func (h *AIChatHandler) ensureSession(ctx context.Context, sessionID int64, scen
 	})
 }
 
-func (h *AIChatHandler) authContext(r *http.Request) context.Context {
+// authContext 校验 Authorization 头中的 JWT 并把 claims 写入 context。
+// token 缺失或校验失败一律返回错误，由调用方拒绝请求；
+// 绝不能静默放行，否则 ActorFromContext 会回退到共享默认身份。
+func (h *AIChatHandler) authContext(r *http.Request) (context.Context, error) {
 	ctx := r.Context()
-	if token := strings.TrimSpace(r.Header.Get(gca.AuthorizationKey)); token != "" {
-		claims := &auth.JwtClaims{}
-		if err := h.authRepo.CheckTokenWithClaims(ctx, token, claims); err == nil {
-			ctx = gca.NewContext(ctx, claims)
-		}
+	token := strings.TrimSpace(r.Header.Get(gca.AuthorizationKey))
+	if token == "" {
+		return nil, fmt.Errorf("missing authorization token")
 	}
-	return ctx
+	claims := &auth.JwtClaims{}
+	if err := h.authRepo.CheckTokenWithClaims(ctx, token, claims); err != nil {
+		return nil, fmt.Errorf("invalid authorization token: %w", err)
+	}
+	return gca.NewContext(ctx, claims), nil
 }
 
 func writeSSE(w http.ResponseWriter, event string, payload any) error {
@@ -346,17 +357,14 @@ func writeSSE(w http.ResponseWriter, event string, payload any) error {
 	return nil
 }
 
-func writeJSON(w http.ResponseWriter, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func writeErrorJSON(w http.ResponseWriter, statusCode int, message string) {
+// writeErrorJSON 以 Kratos 错误信封 {code, reason, message} 返回错误，
+// 与 proto 路由的错误格式一致，客户端（wx http.ts normalizeError / web client.ts）可统一解析。
+func writeErrorJSON(w http.ResponseWriter, statusCode int, reason, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"error": map[string]any{
-			"message": message,
-		},
+		"code":    statusCode,
+		"reason":  reason,
+		"message": message,
 	})
 }

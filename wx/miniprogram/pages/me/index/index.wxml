@@ -19,17 +19,20 @@
     <view class="me__user-divider"></view>
     <view class="me__stats">
       <view class="me__stat" catchtap="onStatFavTap">
-        <view class="me__stat-num">{{favoritesCount}}</view>
+        <view wx:if="{{statsLoading}}" class="me__stat-skeleton"></view>
+        <view wx:else class="me__stat-num">{{favoritesCount}}</view>
         <view class="me__stat-label">收藏菜谱</view>
       </view>
       <view class="me__stat-div"></view>
       <view class="me__stat" catchtap="onStatMineTap">
-        <view class="me__stat-num">{{myRecipesCount}}</view>
+        <view wx:if="{{statsLoading}}" class="me__stat-skeleton"></view>
+        <view wx:else class="me__stat-num">{{myRecipesCount}}</view>
         <view class="me__stat-label">我的菜谱</view>
       </view>
       <view class="me__stat-div"></view>
       <view class="me__stat" catchtap="onStatStreakTap">
-        <view class="me__stat-num">{{streakDays}}</view>
+        <view wx:if="{{statsLoading}}" class="me__stat-skeleton"></view>
+        <view wx:else class="me__stat-num">{{streakDays}}</view>
         <view class="me__stat-label">连续打卡</view>
       </view>
     </view>

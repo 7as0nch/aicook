@@ -3,6 +3,7 @@
 import { recipeApi } from '../../../services/recipe.api';
 import { kitchenApi } from '../../../services/kitchen.api';
 import { chatStore } from '../../../store/chat.store';
+import { authStore } from '../../../store/auth.store';
 import type { Recipe, RecipeIngredient, RecipeStep } from '../../../types/api';
 
 type DetailTab = 'ingredients' | 'steps' | 'ai' | 'nutrition';
@@ -22,8 +23,8 @@ Page({
     difficultyLabel: '',
     ingredientGroups: [] as IngredGroup[],
     steps: [] as RecipeStep[],
-    matchPercent: 96,
     favored: false,
+    canEdit: false,
     // AI 指导 hint 兜底
     aiHints: ['💡 火候建议：参考步骤中的提示', '🥬 替代方案：可向 AI 助理咨询', '📊 营养：暂未提供详细数据'],
   },
@@ -46,12 +47,15 @@ Page({
       const grouped = groupIngredients(detail.ingredients || []);
       const diff = (detail.recipe as { difficulty?: number | string }).difficulty;
       const diffLabel = diff ? (typeof diff === 'string' ? diff : ['', '入门', '简单', '中等', '挑战', '大师'][Number(diff)] || '中等') : '';
+      // 只允许编辑本家庭的菜谱（分享导入的副本 household_id 也是本家庭，可编辑）
+      const canEdit = String(detail.recipe.household_id || '') === String(authStore.currentHousehold?.id || '');
       this.setData({
         recipe: detail.recipe,
         difficultyLabel: diffLabel,
         favored: !!detail.recipe.favored,
         ingredientGroups: grouped,
         steps: detail.steps || [],
+        canEdit,
       });
     } catch (e) {
       console.error('load detail error', e);
@@ -73,6 +77,11 @@ Page({
   onCookTap() {
     if (!this.data.id) return;
     wx.navigateTo({ url: `/pages/recipes/cooking/index?id=${this.data.id}` });
+  },
+
+  onEditTap() {
+    if (!this.data.id) return;
+    wx.navigateTo({ url: `/pages/recipes/editor/index?recipe_id=${this.data.id}` });
   },
 
   async onFavTap() {

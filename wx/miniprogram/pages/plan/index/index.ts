@@ -3,16 +3,21 @@
 import { planStore } from '../../../store/plan.store';
 import { createStoreBindings } from 'mobx-miniprogram-bindings';
 import { hasToken } from '../../../utils/auth-guard';
-import type { Recipe } from '../../../types/api';
+import { on, EVENTS } from '../../../utils/eventbus';
+import type { MealPlanDish, MealPlanDishInput, MealSlotKey, Recipe } from '../../../types/api';
 
+// 页面展示用的菜品行（由 MealPlanDish 映射而来）
 interface DishItem {
-  id?: string;
-  title?: string;
-  cover_image_url?: string;
-  category?: string;
-  total_minutes?: number;
-  calories?: number;
+  key: string;        // wx:key 用，取计划条目 id
+  recipeId: string;   // 点击跳菜谱详情用（可能为空：纯文字菜品）
+  title: string;
+  note: string;
 }
+
+// 与 backend biz/kitchen.orderedDayKeys() 对齐：days 的外层 key 是星期名
+const WEEKDAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const MEAL_SLOTS: MealSlotKey[] = ['breakfast', 'lunch', 'dinner'];
+const MEAL_LABEL: Record<MealSlotKey, string> = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' };
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function formatDate(d: Date) {
@@ -24,6 +29,12 @@ function getMonday(d: Date) {
   r.setDate(r.getDate() - w);
   r.setHours(0, 0, 0, 0);
   return r;
+}
+
+// 日期串（YYYY-MM-DD）→ 后端 days 的星期 key；'/' 替换为兼容 iOS 的日期解析
+function weekdayKeyOf(dateStr: string): string {
+  const d = new Date(dateStr.replace(/-/g, '/'));
+  return WEEKDAY_KEYS[(d.getDay() + 6) % 7];
 }
 
 interface WeekDay { date: string; day: number; label: string; }
@@ -71,11 +82,19 @@ Page({
       weekRangeLabel: rangeLabel,
     });
 
-    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
+    const self = this as unknown as {
+      storeBindings?: { destroyStoreBindings: () => void };
+      _offHouseholdSwitched?: () => void;
+      _lastLoadAt?: number;
+    };
     self.storeBindings = createStoreBindings(this, {
       store: planStore,
       fields: [] as const,
       actions: [] as const,
+    });
+    // 切家庭后周计划属于新家庭：失效缓存戳，下次 onShow 立即重新拉取（防御性兜底）
+    self._offHouseholdSwitched = on(EVENTS.HOUSEHOLD_SWITCHED, () => {
+      self._lastLoadAt = 0;
     });
 
     // onLoad 不主动 loadAll；交给 onShow 统一处理（避免 cold start 双触发）
@@ -93,8 +112,12 @@ Page({
   },
 
   onUnload() {
-    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
+    const self = this as unknown as {
+      storeBindings?: { destroyStoreBindings: () => void };
+      _offHouseholdSwitched?: () => void;
+    };
     self.storeBindings?.destroyStoreBindings();
+    self._offHouseholdSwitched?.();
   },
 
   async onPullDownRefresh() {
@@ -123,22 +146,17 @@ Page({
       this.setData({ breakfast: [], lunch: [], dinner: [] });
       return;
     }
-    const dayKey = this.data.selectedDate;
-    const day = (plan.days as Record<string, unknown>)[dayKey] as { breakfast?: unknown; lunch?: unknown; dinner?: unknown } | undefined;
-    const toDishes = (raw: unknown): DishItem[] => {
+    // 后端 days 以星期名（monday..sunday）为 key，需把选中日期转成星期 key 再取
+    const dayKey = weekdayKeyOf(this.data.selectedDate);
+    const day = plan.days[dayKey];
+    const toDishes = (raw: MealPlanDish[] | undefined): DishItem[] => {
       if (!Array.isArray(raw)) return [];
-      return raw.map((it: unknown) => {
-        const r = (it && typeof it === 'object') ? (it as Record<string, unknown>) : {};
-        const recipe = (r.recipe && typeof r.recipe === 'object' ? r.recipe : r) as Partial<Recipe & { calories?: number }>;
-        return {
-          id: recipe.id ? String(recipe.id) : undefined,
-          title: recipe.title || (r.title as string) || '未命名',
-          cover_image_url: recipe.cover_image_url || (r.cover_image_url as string),
-          category: recipe.category || (r.category as string),
-          total_minutes: recipe.total_minutes || (r.total_minutes as number),
-          calories: (r.calories as number) || recipe.calories,
-        };
-      });
+      return raw.map((d, idx) => ({
+        key: d.id ? String(d.id) : `${d.recipe_title || ''}-${idx}`,
+        recipeId: d.recipe_id ? String(d.recipe_id) : '',
+        title: d.recipe_title || '未命名',
+        note: d.note || '',
+      }));
     };
     this.setData({
       breakfast: toDishes(day?.breakfast),
@@ -171,8 +189,54 @@ Page({
     this.rebuildMeals();
   },
 
-  onMealAdd() {
-    wx.showToast({ title: '请在菜谱列表选择加入', icon: 'none' });
+  onMealAdd(e: WechatMiniprogram.BaseEvent) {
+    const slot = (e.currentTarget as unknown as { dataset: { type?: string } }).dataset.type as MealSlotKey | undefined;
+    if (!slot || !MEAL_SLOTS.includes(slot)) return;
+    // 进入选菜页，通过 events 反向通道接收选中的菜谱
+    wx.navigateTo({
+      url: `/pages/plan/pick-recipe/index?slot=${slot}&date=${this.data.selectedDate}`,
+      events: {
+        recipePicked: (payload: { recipe?: Recipe }) => {
+          if (payload?.recipe) {
+            void this.addDishToSlot(slot, payload.recipe);
+          }
+        },
+      },
+    });
+  },
+
+  // 把选中的菜谱加入当日指定餐次：
+  // 后端 PUT /meal-plans/current 是整周覆盖式保存，必须带回现有 days 再增量追加，避免丢数据
+  async addDishToSlot(slot: MealSlotKey, recipe: Recipe) {
+    const plan = planStore.plan;
+    const dayKey = weekdayKeyOf(this.data.selectedDate);
+    const days: Record<string, Record<string, MealPlanDishInput[]>> = {};
+    for (const wd of WEEKDAY_KEYS) {
+      const slots = plan?.days?.[wd];
+      days[wd] = {};
+      for (const s of MEAL_SLOTS) {
+        days[wd][s] = (slots?.[s] || []).map((d) => ({
+          recipe_id: d.recipe_id ? String(d.recipe_id) : undefined,
+          recipe_title: d.recipe_title || '',
+          note: d.note || '',
+        }));
+      }
+    }
+    const target = days[dayKey][slot];
+    const recipeId = recipe.id ? String(recipe.id) : undefined;
+    // 同餐次去重
+    if (recipeId && target.some((d) => d.recipe_id === recipeId)) {
+      wx.showToast({ title: `${MEAL_LABEL[slot]}已有这道菜`, icon: 'none' });
+      return;
+    }
+    target.push({ recipe_id: recipeId, recipe_title: recipe.title || '未命名' });
+    try {
+      await planStore.savePlan(this.data.weekStart, days);
+      this.rebuildMeals();
+      wx.showToast({ title: `已加入${MEAL_LABEL[slot]}`, icon: 'success' });
+    } catch {
+      // saveMealPlan 的统一错误 toast 已由 http.ts 处理，本地状态未动无需回滚
+    }
   },
 
   onDishTap(e: WechatMiniprogram.BaseEvent) {

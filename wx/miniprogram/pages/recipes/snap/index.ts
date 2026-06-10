@@ -3,6 +3,7 @@
 //      poll getImportJob → 抽取食材 chips → "✨ 生成推荐菜谱" CTA 跳今日推荐页
 import { importApi } from '../../../services/import.api';
 import { uploadFile } from '../../../services/upload';
+import { emojiFor } from '../../../utils/food-emoji';
 import type { ImportJob } from '../../../types/api';
 
 interface IngredChip {
@@ -11,32 +12,7 @@ interface IngredChip {
   name: string;
 }
 
-// 食材 emoji 映射（识别结果只有名称，前端兜底加 emoji 提高观感）
-const EMOJI_MAP: Record<string, string> = {
-  '番茄': '🍅', '西红柿': '🍅',
-  '土豆': '🥔', '马铃薯': '🥔',
-  '青椒': '🌶️', '辣椒': '🌶️',
-  '鸡蛋': '🥚',
-  '玉米': '🌽',
-  '生菜': '🥬', '青菜': '🥬', '白菜': '🥬',
-  '五花肉': '🥩', '牛腩': '🥩', '猪肉': '🥩', '牛肉': '🥩',
-  '鸡肉': '🍗',
-  '小葱': '🌿', '葱': '🌿', '香葱': '🌿',
-  '蒜': '🧄', '大蒜': '🧄',
-  '姜': '🫚',
-  '萝卜': '🥕', '胡萝卜': '🥕',
-  '鱼': '🐟',
-  '虾': '🦐',
-  '豆腐': '🍱',
-  '蘑菇': '🍄',
-};
-
-function emojiFor(name: string): string {
-  for (const k of Object.keys(EMOJI_MAP)) {
-    if (name.includes(k)) return EMOJI_MAP[k];
-  }
-  return '🥗';
-}
+// 食材 emoji 映射统一在 utils/food-emoji.ts
 
 Page({
   cameraCtx: null as ReturnType<typeof wx.createCameraContext> | null,

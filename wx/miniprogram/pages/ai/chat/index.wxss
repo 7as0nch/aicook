@@ -554,6 +554,18 @@
   background: rgba(229, 96, 74, 0.18);
 }
 
+/* 录音中替换输入框的提示条 */
+.chat__input-rec-tip {
+  flex: 1;
+  background: rgba(229, 96, 74, 0.10);
+  border-radius: 9999rpx;
+  padding: 0 28rpx;
+  font-size: 27rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  color: #E5604A;
+}
+
 .chat__input-mic-icon {
   width: 36rpx;
   height: 36rpx;

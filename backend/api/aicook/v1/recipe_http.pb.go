@@ -44,7 +44,6 @@ type RecipeServiceHTTPServer interface {
 
 func RegisterRecipeServiceHTTPServer(s *http.Server, srv RecipeServiceHTTPServer) {
 	r := s.Route("/")
-	// 注意：固定路径必须在 {id} 通配之前注册，否则 today/favorites 会被 {id} 吃掉。
 	r.GET("/api/v1/recipes", _RecipeService_ListRecipes0_HTTP_Handler(srv))
 	r.GET("/api/v1/recipes/today", _RecipeService_ListTodayRecipes0_HTTP_Handler(srv))
 	r.GET("/api/v1/recipes/favorites", _RecipeService_ListMyFavorites0_HTTP_Handler(srv))
@@ -75,24 +74,40 @@ func _RecipeService_ListRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(
 	}
 }
 
-func _RecipeService_GetRecipeDetail0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+func _RecipeService_ListTodayRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in GetRecipeDetailRequest
+		var in ListTodayRecipesRequest
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		if err := ctx.BindVars(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationRecipeServiceGetRecipeDetail)
+		http.SetOperation(ctx, OperationRecipeServiceListTodayRecipes)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.GetRecipeDetail(ctx, req.(*GetRecipeDetailRequest))
+			return srv.ListTodayRecipes(ctx, req.(*ListTodayRecipesRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*GetRecipeDetailReply)
+		reply := out.(*ListTodayRecipesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_ListMyFavorites0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMyFavoritesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceListMyFavorites)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMyFavorites(ctx, req.(*ListMyFavoritesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMyFavoritesReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -115,72 +130,6 @@ func _RecipeService_CreateRecipeDraft0_HTTP_Handler(srv RecipeServiceHTTPServer)
 			return err
 		}
 		reply := out.(*CreateRecipeDraftReply)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _RecipeService_UpdateRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in UpdateRecipeRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindVars(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationRecipeServiceUpdateRecipe)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.UpdateRecipe(ctx, req.(*UpdateRecipeRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*UpdateRecipeReply)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _RecipeService_DeleteRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in DeleteRecipeRequest
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindVars(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationRecipeServiceDeleteRecipe)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.DeleteRecipe(ctx, req.(*DeleteRecipeRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*DeleteRecipeReply)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _RecipeService_ListTodayRecipes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in ListTodayRecipesRequest
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationRecipeServiceListTodayRecipes)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.ListTodayRecipes(ctx, req.(*ListTodayRecipesRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*ListTodayRecipesReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -232,21 +181,71 @@ func _RecipeService_RemoveRecipeFavorite0_HTTP_Handler(srv RecipeServiceHTTPServ
 	}
 }
 
-func _RecipeService_ListMyFavorites0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+func _RecipeService_GetRecipeDetail0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in ListMyFavoritesRequest
+		var in GetRecipeDetailRequest
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationRecipeServiceListMyFavorites)
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceGetRecipeDetail)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.ListMyFavorites(ctx, req.(*ListMyFavoritesRequest))
+			return srv.GetRecipeDetail(ctx, req.(*GetRecipeDetailRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*ListMyFavoritesReply)
+		reply := out.(*GetRecipeDetailReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_UpdateRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateRecipeRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceUpdateRecipe)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateRecipe(ctx, req.(*UpdateRecipeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateRecipeReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_DeleteRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteRecipeRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceDeleteRecipe)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteRecipe(ctx, req.(*DeleteRecipeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteRecipeReply)
 		return ctx.Result(200, reply)
 	}
 }

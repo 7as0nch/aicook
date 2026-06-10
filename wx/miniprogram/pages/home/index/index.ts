@@ -6,7 +6,12 @@ import { householdStore } from '../../../store/household.store';
 import { recipeApi } from '../../../services/recipe.api';
 import { chatStore } from '../../../store/chat.store';
 import { hasToken } from '../../../utils/auth-guard';
+import { on, EVENTS } from '../../../utils/eventbus';
+import { recipeMetaLabel } from '../../../utils/format';
 import type { Recipe, TodayRecipe } from '../../../types/api';
+
+// 灵感推荐卡片的展示模型（__meta 只拼真实字段，不造假数据）
+type SuggestedRecipe = Recipe & { __meta: string };
 
 interface QuickEntry {
   id: string;
@@ -26,6 +31,7 @@ Page({
     greeting: '',
     todayRecipe: null as Recipe | null,
     todayMatch: 0,
+    todayReason: '',
     quickEntries: [
       { id: 'snap', emoji: '📷', iconSrc: '', text: '拍照识别', theme: 'orange', url: '/pages/recipes/snap/index' },
       { id: 'inventory', emoji: '🧊', iconSrc: '', text: '冰箱优先', theme: 'green', url: '/pages/me/inventory/index/index' },
@@ -36,23 +42,36 @@ Page({
     chips: FALLBACK_CHIPS,
     activeChip: '为你推荐',
     searchKeyword: '',
-    suggested: [] as Recipe[],
+    suggested: [] as SuggestedRecipe[],
     loading: false,
   },
 
   onLoad() {
-    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
+    const self = this as unknown as {
+      storeBindings?: { destroyStoreBindings: () => void };
+      _offHouseholdSwitched?: () => void;
+      _lastLoadAt?: number;
+    };
     self.storeBindings = createStoreBindings(this, {
       store: authStore,
       fields: ['user'],
       actions: [],
     });
+    // 切家庭后推荐数据属于新家庭：失效缓存戳，下次 onShow 立即重新拉取。
+    // 不主动 loadAll，避免后台页面多发请求（当前切换流程会 reLaunch，这里是防御性兜底）。
+    self._offHouseholdSwitched = on(EVENTS.HOUSEHOLD_SWITCHED, () => {
+      self._lastLoadAt = 0;
+    });
     // 不在这里调 loadAll：onShow 紧接着会跑（且更适合 tabbar 切换场景的刷新策略）
   },
 
   onUnload() {
-    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
+    const self = this as unknown as {
+      storeBindings?: { destroyStoreBindings: () => void };
+      _offHouseholdSwitched?: () => void;
+    };
     self.storeBindings?.destroyStoreBindings();
+    self._offHouseholdSwitched?.();
   },
 
   onShow() {
@@ -64,7 +83,7 @@ Page({
     this.setData({
       greeting: user ? `你好，${user.display_name || user.username}` : '欢迎来到馋猫厨房',
     });
-    // 首次有缓存则跳过；30s 内不重复拉取；切 household 后通过事件主动刷新
+    // 首次有缓存则跳过；30s 内不重复拉取；切 household 后事件回调已把 _lastLoadAt 置 0，此处会立即刷新
     const now = Date.now();
     const last = (this as unknown as { _lastLoadAt?: number })._lastLoadAt || 0;
     if (this.data.suggested.length === 0 || now - last > 30000) {
@@ -92,7 +111,9 @@ Page({
       this.setData({
         todayRecipe: todayItem?.recipe || null,
         todayMatch: todayItem?.score ? Math.round(todayItem.score * 100) : 0,
-        suggested: listRes.recipes || [],
+        // 推荐理由用后端返回的第一条 reason（不再写死「冰箱食材命中高」）
+        todayReason: todayItem?.reasons?.[0]?.label || '',
+        suggested: (listRes.recipes || []).map(r => ({ ...r, __meta: recipeMetaLabel(r) })),
       });
       // 标签 chip：尝试用 householdStore 的 tags
       try {
@@ -175,10 +196,24 @@ Page({
     }
   },
 
-  onChipTap(e: WechatMiniprogram.BaseEvent) {
+  async onChipTap(e: WechatMiniprogram.BaseEvent) {
     const name = (e.currentTarget as unknown as { dataset: { name: string } }).dataset.name;
-    this.setData({ activeChip: name });
-    // 真实业务可基于 activeChip 重新请求；MVP 不再请求，保持当前列表
+    if (!name || name === this.data.activeChip) return;
+    this.setData({ activeChip: name, loading: true });
+    try {
+      // chip 来源是厨房标签，选中后按 kitchen_tag 重新拉取灵感推荐；「为你推荐」不带标签
+      const res = await recipeApi.list({
+        limit: 6,
+        kitchen_tag: name === '为你推荐' ? undefined : name,
+      });
+      this.setData({
+        suggested: (res.recipes || []).map(r => ({ ...r, __meta: recipeMetaLabel(r) })),
+      });
+    } catch {
+      // http.ts 已统一 toast，保持当前列表
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
   onSuggestedCardTap(e: WechatMiniprogram.BaseEvent) {

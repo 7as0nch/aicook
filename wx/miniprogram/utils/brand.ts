@@ -22,5 +22,5 @@ export function injectBrand(setData: (d: object) => void): void {
 export function setBrandTitle(): void {
   try {
     wx.setNavigationBarTitle({ title: BRAND.name });
-  } catch (_) {}
+  } catch (_) { /* 自定义导航栏页面调用会失败，忽略 */ }
 }

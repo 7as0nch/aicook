@@ -74,3 +74,7 @@
 
 .auth__btn { margin-top: 16rpx; background: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%); color: #FFFFFF; font-size: 32rpx; font-weight: 600; text-align: center; padding: 28rpx 0; border-radius: 28rpx; box-shadow: 0 12rpx 28rpx rgba(255, 122, 0, 0.32); }
 .auth__btn--loading { opacity: 0.65; }
+
+/* 内联校验错误 */
+.auth__input--err { border: 2rpx solid #E5604A; }
+.auth__err { display: block; margin-top: 8rpx; font-size: 22rpx; color: #E5604A; }

@@ -229,3 +229,46 @@
 .ed__add-icon { width: 32rpx; height: 32rpx; }
 
 .ed__spacer { height: 80rpx; }
+
+/* 封面上传 */
+.ed__cover {
+  position: relative;
+  width: 100%;
+  height: 280rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: #F4F5F7;
+}
+
+.ed__cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.ed__cover-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  color: #9B978F;
+  font-size: 26rpx;
+}
+
+.ed__cover-cam {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.ed__cover-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 27, 22, 0.45);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

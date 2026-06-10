@@ -24,6 +24,9 @@ interface MemberRow {
 
 const MEMBER_EMOJI_POOL = ['🐱', '👩', '👨', '🧒', '👵', '👴', '👶'];
 
+// 输入弹层的业务模式：添加成员 / 新建厨房 / 导入分享菜谱
+type DialogMode = 'member' | 'kitchen' | 'import';
+
 Page({
   data: {
     current: null as HouseholdSummary | null,
@@ -34,6 +37,14 @@ Page({
     shareCode: '',
     // 当前登录用户在该家庭里是不是 owner，决定 ActionSheet 是否提供「添加成员」
     iAmOwner: false,
+    // 通用输入弹层（替代已弃用的 wx.showModal editable）
+    dlg: {
+      visible: false,
+      mode: '' as DialogMode | '',
+      title: '',
+      placeholder: '',
+      confirmText: '确定',
+    },
   },
 
   onLoad() {
@@ -45,6 +56,11 @@ Page({
     });
     this.rebuild();
     void this.loadMembers();
+  },
+
+  onShow() {
+    // 从导入预览页等子页返回时同步最新状态
+    this.rebuild();
   },
 
   async loadMembers() {
@@ -151,6 +167,31 @@ Page({
     }
   },
 
+  // ===== 通用输入弹层（input-dialog 组件）=====
+
+  openDialog(mode: DialogMode, title: string, placeholder: string, confirmText: string) {
+    this.setData({ dlg: { visible: true, mode, title, placeholder, confirmText } });
+  },
+
+  onDlgClose() {
+    this.setData({ 'dlg.visible': false });
+  },
+
+  async onDlgConfirm(e: WechatMiniprogram.CustomEvent<{ value: string }>) {
+    const value = (e.detail?.value || '').trim();
+    const mode = this.data.dlg.mode;
+    this.setData({ 'dlg.visible': false });
+    if (!value) return;
+    if (mode === 'member') {
+      await this.doAddMember(value);
+    } else if (mode === 'kitchen') {
+      await this.doCreateHousehold(value);
+    } else if (mode === 'import') {
+      // 进入导入预览页：展示对方菜谱列表，勾选后导入
+      wx.navigateTo({ url: `/pages/me/households/import/index?code=${encodeURIComponent(value)}` });
+    }
+  },
+
   // 添加虚拟成员（owner only）
   promptAddMember() {
     const householdId = (authStore.currentHousehold as { id?: Int64Like } | null)?.id;
@@ -158,64 +199,41 @@ Page({
       wx.showToast({ title: '未找到当前家庭', icon: 'none' });
       return;
     }
-    wx.showModal({
-      title: '添加家人',
-      placeholderText: '请输入家人名字，如「妈妈」「儿子」',
-      editable: true,
-      success: async (res) => {
-        if (!res.confirm || !res.content) return;
-        const name = res.content.trim();
-        if (!name) return;
-        try {
-          await householdApi.addMember(householdId, name);
-          await this.loadMembers();
-          wx.showToast({ title: '已添加', icon: 'success' });
-        } catch (e) {
-          const msg = (e as { message?: string })?.message || '添加失败';
-          wx.showToast({ title: msg, icon: 'none' });
-        }
-      },
-    });
+    this.openDialog('member', '添加家人', '请输入家人名字，如「妈妈」', '添加');
+  },
+
+  async doAddMember(name: string) {
+    const householdId = (authStore.currentHousehold as { id?: Int64Like } | null)?.id;
+    if (!householdId) return;
+    try {
+      await householdApi.addMember(householdId, name);
+      await this.loadMembers();
+      wx.showToast({ title: '已添加', icon: 'success' });
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || '添加失败';
+      wx.showToast({ title: msg, icon: 'none' });
+    }
   },
 
   promptCreateHousehold() {
-    wx.showModal({
-      title: '新建厨房',
-      placeholderText: '为新厨房起个名字',
-      editable: true,
-      success: async (res) => {
-        if (!res.confirm || !res.content) return;
-        try {
-          await householdApi.createHousehold(res.content.trim());
-          await authStore.refreshMe();
-          this.rebuild();
-          wx.showToast({ title: '已创建', icon: 'success' });
-        } catch {
-          wx.showToast({ title: '创建失败', icon: 'none' });
-        }
-      },
-    });
+    this.openDialog('kitchen', '新建厨房', '为新厨房起个名字', '创建');
   },
 
+  async doCreateHousehold(name: string) {
+    try {
+      await householdApi.createHousehold(name);
+      await authStore.refreshMe();
+      this.rebuild();
+      wx.showToast({ title: '已创建', icon: 'success' });
+    } catch {
+      wx.showToast({ title: '创建失败', icon: 'none' });
+    }
+  },
+
+  // 导入分享菜谱：输入分享码 → 预览勾选页
+  // 注意：分享码只用于「把对方菜谱克隆进我的厨房」，后端没有"加入对方家庭"的语义
   onJoin() {
-    wx.showModal({
-      title: '加入厨房',
-      placeholderText: '请输入分享码',
-      editable: true,
-      success: async (res) => {
-        if (!res.confirm || !res.content) return;
-        const code = res.content.trim();
-        try {
-          await householdApi.getKitchenByShareCode(code);
-          await householdApi.importSharedRecipes(code, []);
-          await authStore.refreshMe();
-          this.rebuild();
-          wx.showToast({ title: '已加入', icon: 'success' });
-        } catch {
-          wx.showToast({ title: '加入失败', icon: 'none' });
-        }
-      },
-    });
+    this.openDialog('import', '导入分享菜谱', '请输入对方的厨房分享码', '下一步');
   },
 
   onBack() {

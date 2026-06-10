@@ -1,5 +1,8 @@
-// 菜谱草稿编辑页：接收 AI 生成的 draft → 用户编辑食材/步骤 → 保存为草稿
+// 菜谱编辑页：
+//   - 创建流：接收 AI 生成的 draft（URL query）→ 编辑 → createDraft 保存为草稿
+//   - 编辑流：携带 recipe_id 进入 → 拉详情回填 → update 保存回原菜谱
 import { recipeApi, CreateDraftIngredient, CreateDraftStep } from '../../../services/recipe.api';
+import { pickMedia, uploadFile } from '../../../services/upload';
 
 interface DraftIngredient extends CreateDraftIngredient {
   // 仅前端用，不传给后端
@@ -28,14 +31,22 @@ Page({
     title: '',
     summary: '',
     coverImageUrl: '',
+    coverUploading: false,
     totalMinutes: 30,
     difficulty: 2,
     ingredients: [] as DraftIngredient[],
     steps: [] as DraftStep[],
     saving: false,
+    // 非空 = 编辑已有菜谱（保存走 update 而非 createDraft）
+    editingId: '',
   },
 
   onLoad(query: Record<string, string>) {
+    if (query.recipe_id) {
+      this.setData({ editingId: query.recipe_id });
+      void this.loadExisting(query.recipe_id);
+      return;
+    }
     if (query.draft) {
       try {
         const draft = JSON.parse(decodeURIComponent(query.draft)) as DraftPayload;
@@ -43,6 +54,77 @@ Page({
       } catch (e) {
         console.error('[editor] parse draft fail', e);
       }
+    }
+  },
+
+  // 编辑流：拉取已有菜谱详情回填表单
+  async loadExisting(id: string) {
+    try {
+      const res = await recipeApi.detail(id);
+      const d = res.detail;
+      this.hydrate({
+        title: d.recipe.title,
+        summary: d.recipe.summary,
+        cover_image_url: d.recipe.cover_image_url,
+        total_minutes: d.recipe.total_minutes,
+        difficulty: d.recipe.difficulty,
+        ingredients: (d.ingredients || []).map((it) => ({
+          group_name: it.group_name,
+          name: it.name,
+          amount_text: it.amount_text,
+          preparation: it.preparation,
+          remark: it.remark,
+        })),
+        steps: (d.steps || []).map((s) => ({
+          title: s.title,
+          description: s.description,
+          step_type: s.step_type,
+          need_timer: s.need_timer,
+          timer_seconds: s.timer_seconds,
+          timer_animation: s.timer_animation,
+          end_condition: s.end_condition,
+          heat_level: s.heat_level,
+          safety_tips: s.safety_tips,
+          ai_hint: s.ai_hint,
+          media_url: s.media_url,
+          media_urls: s.media_urls,
+        })),
+      });
+    } catch (e) {
+      console.error('[editor] load recipe fail', e);
+      wx.showToast({ title: '加载菜谱失败', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 800);
+    }
+  },
+
+  // 封面：选图 → 两步直传 → 存 storage_url（后端读取时会按 host/path 重签）
+  async onPickCover() {
+    if (this.data.coverUploading) return;
+    let file: { tempFilePath: string; size?: number } | undefined;
+    try {
+      const res = await pickMedia({ mediaKind: 'image', count: 1 });
+      file = res.tempFiles?.[0];
+    } catch {
+      return; // 用户取消选图
+    }
+    if (!file) return;
+    const prevUrl = this.data.coverImageUrl;
+    // 先用本地临时路径即时预览，上传成功后换持久地址
+    this.setData({ coverUploading: true, coverImageUrl: file.tempFilePath });
+    try {
+      const asset = await uploadFile({
+        tempFilePath: file.tempFilePath,
+        mediaKind: 'image',
+        contentType: 'image/jpeg',
+        sizeBytes: file.size || 0,
+      });
+      this.setData({ coverImageUrl: asset.storage_url || file.tempFilePath });
+    } catch (e) {
+      console.error('[editor] cover upload fail', e);
+      this.setData({ coverImageUrl: prevUrl });
+      wx.showToast({ title: '封面上传失败', icon: 'none' });
+    } finally {
+      this.setData({ coverUploading: false });
     }
   },
 
@@ -144,20 +226,33 @@ Page({
       wx.showToast({ title: '至少 1 个步骤', icon: 'none' });
       return;
     }
+    if (this.data.coverUploading) {
+      wx.showToast({ title: '封面上传中，请稍候', icon: 'none' });
+      return;
+    }
     this.setData({ saving: true });
+    const payload = {
+      title,
+      summary: this.data.summary.trim() || undefined,
+      cover_image_url: this.data.coverImageUrl || undefined,
+      total_minutes: this.data.totalMinutes,
+      difficulty: this.data.difficulty,
+      ingredients,
+      steps,
+    };
     try {
-      const res = await recipeApi.createDraft({
-        title,
-        summary: this.data.summary.trim() || undefined,
-        cover_image_url: this.data.coverImageUrl || undefined,
-        total_minutes: this.data.totalMinutes,
-        difficulty: this.data.difficulty,
-        ingredients,
-        steps,
-      });
+      let recipeId: string;
+      if (this.data.editingId) {
+        // 编辑流：更新原菜谱
+        const res = await recipeApi.update(this.data.editingId, { id: this.data.editingId, ...payload });
+        recipeId = String(res.detail.recipe.id);
+      } else {
+        const res = await recipeApi.createDraft(payload);
+        recipeId = String(res.detail.recipe.id);
+      }
       wx.showToast({ title: '已保存', icon: 'success' });
       setTimeout(() => {
-        wx.redirectTo({ url: `/pages/recipes/detail/index?id=${res.detail.recipe.id}` });
+        wx.redirectTo({ url: `/pages/recipes/detail/index?id=${recipeId}` });
       }, 600);
     } catch (e) {
       console.error('[editor] save fail', e);

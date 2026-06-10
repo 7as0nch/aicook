@@ -50,9 +50,9 @@
       <view class="today__card-body">
         <view class="today__card-line1">
           <text class="today__card-title">{{item.title}}</text>
-          <view class="today__card-match">{{item.__match}}% 匹配</view>
+          <view wx:if="{{showMatch && item.__match}}" class="today__card-match">{{item.__match}}% 匹配</view>
         </view>
-        <view class="today__card-meta">{{item.total_minutes || 30}}分钟 · {{item.servings || 2}}人 · {{item.__diffLabel || '中等'}}</view>
+        <view wx:if="{{item.__meta}}" class="today__card-meta">{{item.__meta}}</view>
         <view class="today__card-tags">
           <view wx:if="{{item.category}}" class="today__card-tag">{{item.category}}</view>
           <view wx:for="{{item.scenario_tags}}" wx:for-item="tag" wx:key="*this" wx:if="{{index < 2}}" class="today__card-tag">{{tag}}</view>

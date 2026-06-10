@@ -19,6 +19,11 @@ interface PersistedAuth {
 
 export type QueryValue = string | number | boolean | undefined | null;
 
+// 统一请求超时：微信 wx.request 默认 60s 偏长，普通业务请求 30s 足够；
+// 大文件直传（OSS PUT）单独放宽到 120s（见 upload.ts）。
+export const DEFAULT_TIMEOUT_MS = 30_000;
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
 export interface RequestOptions<TData = unknown> {
   url: string;                                          // 形如 /api/v1/recipes 或 /chat/send (SSE)
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -86,7 +91,9 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return base + (base.includes('?') ? '&' : '?') + parts.join('&');
 }
 
-function handleAuthFailure(): void {
+// 401 统一处理：清登录态 + toast + 跳登录页（并发锁防多次跳转）。
+// 导出供 sse.ts 等绕过 request() 的调用路径复用，保证登录态过期行为一致。
+export function handleAuthFailure(): void {
   if (_logoutFiring) return;
   _logoutFiring = true;
   removeItem(STORAGE_KEYS.AUTH);
@@ -134,7 +141,7 @@ export function request<TResp = unknown, TData = unknown>(
       method: method as WechatMiniprogram.RequestOption['method'],
       data: opts.data as WechatMiniprogram.IAnyObject,
       header,
-      timeout: opts.timeout,
+      timeout: opts.timeout ?? DEFAULT_TIMEOUT_MS,
       success: (res) => {
         const status = res.statusCode;
         const body = res.data as TResp | ApiError | undefined;
@@ -202,12 +209,14 @@ export function clearAuth(): void {
 
 function normalizeError(body: unknown, status: number): ApiError {
   if (body && typeof body === 'object') {
-    const o = body as Partial<ApiError> & { msg?: string; error?: string };
+    // 标准格式是 Kratos 错误信封 {code, reason, message, metadata}；
+    // 对 msg/error/detail 等变体字段做容错，避免后端/网关差异导致提示丢失
+    const o = body as Partial<ApiError> & { msg?: string; error?: string; detail?: string; details?: string };
     return {
       code: typeof o.code === 'number' ? o.code : status,
       reason: o.reason || o.error || `HTTP_${status}`,
-      message: o.message || o.msg || `请求失败(${status})`,
-      metadata: o.metadata,
+      message: o.message || o.msg || o.detail || o.details || `请求失败(${status})`,
+      metadata: o.metadata && typeof o.metadata === 'object' ? o.metadata : undefined,
     };
   }
   return {

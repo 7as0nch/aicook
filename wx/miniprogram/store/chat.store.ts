@@ -5,8 +5,9 @@ import { observable, action } from 'mobx-miniprogram';
 import { chatStream, ChatSendRequest, SSEEvent, SSETask } from '../services/sse';
 import { aiApi } from '../services/ai.api';
 import { nextClientId } from '../utils/id';
-import type { AISession, Int64Like, Source } from '../types/api';
+import type { AISession, Int64Like } from '../types/api';
 import type { ChatMessage, ChatSegment } from '../types/chat';
+import type { SSEDonePayload } from '../types/sse-events';
 
 export interface SendOptions {
   scene?: string;
@@ -203,15 +204,13 @@ function patchMsg(store: typeof chatStore, client_id: string, patch: (msg: ChatM
   store.messages = [...store.messages];
 }
 
+// SSE 事件分发：payload 类型见 types/sse-events.d.ts（与 chat_http.go 对齐）。
+// payload 是边界断言而非运行时校验，所有字段读取仍做空值容错。
 function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): void {
-  // 后端字段：content / seq / part_type / call_id / message_id / run_id + metadata
-  const data = (ev.data || {}) as Record<string, unknown>;
   switch (ev.event) {
     case 'start': {
       // 首次发送时后端回写 session_id，要存回 store 以便后续追加消息
-      const sid = data.session_id as string | undefined;
-      const scene = data.scene as string | undefined;
-      const title = data.title as string | undefined;
+      const { session_id: sid, scene, title } = ev.data || {};
       if (sid && !store.session) {
         store.session = { id: sid, scene, title } as AISession;
       } else if (sid && store.session && !store.session.id) {
@@ -220,15 +219,15 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
       break;
     }
     case 'answer_delta': {
-      patchMsg(store, client_id, (msg) => appendText(msg, String(data.content || '')));
+      patchMsg(store, client_id, (msg) => appendText(msg, ev.data?.content || ''));
       break;
     }
     case 'reasoning_delta': {
-      patchMsg(store, client_id, (msg) => appendReasoning(msg, String(data.content || '')));
+      patchMsg(store, client_id, (msg) => appendReasoning(msg, ev.data?.content || ''));
       break;
     }
     case 'agent_delta': {
-      const text = String(data.content || '');
+      const text = ev.data?.content || '';
       if (!text) break;
       patchMsg(store, client_id, (msg) => ({
         ...msg,
@@ -237,7 +236,7 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
       break;
     }
     case 'status_delta': {
-      const text = String(data.content || '');
+      const text = ev.data?.content || '';
       if (!text) break;
       patchMsg(store, client_id, (msg) => ({
         ...msg,
@@ -246,13 +245,14 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
       break;
     }
     case 'tool_call': {
+      const data = ev.data || {};
       patchMsg(store, client_id, (msg) => ({
         ...msg,
         segments: [
           ...msg.segments,
           {
             kind: 'tool_call',
-            tool_name: String(data.tool_name || data.name || ''),
+            tool_name: data.tool_name || data.name || '',
             arguments: data.arguments ? String(data.arguments) : undefined,
             result: data.result ? String(data.result) : undefined,
           },
@@ -261,30 +261,25 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
       break;
     }
     case 'recipe_card': {
-      const meta = data as {
-        recipe_id?: Int64Like;
-        title?: string;
-        summary?: string;
-        cover_image_url?: string;
-        draft?: Record<string, unknown>;
-      };
+      const data = ev.data || {};
       patchMsg(store, client_id, (msg) => ({
         ...msg,
         segments: [
           ...msg.segments,
           {
             kind: 'recipe_card',
-            recipe_id: meta.recipe_id,
-            title: meta.title || '生成的菜谱',
-            summary: meta.summary,
-            cover_image_url: meta.cover_image_url,
-            draft: meta.draft,
+            recipe_id: data.recipe_id,
+            title: data.title || '生成的菜谱',
+            summary: data.summary,
+            cover_image_url: data.cover_image_url,
+            draft: data.draft,
           },
         ],
       }));
       break;
     }
     case 'approval': {
+      const data = ev.data || {};
       patchMsg(store, client_id, (msg) => ({
         ...msg,
         segments: [
@@ -292,18 +287,19 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
           {
             kind: 'approval',
             call_id: data.call_id ? String(data.call_id) : undefined,
-            prompt: String(data.prompt || data.content || '需要确认'),
-            options: (data.options as Array<{ label: string; value: string }>) || undefined,
+            prompt: data.prompt || data.content || '需要确认',
+            options: data.options || undefined,
           },
         ],
       }));
       break;
     }
     case 'done': {
+      const data: SSEDonePayload = ev.data || {};
       // 写入完整回复来源 + server_id
-      const sources = (data.reply_sources as Source[] | undefined) || [];
-      const assistantId = data.assistant_message_id as string | undefined;
-      const sessionId = data.session_id as string | undefined;
+      const sources = data.reply_sources || [];
+      const assistantId = data.assistant_message_id;
+      const sessionId = data.session_id;
       patchMsg(store, client_id, (msg) => {
         const next: ChatMessage = { ...msg, status: 'done' };
         if (assistantId) next.server_id = assistantId;
@@ -333,12 +329,14 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
       break;
     }
     case 'error': {
-      const msg = String(data.message || '出错了');
-      appendError(store, client_id, msg);
+      appendError(store, client_id, ev.data?.message || '出错了');
       break;
     }
-    default:
-      console.debug('[chatStore] ignored event', ev.event, ev.data);
+    default: {
+      // 未知事件已在 sse.ts parseFrame 中过滤，这里兜底记录
+      const unknown = ev as { event: string; data: unknown };
+      console.debug('[chatStore] ignored event', unknown.event, unknown.data);
+    }
   }
 }
 

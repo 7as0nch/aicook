@@ -1,6 +1,7 @@
 // 烹饪历史（设计稿"连续打卡"入口）
 // 时间分组列表 + 下拉加载更多
 import { kitchenApi } from '../../../../services/kitchen.api';
+import { computeStreakDays, localDateKey } from '../../../../utils/time';
 import type { CookingHistoryEntry, Int64Like } from '../../../../types/api';
 
 interface GroupedHistory {
@@ -29,10 +30,10 @@ function fmtStars(rating: number) {
 
 function groupByDay(items: CookingHistoryEntry[]): GroupedHistory[] {
   const today = new Date();
-  const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+  const todayKey = localDateKey(today);
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  const yKey = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+  const yKey = localDateKey(yesterday);
   const weekAgo = new Date(today);
   weekAgo.setDate(weekAgo.getDate() - 7);
   const groups = new Map<string, GroupedHistory>();
@@ -40,7 +41,7 @@ function groupByDay(items: CookingHistoryEntry[]): GroupedHistory[] {
     const t = it.completed_at || it.started_at;
     if (!t) continue;
     const d = new Date(t);
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const key = localDateKey(d);
     let title = `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
     if (key === todayKey) title = '今天';
     else if (key === yKey) title = '昨天';
@@ -121,32 +122,8 @@ Page({
   },
 
   computeStreak(items: CookingHistoryEntry[]): number {
-    if (!items.length) return 0;
-    const set = new Set<string>();
-    for (const it of items) {
-      const t = it.completed_at || it.started_at;
-      if (!t) continue;
-      const d = new Date(t);
-      set.add(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
-    }
-    let streak = 0;
-    const cursor = new Date();
-    while (true) {
-      const k = `${cursor.getFullYear()}-${cursor.getMonth() + 1}-${cursor.getDate()}`;
-      if (set.has(k)) {
-        streak++;
-        cursor.setDate(cursor.getDate() - 1);
-      } else {
-        if (streak === 0) {
-          cursor.setDate(cursor.getDate() - 1);
-          const k2 = `${cursor.getFullYear()}-${cursor.getMonth() + 1}-${cursor.getDate()}`;
-          if (!set.has(k2)) break;
-          continue;
-        }
-        break;
-      }
-    }
-    return streak;
+    // 连续打卡逻辑统一在 utils/time.ts（me 页同款）
+    return computeStreakDays(items.map((it) => it.completed_at || it.started_at));
   },
 
   onItemTap(e: WechatMiniprogram.BaseEvent) {

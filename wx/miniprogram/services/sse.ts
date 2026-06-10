@@ -6,26 +6,25 @@
 // 微信小程序通过 wx.request({enableChunked: true}) + onChunkReceived 接收流。
 // 本模块负责：拼装请求、读 chunk、按 \n\n 切帧、按 event/data 解析为对象，回调上层。
 
-import { prepareRaw } from './http';
+import { prepareRaw, handleAuthFailure } from './http';
+import type { ChatSSEEvent, ChatSSEEventType } from '../types/sse-events';
 
-// SSE 事件类型（与后端 chat_http.go 中的 SSE writer 对齐）
-export type SSEEventType =
-  | 'start'
-  | 'answer_delta'
-  | 'reasoning_delta'
-  | 'status_delta'
-  | 'tool_call'
-  | 'recipe_card'
-  | 'agent_delta'
-  | 'approval'
-  | 'done'
-  | 'error';
+// SSE 事件类型定义统一在 types/sse-events.d.ts（与后端 chat_http.go 的 writeSSE 调用点对齐）
+export type SSEEventType = ChatSSEEventType;
+export type SSEEvent = ChatSSEEvent;
 
-export interface SSEEvent<T = unknown> {
-  event: SSEEventType;
-  data: T;
-  raw: string;
-}
+const KNOWN_EVENTS: readonly string[] = [
+  'start',
+  'answer_delta',
+  'reasoning_delta',
+  'status_delta',
+  'tool_call',
+  'recipe_card',
+  'agent_delta',
+  'approval',
+  'done',
+  'error',
+];
 
 export interface ChatSendRequest {
   session_id?: string;
@@ -89,26 +88,48 @@ function decodeChunk(buf: ArrayBuffer): string {
 }
 
 // 解析单个 SSE 帧文本（不含尾部 \n\n）
+// 按 SSE 规范处理：多行 data: 以 \n 连接；冒号开头的行是注释，跳过
 function parseFrame(raw: string): SSEEvent | null {
   const lines = raw.split('\n');
   let event: string | null = null;
-  let data = '';
+  const dataLines: string[] = [];
   for (const line of lines) {
+    if (line.startsWith(':')) {
+      // SSE 注释行（服务端心跳常用），忽略
+      continue;
+    }
     if (line.startsWith('event:')) {
       event = line.slice(6).trim();
     } else if (line.startsWith('data:')) {
-      // 注意：不能用 trim()，否则会丢弃 SSE 数据本身的空白
-      data += line.slice(5).replace(/^\s/, '');
+      // 仅剥离冒号后的一个前导空格，不能 trim()（会丢数据本身的空白）
+      dataLines.push(line.slice(5).replace(/^\s/, ''));
     }
   }
   if (!event) return null;
+  if (!KNOWN_EVENTS.includes(event)) {
+    console.warn('[SSE] unknown event, ignored:', event);
+    return null;
+  }
+  const data = dataLines.join('\n');
   let parsed: unknown = data;
   try {
     parsed = JSON.parse(data);
   } catch (_) {
     // 保持原始字符串
   }
-  return { event: event as SSEEventType, data: parsed, raw };
+  // payload 形状在 types/sse-events.d.ts 中约定，此处是边界断言（无运行时校验）
+  return { event, data: parsed, raw } as SSEEvent;
+}
+
+// 尝试把错误响应 body 解析为 Kratos 错误信封 {code, reason, message}
+function parseErrorEnvelope(raw: string): { message?: string; reason?: string } | null {
+  const text = raw.trim();
+  if (!text.startsWith('{')) return null;
+  try {
+    return JSON.parse(text) as { message?: string; reason?: string };
+  } catch (_) {
+    return null;
+  }
 }
 
 // 简单 SDKVersion 比较；返回 a-b 的符号
@@ -169,16 +190,27 @@ export function chatStream(req: ChatSendRequest, handlers: SSEHandlers): SSETask
     responseType: 'arraybuffer',
     success: (res) => {
       if (aborted) return;
-      // 处理 buffer 中残留的最后一帧（如果未以 \n\n 结尾）
-      flushBuffer();
       const status = (res as { statusCode?: number }).statusCode;
       if (status && status >= 400) {
-        const msg = `HTTP ${status}`;
+        // 错误响应的 body 也会经 chunk 进入 buffer（Kratos 错误信封 JSON，非 SSE 帧），
+        // 先尝试解析出 message 再清空，不走 flushBuffer（那是给 SSE 帧用的）。
+        const envelope = parseErrorEnvelope(buffer);
+        buffer = '';
+        if (status === 401) {
+          // 与 http.ts 的 401 行为对齐：清登录态 + 跳登录页
+          console.error('[chatStream] 401 unauthorized');
+          handleAuthFailure();
+          handlers.onError?.({ code: 401, message: envelope?.message || '登录已过期' });
+          return;
+        }
+        const msg = envelope?.message || `HTTP ${status}`;
         console.error('[chatStream] non-2xx', status, res);
         wx.showToast({ title: msg, icon: 'none', duration: 3000 });
         handlers.onError?.({ code: status, message: msg });
         return;
       }
+      // 处理 buffer 中残留的最后一帧（如果未以 \n\n 结尾）
+      flushBuffer();
       if (!receivedAnyChunk) {
         // 后端返回了但没收到任何 chunk，可能是基础库不支持 chunked
         const msg = '流式响应为空，请检查基础库版本（≥2.10.0）';

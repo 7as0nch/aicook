@@ -155,9 +155,11 @@
     <view class="chat__input-mic {{recording ? 'chat__input-mic--rec' : ''}}" bindtap="onMicTap">
       <image class="chat__input-mic-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
     </view>
+    <text wx:if="{{recording}}" class="chat__input-rec-tip">录音中 {{recordSeconds}}s · 点麦克风结束</text>
     <input
+      wx:else
       class="chat__input-field"
-      placeholder="说点什么，或长按语音…"
+      placeholder="说点什么，或点麦克风语音输入…"
       value="{{text}}"
       bindinput="onInputChange"
       confirm-type="send"

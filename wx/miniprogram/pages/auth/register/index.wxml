@@ -13,15 +13,23 @@
   <view class="auth__form">
     <view class="auth__field">
       <text class="auth__label">用户名 *</text>
-      <input class="auth__input" placeholder="6-20 位字母/数字" data-field="username" bindinput="onInput" />
+      <input class="auth__input {{errors.username ? 'auth__input--err' : ''}}" placeholder="4-20 位字母/数字/下划线" data-field="username" bindinput="onInput" bindblur="onBlurValidate" />
+      <text wx:if="{{errors.username}}" class="auth__err">{{errors.username}}</text>
     </view>
     <view class="auth__field">
       <text class="auth__label">密码 *</text>
-      <input class="auth__input" placeholder="至少 6 位" password data-field="password" bindinput="onInput" />
+      <input class="auth__input {{errors.password ? 'auth__input--err' : ''}}" placeholder="至少 8 位" password data-field="password" bindinput="onInput" bindblur="onBlurValidate" />
+      <text wx:if="{{errors.password}}" class="auth__err">{{errors.password}}</text>
+    </view>
+    <view class="auth__field">
+      <text class="auth__label">确认密码 *</text>
+      <input class="auth__input {{errors.password2 ? 'auth__input--err' : ''}}" placeholder="再次输入密码" password data-field="password2" bindinput="onInput" bindblur="onBlurValidate" />
+      <text wx:if="{{errors.password2}}" class="auth__err">{{errors.password2}}</text>
     </view>
     <view class="auth__field">
       <text class="auth__label">昵称 *</text>
-      <input class="auth__input" placeholder="例如：爱做饭的阿喵" data-field="display_name" bindinput="onInput" />
+      <input class="auth__input {{errors.display_name ? 'auth__input--err' : ''}}" placeholder="例如：爱做饭的阿喵" data-field="display_name" bindinput="onInput" bindblur="onBlurValidate" />
+      <text wx:if="{{errors.display_name}}" class="auth__err">{{errors.display_name}}</text>
     </view>
     <view class="auth__field">
       <text class="auth__label">家庭名称（可选）</text>

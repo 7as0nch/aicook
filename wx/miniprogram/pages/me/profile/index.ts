@@ -83,7 +83,8 @@ Page({
         wx.showToast({ title: '头像上传失败', icon: 'none' });
         return;
       }
-      this.setData({ avatarUrl: asset.url || tempPath, avatarAssetId: String(asset.id) });
+      // proto MediaAsset 的字段是 storage_url（预签名访问地址），不存在 url 字段
+      this.setData({ avatarUrl: asset.storage_url || tempPath, avatarAssetId: String(asset.id) });
     } catch (err) {
       console.error('[profile] avatar upload fail', err);
       wx.showToast({ title: '头像上传失败', icon: 'none' });

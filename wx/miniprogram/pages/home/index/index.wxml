@@ -28,16 +28,15 @@
     <view class="home__hero-stripe"></view>
     <view class="home__hero-body">
       <view class="home__hero-tag">今日推荐</view>
-      <view class="home__hero-title">{{todayRecipe.title || '番茄土豆炖牛腩'}}</view>
+      <view class="home__hero-title">{{todayRecipe.title}}</view>
       <view class="home__hero-meta">
         <text wx:if="{{todayRecipe.category}}">{{todayRecipe.category}}</text>
         <text wx:if="{{todayRecipe.category && todayRecipe.total_minutes}}"> · </text>
         <text wx:if="{{todayRecipe.total_minutes}}">{{todayRecipe.total_minutes}}分钟</text>
-        <text> · 2-3人</text>
       </view>
-      <view class="home__hero-match">
+      <view wx:if="{{todayMatch || todayReason}}" class="home__hero-match">
         <view class="home__hero-dot"></view>
-        <text>{{todayMatch || 90}}% 匹配 · 冰箱食材命中高</text>
+        <text>{{todayMatch ? todayMatch + '% 匹配' : ''}}{{todayMatch && todayReason ? ' · ' : ''}}{{todayReason}}</text>
       </view>
       <view class="home__hero-cta">
         <text>去查看</text>
@@ -119,11 +118,7 @@
         </view>
       </view>
       <view class="home__card-title">{{item.title}}</view>
-      <view class="home__card-meta">{{item.total_minutes || 15}}分钟 · 2人</view>
-      <view class="home__card-match">
-        <view class="home__card-dot"></view>
-        <text>{{idx === 0 ? 92 : 90}}% 匹配</text>
-      </view>
+      <view wx:if="{{item.__meta}}" class="home__card-meta">{{item.__meta}}</view>
     </view>
   </view>
 

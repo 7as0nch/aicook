@@ -40,17 +40,14 @@
       </view>
     </view>
     <view wx:if="{{breakfast.length}}" class="plan__meal-divider"></view>
-    <block wx:for="{{breakfast}}" wx:key="id" wx:for-item="dish">
+    <block wx:for="{{breakfast}}" wx:key="key" wx:for-item="dish">
       <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
-      <view class="plan__dish-row" data-id="{{dish.id}}" bindtap="onDishTap">
-        <view class="plan__dish-img">
-          <image wx:if="{{dish.cover_image_url}}" src="{{dish.cover_image_url}}" mode="aspectFill" class="plan__dish-img-i" />
-        </view>
+      <view class="plan__dish-row" data-id="{{dish.recipeId}}" bindtap="onDishTap">
+        <view class="plan__dish-img"></view>
         <view class="plan__dish-body">
-          <text class="plan__dish-name">{{dish.title || '未命名'}}</text>
-          <text class="plan__dish-meta">{{dish.category || '快手'}} · {{dish.total_minutes || 15}} 分钟</text>
+          <text class="plan__dish-name">{{dish.title}}</text>
+          <text wx:if="{{dish.note}}" class="plan__dish-meta">{{dish.note}}</text>
         </view>
-        <view class="plan__dish-cal">{{dish.calories || 210}} 千卡</view>
       </view>
     </block>
     <view wx:if="{{!breakfast.length}}" class="plan__empty-tip">暂无早餐，点击右上 + 添加</view>
@@ -68,17 +65,14 @@
       </view>
     </view>
     <view wx:if="{{lunch.length}}" class="plan__meal-divider"></view>
-    <block wx:for="{{lunch}}" wx:key="id" wx:for-item="dish">
+    <block wx:for="{{lunch}}" wx:key="key" wx:for-item="dish">
       <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
-      <view class="plan__dish-row" data-id="{{dish.id}}" bindtap="onDishTap">
-        <view class="plan__dish-img">
-          <image wx:if="{{dish.cover_image_url}}" src="{{dish.cover_image_url}}" mode="aspectFill" class="plan__dish-img-i" />
-        </view>
+      <view class="plan__dish-row" data-id="{{dish.recipeId}}" bindtap="onDishTap">
+        <view class="plan__dish-img"></view>
         <view class="plan__dish-body">
-          <text class="plan__dish-name">{{dish.title || '未命名'}}</text>
-          <text class="plan__dish-meta">{{dish.category || '家常菜'}} · {{dish.total_minutes || 30}} 分钟</text>
+          <text class="plan__dish-name">{{dish.title}}</text>
+          <text wx:if="{{dish.note}}" class="plan__dish-meta">{{dish.note}}</text>
         </view>
-        <view class="plan__dish-cal">{{dish.calories || 420}} 千卡</view>
       </view>
     </block>
     <view wx:if="{{!lunch.length}}" class="plan__empty-tip">暂无午餐，点击右上 + 添加</view>
@@ -96,17 +90,14 @@
       </view>
     </view>
     <view wx:if="{{dinner.length}}" class="plan__meal-divider"></view>
-    <block wx:for="{{dinner}}" wx:key="id" wx:for-item="dish">
+    <block wx:for="{{dinner}}" wx:key="key" wx:for-item="dish">
       <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
-      <view class="plan__dish-row" data-id="{{dish.id}}" bindtap="onDishTap">
-        <view class="plan__dish-img">
-          <image wx:if="{{dish.cover_image_url}}" src="{{dish.cover_image_url}}" mode="aspectFill" class="plan__dish-img-i" />
-        </view>
+      <view class="plan__dish-row" data-id="{{dish.recipeId}}" bindtap="onDishTap">
+        <view class="plan__dish-img"></view>
         <view class="plan__dish-body">
-          <text class="plan__dish-name">{{dish.title || '未命名'}}</text>
-          <text class="plan__dish-meta">{{dish.category || '快手菜'}} · {{dish.total_minutes || 15}} 分钟</text>
+          <text class="plan__dish-name">{{dish.title}}</text>
+          <text wx:if="{{dish.note}}" class="plan__dish-meta">{{dish.note}}</text>
         </view>
-        <view class="plan__dish-cal">{{dish.calories || 180}} 千卡</view>
       </view>
     </block>
     <view wx:if="{{!dinner.length}}" class="plan__empty-tip">暂无晚餐，点击右上 + 添加</view>

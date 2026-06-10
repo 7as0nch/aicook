@@ -59,4 +59,36 @@
   </view>
 
   <view class="inv__spacer"></view>
+
+  <!-- 添加食材弹层（替代已弃用的 wx.showModal editable） -->
+  <view wx:if="{{addVisible}}" class="inv__mask" bindtap="onAddClose" catchtouchmove="noop"></view>
+  <view wx:if="{{addVisible}}" class="inv__sheet" catchtouchmove="noop">
+    <view class="inv__sheet-title">添加食材</view>
+    <input
+      class="inv__sheet-input"
+      placeholder="食材名，如：番茄"
+      value="{{addName}}"
+      bindinput="onAddNameInput"
+      focus="{{addVisible}}"
+      confirm-type="next"
+      maxlength="30"
+    />
+    <input
+      class="inv__sheet-input"
+      placeholder="数量（可选），如：3 个"
+      value="{{addQty}}"
+      bindinput="onAddQtyInput"
+      confirm-type="done"
+      bindconfirm="onAddConfirm"
+      maxlength="20"
+    />
+    <view class="inv__sheet-actions">
+      <view class="inv__sheet-btn" bindtap="onAddClose">取消</view>
+      <view
+        class="inv__sheet-btn inv__sheet-btn--primary {{addSaving ? 'inv__sheet-btn--disabled' : ''}}"
+        bindtap="onAddConfirm"
+      >{{addSaving ? '添加中…' : '确认添加'}}</view>
+    </view>
+    <view class="inv__sheet-safe"></view>
+  </view>
 </view>

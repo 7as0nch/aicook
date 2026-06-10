@@ -142,6 +142,9 @@ export const authStore: AuthStore = observable({
     this.currentHousehold = reply.current_household;
     this.households = reply.households || this.households;
     this.persist();
+    // 订阅方：pages/home、pages/recipes/list、pages/plan/index（失效缓存戳）、
+    // pages/me/inventory（标记脏数据，onShow 强制刷新）。
+    // 新增按 household 隔离数据的页面时，记得同样订阅本事件，避免切家庭后展示旧数据。
     emit(EVENTS.HOUSEHOLD_SWITCHED, reply.current_household);
   }),
 

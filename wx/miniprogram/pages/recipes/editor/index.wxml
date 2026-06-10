@@ -9,6 +9,17 @@
     <!-- 标题 + 简介 -->
     <view class="ed__card">
       <view class="ed__field">
+        <text class="ed__label">封面图</text>
+        <view class="ed__cover" bindtap="onPickCover">
+          <image wx:if="{{coverImageUrl}}" class="ed__cover-img" src="{{coverImageUrl}}" mode="aspectFill" />
+          <view wx:else class="ed__cover-empty">
+            <image src="/assets/icons/camera.png" class="ed__cover-cam" mode="aspectFit" />
+            <text>点击上传封面</text>
+          </view>
+          <view wx:if="{{coverUploading}}" class="ed__cover-mask">上传中…</view>
+        </view>
+      </view>
+      <view class="ed__field">
         <text class="ed__label">菜谱名称</text>
         <input class="ed__input" placeholder="给菜谱起个名字" value="{{title}}" bindinput="onTitleInput" />
       </view>

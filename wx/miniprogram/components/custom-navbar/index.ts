@@ -37,10 +37,10 @@ Component({
           if (menu && menu.height) {
             navBarHeight = (menu.top - statusBarHeight) * 2 + menu.height;
           }
-        } catch (_) {}
+        } catch (_) { /* 胶囊 API 不可用时用默认高度 */ }
         const totalHeight = statusBarHeight + navBarHeight;
         this.setData({ statusBarHeight, navBarHeight, totalHeight });
-      } catch (_) {}
+      } catch (_) { /* 系统信息获取失败时用 data 默认值 */ }
     },
   },
   methods: {

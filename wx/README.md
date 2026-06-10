@@ -37,9 +37,28 @@ wx/
 
 ```bash
 cd wx
-npm install
-npm run build      # 编译 TS → JS（在 miniprogram/ 同目录生成 .js）
+pnpm install
+pnpm build         # 编译 TS → JS（在 miniprogram/ 同目录生成 .js）+ 构建 miniprogram_npm
 ```
+
+> **重要**：`.js` 是 gulp 编译产物、不入库（.gitignore 已忽略）。clone 后必须先执行
+> `pnpm install && pnpm build`，否则开发者工具里小程序无法运行。
+
+### 本地后端地址覆盖
+
+开发环境默认指向 `http://127.0.0.1:8000`。如后端跑在其他机器，复制
+`miniprogram/utils/env.local.example.ts` 为 `env.local.ts`（不入库），改 `developHost` 即可。
+正式/体验环境域名集中在 `miniprogram/utils/env.ts` 的 `ENV_PRESETS` 中维护（当前为占位域名）。
+
+### 类型生成（proto → TS）
+
+```bash
+pnpm gen:types     # 从 backend proto 生成 miniprogram/types/generated/（需本机安装 buf）
+```
+
+后端 proto 变更后重跑此命令并提交产物。生成选项与后端 protojson 行为对齐
+（snake_case 字段、int64→string、Timestamp→RFC3339 字符串），详见 `scripts/gen-types.js`。
+历史手写类型 `types/api.d.ts` 正在逐步迁往 generated，新代码请直接用 generated 类型。
 
 ### 在微信开发者工具中
 
@@ -104,4 +123,12 @@ npm run lint
 提交至仓库时：
 - `wx/miniprogram/**/*.js` 已在 `.gitignore` 中（编译产物）
 - `wx/node_modules/` 已忽略
-- TDesign 与 mobx 通过 `npm run build` 后的 `miniprogram_npm/` 也已忽略
+- TDesign 与 mobx 通过 `pnpm build` 后的 `miniprogram_npm/` 也已忽略
+- `miniprogram/utils/env.local.ts` 已忽略（本地后端地址覆盖）
+
+## 构建链决策记录
+
+- **保持 gulp 编译 TS**，不启用开发者工具的 `useCompilerPlugins`：现有 gulp + build-npm 流水线
+  稳定且被 CI（miniprogram-ci）依赖，迁移收益低、行为差异风险高。
+- **暗色模式暂不做**：需要全量 wxss 颜色变量化 + theme.json + TDesign 主题适配，工作量约等于
+  一轮完整 UI 重构，待产品明确需求后再立项。

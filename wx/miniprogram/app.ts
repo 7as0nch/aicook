@@ -5,7 +5,6 @@ import { initEnv } from './utils/env';
 
 interface AppGlobalData {
   systemInfo?: WechatMiniprogram.SystemInfo;
-  apiBase?: string;
 }
 
 App({

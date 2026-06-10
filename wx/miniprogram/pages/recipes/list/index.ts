@@ -2,6 +2,7 @@
 // 设计稿：搜索 + 标签筛选 + 今日常做 + 按类型浏览网格 + 我的菜谱入口
 import { recipeApi } from '../../../services/recipe.api';
 import { hasToken } from '../../../utils/auth-guard';
+import { on, EVENTS } from '../../../utils/eventbus';
 import type { Recipe, TodayRecipe } from '../../../types/api';
 
 interface FilterTag { id: string; text: string; tag?: string; }
@@ -37,6 +38,19 @@ Page({
     },
     loading: false,
     hasMore: false,
+  },
+
+  onLoad() {
+    // 切家庭后菜谱数据属于新家庭：失效缓存戳，下次 onShow 立即重新拉取（防御性兜底）
+    const self = this as unknown as { _offHouseholdSwitched?: () => void; _lastLoadAt?: number };
+    self._offHouseholdSwitched = on(EVENTS.HOUSEHOLD_SWITCHED, () => {
+      self._lastLoadAt = 0;
+    });
+  },
+
+  onUnload() {
+    const self = this as unknown as { _offHouseholdSwitched?: () => void };
+    self._offHouseholdSwitched?.();
   },
 
   onShow() {

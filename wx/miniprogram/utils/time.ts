@@ -39,6 +39,35 @@ export function weekStartOf(date: Date): number {
   return d.getTime();
 }
 
-function pad2(n: number): string {
+// 本地时区日期 key（yyyy-MM-dd），用于打卡/按天分组等"自然日"计算。
+// 注意用本地 getter 而非 toISOString()（后者是 UTC，跨时区会差一天）。
+export function localDateKey(input: Date | number | string): string {
+  const d = input instanceof Date ? input : new Date(input);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+// 连续打卡天数：从今天（若今天还没打卡则从昨天）起，往前数连续有记录的自然日。
+// times 传记录的时间戳（RFC3339 字符串或毫秒），无效值自动跳过。
+export function computeStreakDays(times: Array<string | number | undefined>): number {
+  const dayKeys = new Set<string>();
+  for (const t of times) {
+    if (!t) continue;
+    dayKeys.add(localDateKey(t));
+  }
+  if (!dayKeys.size) return 0;
+  let streak = 0;
+  const cursor = new Date();
+  if (!dayKeys.has(localDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  for (;;) {
+    if (!dayKeys.has(localDateKey(cursor))) break;
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+export function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }

@@ -1,0 +1,44 @@
+<view class="pick">
+  <custom-navbar title="加入{{slotLabel}}" />
+
+  <view class="pick__date">{{dateLabel}} · 点击菜谱加入{{slotLabel}}</view>
+
+  <view class="pick__search">
+    <image class="pick__search-icon" src="/assets/icons/search.png" mode="aspectFit" />
+    <input
+      class="pick__search-input"
+      placeholder="搜索菜谱…"
+      value="{{keyword}}"
+      bindinput="onSearchInput"
+      bindconfirm="onSearchConfirm"
+      confirm-type="search"
+    />
+  </view>
+
+  <view class="pick__list">
+    <view
+      wx:for="{{recipes}}"
+      wx:key="id"
+      class="pick__item"
+      data-id="{{item.id}}"
+      bindtap="onRecipeTap"
+    >
+      <view class="pick__item-img">
+        <image wx:if="{{item.cover_image_url}}" src="{{item.cover_image_url}}" mode="aspectFill" class="pick__item-img-i" />
+        <text wx:else class="pick__item-emoji">🍽️</text>
+      </view>
+      <view class="pick__item-body">
+        <text class="pick__item-name">{{item.title}}</text>
+        <text class="pick__item-meta">{{item.category || '家常菜'}}{{item.total_minutes ? ' · ' + item.total_minutes + ' 分钟' : ''}}</text>
+      </view>
+      <view class="pick__item-add">+</view>
+    </view>
+
+    <view wx:if="{{loaded && !recipes.length}}" class="pick__empty">
+      <text class="pick__empty-emoji">🍳</text>
+      <text class="pick__empty-text">{{keyword ? '没有找到相关菜谱' : '菜谱库是空的，先去创建一道菜吧'}}</text>
+    </view>
+  </view>
+
+  <view class="pick__spacer"></view>
+</view>

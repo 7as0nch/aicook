@@ -5,7 +5,6 @@ package aicook.v1;
 option go_package = "github.com/chengjiang/aicook/backend/api/aicook/v1;v1";
 
 import "google/api/annotations.proto";
-import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "api/aicook/v1/common.proto";
 
@@ -100,6 +99,21 @@ service KitchenService {
 
 // --- Meal plan ---
 
+// 周计划中某餐次的一道菜。id / recipe_id 为 int64，protojson 自动以字符串序列化（防雪花 ID 精度丢失）。
+message MealPlanDish {
+  int64 id = 1;                    // 计划条目 ID
+  optional int64 recipe_id = 2;    // 关联菜谱 ID；纯文字菜品时为空
+  string recipe_title = 3;         // 菜名快照
+  string note = 4;                 // 备注
+}
+
+// 某一天的三餐。改用强类型 message（而非 google.protobuf.Struct），让 protojson 处理 int64。
+message MealPlanDaySlots {
+  repeated MealPlanDish breakfast = 1;  // 早餐
+  repeated MealPlanDish lunch = 2;      // 午餐
+  repeated MealPlanDish dinner = 3;     // 晚餐
+}
+
 message GetCurrentMealPlanRequest {
   string week_start = 1;
 }
@@ -109,8 +123,8 @@ message GetCurrentMealPlanReply {
 }
 
 message SaveCurrentMealPlanRequest {
-  string week_start_date = 1;
-  google.protobuf.Struct days = 2;
+  string week_start_date = 1;                  // 周一日期 YYYY-MM-DD
+  map<string, MealPlanDaySlots> days = 2;      // key 为星期名 monday..sunday
 }
 
 message SaveCurrentMealPlanReply {
@@ -127,10 +141,10 @@ message GenerateCurrentMealPlanReply {
 
 message MealPlanWeek {
   int64 id = 1;
-  string week_start_date = 2;
+  string week_start_date = 2;                  // 周一日期 YYYY-MM-DD
   string timezone = 3;
   string source = 4;
-  google.protobuf.Struct days = 5;
+  map<string, MealPlanDaySlots> days = 5;      // key 为星期名 monday..sunday
 }
 
 // --- Shopping list ---

@@ -6,6 +6,7 @@ import (
 	gca "github.com/7as0nch/gocommon/auth"
 	"github.com/chengjiang/aicook/backend/internal/auth"
 	"github.com/chengjiang/aicook/backend/internal/platform/identity"
+	"github.com/go-kratos/kratos/v2/log"
 )
 
 type Actor struct {
@@ -33,5 +34,8 @@ func ActorFromContext(ctx context.Context) Actor {
 			}
 		}
 	}
+	// 所有调用方都应处于 JWT 中间件（或 /chat/send 的显式鉴权）之后，正常不会走到这里。
+	// 一旦触发说明某条链路缺少鉴权，立即告警以便发现，不要默默以共享默认身份执行。
+	log.Warnf("ActorFromContext: 上下文缺少身份信息，回退默认身份（疑似未鉴权链路）")
 	return DefaultActor()
 }

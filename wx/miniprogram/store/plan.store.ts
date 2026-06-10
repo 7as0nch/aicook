@@ -1,7 +1,7 @@
 // 周计划 + 购物清单 store
 import { observable, action } from 'mobx-miniprogram';
 import { kitchenApi } from '../services/kitchen.api';
-import type { MealPlanWeek, ShoppingList, ShoppingListItem } from '../types/api';
+import type { MealPlanDays, MealPlanWeek, ShoppingList, ShoppingListItem } from '../types/api';
 
 export const planStore = observable({
   plan: null as MealPlanWeek | null,
@@ -15,6 +15,12 @@ export const planStore = observable({
 
   generatePlan: action(async function (this: typeof planStore, week_start?: string) {
     const res = await kitchenApi.generateMealPlan(week_start);
+    this.plan = res.plan;
+  }),
+
+  // 全量保存周计划（后端 PUT 为整周覆盖式，调用方需先带回现有 days 再增量修改）
+  savePlan: action(async function (this: typeof planStore, week_start_date: string, days: MealPlanDays) {
+    const res = await kitchenApi.saveMealPlan({ week_start_date, days });
     this.plan = res.plan;
   }),
 

@@ -2,28 +2,12 @@
 // 入口：拍照识别 → "✨ 生成推荐菜谱" CTA 跳转到本页，url 携带 ingredients=...
 // 也可直接进：调 listToday 拿后端推荐
 import { recipeApi } from '../../../../services/recipe.api';
+import { emojiFor } from '../../../../utils/food-emoji';
 import type { Recipe, TodayRecipe } from '../../../../types/api';
 
 interface DisplayRecipe extends Recipe {
-  __match: number;
-}
-
-const EMOJI_MAP: Record<string, string> = {
-  '番茄': '🍅', '西红柿': '🍅',
-  '土豆': '🥔',
-  '青椒': '🌶️',
-  '鸡蛋': '🥚',
-  '玉米': '🌽',
-  '生菜': '🥬', '青菜': '🥬',
-  '五花肉': '🥩', '牛腩': '🥩',
-  '小葱': '🌿', '葱': '🌿',
-};
-
-function emojiFor(name: string): string {
-  for (const k of Object.keys(EMOJI_MAP)) {
-    if (name.includes(k)) return EMOJI_MAP[k];
-  }
-  return '🥗';
+  __match: number;       // 匹配度（0-100）；仅 today/食材模式有意义，其余模式不展示
+  __meta: string;        // 卡片副标题（只拼真实存在的字段，不造假数据）
 }
 
 const SORT_TABS = [
@@ -32,6 +16,23 @@ const SORT_TABS = [
   { key: 'time', label: '烹饪时间' },
   { key: 'difficulty', label: '难度' },
 ];
+
+// 难度 1-5 → 文案；缺失返回空串（不显示）
+function diffLabel(d?: number): string {
+  if (!d) return '';
+  if (d <= 2) return '简单';
+  if (d === 3) return '中等';
+  return '较难';
+}
+
+// 卡片副标题：只拼真实字段（proto Recipe 没有 servings，不要造"2人"）
+function buildMeta(r: Recipe): string {
+  const parts: string[] = [];
+  if (r.total_minutes) parts.push(`${r.total_minutes}分钟`);
+  const dl = diffLabel(r.difficulty);
+  if (dl) parts.push(dl);
+  return parts.join(' · ');
+}
 
 Page({
   data: {
@@ -42,6 +43,8 @@ Page({
     recipes: [] as DisplayRecipe[],
     loading: true,
     pageTitle: '今日推荐',
+    // 收藏/搜索/筛选模式没有推荐评分，隐藏匹配度展示与排序项
+    showMatch: true,
   },
 
   async onLoad(query: { ingredients?: string; keyword?: string; mode?: string }) {
@@ -68,11 +71,17 @@ Page({
     }
   },
 
+  // 无评分模式（搜索/收藏/筛选）：隐藏匹配度展示与「匹配度」排序项
+  hideMatchUI() {
+    this.setData({ showMatch: false, sortTabs: SORT_TABS.filter(t => t.key !== 'match') });
+  },
+
   async loadByKeyword(keyword: string) {
+    this.hideMatchUI();
     this.setData({ loading: true });
     try {
       const res = await recipeApi.list({ limit: 30, keyword, exclude_draft: true });
-      const recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 90 }));
+      const recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 0, __meta: buildMeta(r) }));
       this.setData({ recipes });
     } finally {
       this.setData({ loading: false });
@@ -80,10 +89,11 @@ Page({
   },
 
   async loadFavorites() {
+    this.hideMatchUI();
     this.setData({ loading: true });
     try {
       const res = await recipeApi.listFavorites({ limit: 50 });
-      const recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 100, favored: true }));
+      const recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 0, __meta: buildMeta(r), favored: true }));
       this.setData({ recipes });
     } catch (e) {
       console.error('[today] load favorites fail', e);
@@ -93,10 +103,11 @@ Page({
   },
 
   async loadByFilter(filter: { maxMinutes?: number }) {
+    this.hideMatchUI();
     this.setData({ loading: true });
     try {
       const res = await recipeApi.list({ limit: 50, exclude_draft: true });
-      let recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 90 }));
+      let recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 0, __meta: buildMeta(r) }));
       if (filter.maxMinutes !== undefined) {
         const max = filter.maxMinutes;
         recipes = recipes.filter(r => !r.total_minutes || r.total_minutes <= max);
@@ -120,7 +131,7 @@ Page({
         let hits = 0;
         for (const n of names) if (hay.includes(n.toLowerCase())) hits++;
         const matchPct = names.length > 0 ? Math.round((hits / names.length) * 100) : 80;
-        return { ...r, __match: Math.min(99, Math.max(50, matchPct)) };
+        return { ...r, __match: Math.min(99, Math.max(50, matchPct)), __meta: buildMeta(r) };
       });
       // 默认按综合排序：score 已无；用 __match 降序作为初始排序
       recipes.sort((a, b) => b.__match - a.__match);
@@ -138,7 +149,8 @@ Page({
       const res = await recipeApi.listToday(30);
       const recipes: DisplayRecipe[] = (res.items || []).map((it: TodayRecipe) => ({
         ...it.recipe,
-        __match: Math.round((it.score || 0.9) * 100),
+        __match: Math.round((it.score || 0) * 100),
+        __meta: buildMeta(it.recipe),
       }));
       this.setData({ recipes });
     } finally {
@@ -162,22 +174,6 @@ Page({
   },
 
   applySort(key: string) {
-    const sorted = [...this.data.recipes];
-    if (key === 'match') {
-      sorted.sort((a, b) => b.__match - a.__match);
-    } else if (key === 'time') {
-      sorted.sort((a, b) => (a.total_minutes || 99) - (b.total_minutes || 99));
-    } else if (key === 'difficulty') {
-      sorted.sort((a, b) => (a.difficulty || 9) - (b.difficulty || 9));
-    } else {
-      sorted.sort((a, b) => b.__match - a.__match);
-    }
-    this.setData({ sortKey: key, recipes: sorted });
-  },
-
-  onSortChange(e: WechatMiniprogram.CustomEvent<{ value: string }>) {
-    const key = e.detail?.value;
-    if (!key) return;
     const sorted = [...this.data.recipes];
     if (key === 'match') {
       sorted.sort((a, b) => b.__match - a.__match);

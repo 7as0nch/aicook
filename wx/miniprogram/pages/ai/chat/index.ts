@@ -33,6 +33,7 @@ Page({
     imageRecipeEnabled: false,
     scrollToView: '',
     recording: false,
+    recordSeconds: 0,
     quickActions: QUICK_ACTIONS,
     suggestions: SUGGESTIONS,
   },
@@ -56,15 +57,21 @@ Page({
         const reply = await aiApi.createSession({ scene: 'chat', title: '厨艺助理' });
         chatStore.setSession(reply.session);
       } catch {
-        // 静默失败：让用户在发送时再触发
+        // 创建失败要让用户知道（发送时 ensureSession 会重试，不阻断流程）
+        wx.showToast({ title: '会话创建失败，发送时将自动重试', icon: 'none' });
       }
     }
+    this.initRecorder();
     this.scrollToBottom();
   },
 
   onUnload() {
     const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
     self.storeBindings?.destroyStoreBindings();
+    if (this.data.recording) {
+      wx.getRecorderManager().stop();
+    }
+    this.clearRecordTimer();
   },
 
   onInputChange(e: WechatMiniprogram.Input) {
@@ -156,48 +163,92 @@ Page({
   onToggleWebSearch() { chatStore.toggleWebSearch(); },
   onToggleImageRecipe() { chatStore.toggleImageRecipe(); },
 
-  async onMicTap() {
-    if (this.data.recording) return;
+  // ===== 语音输入：点按开始 → 再点停止（上限 60s 自动停），识别失败可重试 =====
+
+  initRecorder() {
+    // RecorderManager 是全局单例，onLoad 时注册一次回调，避免重复叠加
     const rm = wx.getRecorderManager();
+    rm.onStart(() => {
+      this.setData({ recording: true, recordSeconds: 0 });
+      const self = this as unknown as { _recTimer?: ReturnType<typeof setInterval> };
+      self._recTimer = setInterval(() => {
+        this.setData({ recordSeconds: this.data.recordSeconds + 1 });
+      }, 1000);
+    });
+    rm.onStop((res) => {
+      void this.handleRecordStop(res as { tempFilePath?: string; duration?: number });
+    });
+    rm.onError(() => {
+      this.clearRecordTimer();
+      this.setData({ recording: false, recordSeconds: 0 });
+      wx.showToast({ title: '录音失败，请检查麦克风权限', icon: 'none' });
+    });
+  },
+
+  clearRecordTimer() {
+    const self = this as unknown as { _recTimer?: ReturnType<typeof setInterval> };
+    if (self._recTimer) {
+      clearInterval(self._recTimer);
+      self._recTimer = undefined;
+    }
+  },
+
+  onMicTap() {
+    const rm = wx.getRecorderManager();
+    if (this.data.recording) {
+      // 再次点击：停止录音，onStop 回调统一走识别流程
+      rm.stop();
+      return;
+    }
+    rm.start({ duration: 60000, sampleRate: 16000, numberOfChannels: 1, encodeBitRate: 48000, format: 'mp3' });
+  },
+
+  async handleRecordStop(res: { tempFilePath?: string; duration?: number }) {
+    this.clearRecordTimer();
+    this.setData({ recording: false, recordSeconds: 0 });
+    const path = res?.tempFilePath;
+    if (!path) return;
+    if (res.duration !== undefined && res.duration < 600) {
+      wx.showToast({ title: '说话时间太短', icon: 'none' });
+      return;
+    }
+    await this.transcribeAudio(path);
+  },
+
+  // 上传 + 识别；失败弹窗提供重试（录音文件还在临时目录，无需重录）
+  async transcribeAudio(path: string) {
     try {
-      await new Promise<void>((resolve) => {
-        rm.onStart(() => resolve());
-        rm.onError(() => resolve());
-        rm.start({ duration: 60000, sampleRate: 16000, numberOfChannels: 1, encodeBitRate: 48000, format: 'mp3' });
-      });
-      this.setData({ recording: true });
-      // 简化版：3s 自动停止
-      setTimeout(async () => {
-        const res = await new Promise<{ tempFilePath?: string } | null>((resolve) => {
-          rm.onStop((r: unknown) => resolve(r as { tempFilePath?: string }));
-          rm.onError(() => resolve(null));
-          rm.stop();
+      const info = await new Promise<{ size: number }>((resolve) => {
+        wx.getFileSystemManager().getFileInfo({
+          filePath: path,
+          success: (r) => resolve({ size: r.size }),
+          fail: () => resolve({ size: 0 }),
         });
-        this.setData({ recording: false });
-        const path = res?.tempFilePath;
-        if (!path) return;
-        try {
-          const info = await new Promise<{ size: number }>((resolve) => {
-            (wx as any).getFileInfo({ filePath: path, success: (r: { size: number }) => resolve({ size: r.size }), fail: () => resolve({ size: 0 }) });
-          });
-          const asset = await uploadFile({
-            tempFilePath: path,
-            mediaKind: 'audio',
-            contentType: 'audio/mpeg',
-            sizeBytes: info.size,
-          });
-          const tr = await voiceApi.transcribe(String(asset.id));
-          const t = (tr.text || '').trim();
-          if (t) {
-            this.setData({ text: t });
-            this.onSendTap();
-          }
-        } catch (e) {
-          wx.showToast({ title: '语音识别失败', icon: 'none' });
-        }
-      }, 3000);
+      });
+      const asset = await uploadFile({
+        tempFilePath: path,
+        mediaKind: 'audio',
+        contentType: 'audio/mpeg',
+        sizeBytes: info.size,
+      });
+      const tr = await voiceApi.transcribe(String(asset.id));
+      const t = (tr.text || '').trim();
+      if (t) {
+        this.setData({ text: t });
+        void this.onSendTap();
+      } else {
+        wx.showToast({ title: '没有识别到内容', icon: 'none' });
+      }
     } catch (e) {
-      this.setData({ recording: false });
+      wx.showModal({
+        title: '语音识别失败',
+        content: '网络或服务异常，是否重试？',
+        confirmText: '重试',
+        cancelText: '放弃',
+        success: (r) => {
+          if (r.confirm) void this.transcribeAudio(path);
+        },
+      });
     }
   },
 

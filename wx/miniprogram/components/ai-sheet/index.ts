@@ -392,7 +392,11 @@ Component({
       if (!path) return;
       try {
         const info = await new Promise<{ size: number }>((resolve) => {
-          (wx as unknown as { getFileInfo: Function }).getFileInfo({ filePath: path, success: (r: { size: number }) => resolve({ size: r.size }), fail: () => resolve({ size: 0 }) });
+          wx.getFileSystemManager().getFileInfo({
+            filePath: path,
+            success: (r) => resolve({ size: r.size }),
+            fail: () => resolve({ size: 0 }),
+          });
         });
         const asset = await uploadFile({
           tempFilePath: path,

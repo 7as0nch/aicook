@@ -1,0 +1,19 @@
+<view wx:if="{{visible}}" class="idlg__mask" bindtap="onCancel" catchtouchmove="noop"></view>
+<view wx:if="{{visible}}" class="idlg" catchtouchmove="noop">
+  <view class="idlg__title">{{title}}</view>
+  <input
+    class="idlg__input"
+    placeholder="{{placeholder}}"
+    value="{{value}}"
+    bindinput="onInput"
+    focus="{{visible}}"
+    confirm-type="done"
+    bindconfirm="onConfirm"
+    maxlength="{{maxlength}}"
+  />
+  <view class="idlg__actions">
+    <view class="idlg__btn" bindtap="onCancel">取消</view>
+    <view class="idlg__btn idlg__btn--primary" bindtap="onConfirm">{{confirmText}}</view>
+  </view>
+  <view class="idlg__safe"></view>
+</view>

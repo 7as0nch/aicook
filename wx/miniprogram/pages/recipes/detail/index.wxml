@@ -11,6 +11,9 @@
       <image class="rd__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
     </view>
     <view class="rd__top-actions">
+      <view wx:if="{{canEdit}}" class="rd__top-btn rd__top-btn--edit" bindtap="onEditTap">
+        <text class="rd__top-edit-text">编辑</text>
+      </view>
       <view class="rd__top-btn" bindtap="onFavTap">
         <image class="rd__top-icon" src="/assets/icons/star.svg" mode="aspectFit" />
       </view>
@@ -29,11 +32,6 @@
       <view wx:if="{{recipe.total_minutes}}" class="rd__chip">{{recipe.total_minutes}}分钟</view>
       <view wx:if="{{recipe.difficulty}}" class="rd__chip">{{difficultyLabel}}</view>
       <view wx:if="{{recipe.servings}}" class="rd__chip">{{recipe.servings}}人</view>
-    </view>
-
-    <view class="rd__match">
-      <view class="rd__match-dot"></view>
-      <text>{{matchPercent}}% 匹配 · 与识别食材匹配度高</text>
     </view>
 
     <view class="rd__divider"></view>

@@ -2,6 +2,7 @@
 // 顶部分类 tab + 食材列表 + 推荐能做的菜
 import { inventoryStore } from '../../../../store/inventory.store';
 import { kitchenApi } from '../../../../services/kitchen.api';
+import { on, EVENTS } from '../../../../utils/eventbus';
 import type { InventoryItem, InventoryRecommendation, Recipe } from '../../../../types/api';
 
 const CATEGORY_TABS = [
@@ -20,10 +21,33 @@ Page({
     filtered: [] as InventoryItem[],
     recommendations: [] as Array<{ recipe: Recipe; match_count: number; ingredient_total: number; match_percent: number }>,
     keyword: '',
+    // 添加食材弹层状态（wx.showModal 的 editable 已弃用，改自定义弹层）
+    addVisible: false,
+    addName: '',
+    addQty: '',
+    addSaving: false,
   },
 
   onLoad() {
+    // 切换家庭后库存属于新家庭，标记脏数据，回到本页时强制刷新（库存数据按 household 隔离）
+    const self = this as unknown as { _offHouseholdSwitched?: () => void; _dirty?: boolean };
+    self._offHouseholdSwitched = on(EVENTS.HOUSEHOLD_SWITCHED, () => {
+      self._dirty = true;
+    });
     void this.refresh();
+  },
+
+  onShow() {
+    const self = this as unknown as { _dirty?: boolean };
+    if (self._dirty) {
+      self._dirty = false;
+      void this.refresh();
+    }
+  },
+
+  onUnload() {
+    const self = this as unknown as { _offHouseholdSwitched?: () => void };
+    self._offHouseholdSwitched?.();
   },
 
   async refresh() {
@@ -61,27 +85,43 @@ Page({
   },
 
   onAdd() {
-    wx.showModal({
-      title: '添加食材',
-      placeholderText: '食材名（可加数量，如：番茄 3 个）',
-      editable: true,
-      success: async (res) => {
-        if (!res.confirm || !res.content) return;
-        const text = res.content.trim();
-        const m = text.match(/^(.+?)\s+(.+)$/);
-        const name = m ? m[1] : text;
-        const qty = m ? m[2] : '';
-        try {
-          await inventoryStore.upsert([{ name, kind: 'manual', quantity_text: qty }]);
-          this.setData({ items: inventoryStore.items as InventoryItem[] });
-          this.applyFilter();
-          wx.showToast({ title: '已添加', icon: 'success' });
-        } catch {
-          wx.showToast({ title: '添加失败', icon: 'none' });
-        }
-      },
-    });
+    this.setData({ addVisible: true, addName: '', addQty: '', addSaving: false });
   },
+
+  onAddClose() {
+    this.setData({ addVisible: false });
+  },
+
+  onAddNameInput(e: WechatMiniprogram.Input) {
+    this.setData({ addName: e.detail.value });
+  },
+
+  onAddQtyInput(e: WechatMiniprogram.Input) {
+    this.setData({ addQty: e.detail.value });
+  },
+
+  async onAddConfirm() {
+    const name = this.data.addName.trim();
+    if (!name) {
+      wx.showToast({ title: '请输入食材名', icon: 'none' });
+      return;
+    }
+    if (this.data.addSaving) return;
+    this.setData({ addSaving: true });
+    try {
+      await inventoryStore.upsert([{ name, kind: 'manual', quantity_text: this.data.addQty.trim() }]);
+      this.setData({ items: inventoryStore.items as InventoryItem[], addVisible: false });
+      this.applyFilter();
+      wx.showToast({ title: '已添加', icon: 'success' });
+    } catch {
+      wx.showToast({ title: '添加失败', icon: 'none' });
+    } finally {
+      this.setData({ addSaving: false });
+    }
+  },
+
+  // 弹层蒙层 catchtouchmove 占位，阻止滚动穿透
+  noop() {},
 
   async onItemRemove(e: WechatMiniprogram.BaseEvent) {
     const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
