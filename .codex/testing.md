@@ -71,3 +71,7 @@
 - `pnpm exec tsc --noEmit`：通过。
 - `pnpm build`：通过。
 - 构建观察：路由与 AIAssistant 已拆分为独立 chunk，首页入口 chunk 显著下降；仍存在一个偏大的 `vendor-antd` chunk，需要后续继续评估替换或局部下沉 Provider。
+
+## 2026-06-10 新增贡献者指南
+- 文档类变更，未运行业务测试或构建命令。
+- 验证方式：检查 `AGENTS.md` 标题、Markdown 章节、仓库命令、提交规范和 API 契约描述是否与现有项目一致；`Measure-Object` 统计为 203 词。

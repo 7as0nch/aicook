@@ -10,3 +10,9 @@
 - 将 routes.tsx 改为页面级懒加载，AIAssistant 改为独立懒加载。
 - 在 vite.config.ts 增加 vendor 拆包策略，降低首页入口体积。
 - 使用 pnpm exec tsc --noEmit 与 pnpm build 做本地验证。
+
+## 2026-06-10 新增贡献者指南
+- 确认根目录没有既有 `AGENTS.md`，避免覆盖已有项目指南。
+- 读取仓库结构、`backend/go.mod`、`frontend/package.json`、`wx/package.json`、`inference-service/requirements.txt` 和最近提交信息。
+- 新增根目录 `AGENTS.md`，覆盖项目结构、构建测试命令、编码风格、测试、提交/PR 和 API 契约提醒。
+- 按仓库语言约定使用简体中文正文，并保留用户要求的英文标题。

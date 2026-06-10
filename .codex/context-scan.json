@@ -1,36 +1,37 @@
 {
-  "task": "前端类型清理与首包瘦身",
+  "task": "新增根目录 AGENTS.md 贡献者指南",
   "affected_areas": [
-    "frontend/src/app/App.tsx",
-    "frontend/src/app/routes.tsx",
-    "frontend/src/app/components/AIAssistant.tsx",
-    "frontend/src/app/components/ai-assistant",
-    "frontend/src/app/pages",
-    "frontend/src/lib/mappers/recipe.ts",
-    "frontend/tsconfig.json",
-    "frontend/vite.config.ts"
+    "AGENTS.md",
+    ".codex/context-scan.json",
+    ".codex/operations-log.md",
+    ".codex/testing.md",
+    "verification.md"
   ],
   "current_behavior": {
-    "typecheck": "活跃页面与组件的 TypeScript 报错已清理，旧死代码目录已从 tsconfig 排除。",
-    "routing": "主页面、做菜页、分享导入页和 AI 助手已改为懒加载，首页不再把全部页面与聊天面板打进首包。",
-    "bundle": "首页入口 chunk 已明显下降，但 antd/x 生态仍形成一个偏大的公共 vendor chunk。"
+    "root_agents": "根目录此前没有 AGENTS.md。",
+    "repo_shape": "仓库包含 backend、frontend、inference-service、wx、deploy/sql 等主要目录。",
+    "commit_style": "近期提交使用 [fix]、[new] 等方括号前缀，并使用中文说明。"
   },
   "reuse_targets": [
-    "frontend/src/app/components/ai-assistant 现有子组件拆分",
-    "frontend/src/lib/api/client.ts 现有接口层",
-    "frontend/src/app/pages 既有页面结构",
-    "Vite 原生 rollupOptions.output.manualChunks"
+    "用户提供的仓库 AGENTS 说明",
+    "backend/go.mod",
+    "frontend/package.json",
+    "wx/package.json",
+    "inference-service/requirements.txt",
+    "git log -5 --pretty=format:%s"
   ],
   "stack": {
-    "frontend": "React 18 + React Router + Vite + Tailwind + Ant Design X + Sonner"
+    "backend": "Go 1.25 + Kratos v2 + Eino",
+    "frontend": "React + Vite + Tailwind",
+    "wx": "原生微信小程序 + TypeScript + gulp",
+    "inference_service": "Python FastAPI"
   },
   "validation_plan": [
-    "pnpm exec tsc --noEmit",
-    "pnpm build"
+    "读取生成后的 AGENTS.md，确认标题、章节和仓库命令准确",
+    "检查文档长度和 Markdown 结构"
   ],
   "observations": [
-    "AIAssistant 仍然是较大的独立 chunk，但已从首包移出。",
-    "全局 App 仍使用 ConfigProvider，AI 相关组件依赖 @ant-design/x，这使 antd vendor chunk 仍偏大。",
-    "当前阶段优先保证活跃页面无红线、路由按需加载和构建稳定。"
+    "直接用户要求英文标题 Repository Guidelines；正文按仓库语言约定使用简体中文。",
+    "本任务只新增文档，不需要运行业务构建或测试命令。"
   ]
 }
