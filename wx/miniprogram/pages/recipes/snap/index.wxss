@@ -439,3 +439,34 @@
   font-size: 25rpx;
   margin-top: 20rpx;
 }
+
+/* 错误态：提示 + 操作按钮（重拍 / 相册降级） */
+.snap__error-box {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 280rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  z-index: 5;
+}
+
+.snap__error-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.snap__error-btn {
+  padding: 16rpx 40rpx;
+  border-radius: 40rpx;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1F1B16;
+  font-size: 26rpx;
+}
+
+.snap__error-btn--primary {
+  background: #FF7A00;
+  color: #FFFFFF;
+}

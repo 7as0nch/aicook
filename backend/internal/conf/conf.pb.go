@@ -27,7 +27,6 @@ type Bootstrap struct {
 	Server        *Server                `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
 	Data          *Data                  `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Oss           *OSS                   `protobuf:"bytes,3,opt,name=oss,proto3" json:"oss,omitempty"`
-	Inference     *Inference             `protobuf:"bytes,4,opt,name=inference,proto3" json:"inference,omitempty"`
 	Ai            *AI                    `protobuf:"bytes,5,opt,name=ai,proto3" json:"ai,omitempty"`
 	Auth          *Auth                  `protobuf:"bytes,6,opt,name=auth,proto3" json:"auth,omitempty"`
 	Log           *Log                   `protobuf:"bytes,7,opt,name=log,proto3" json:"log,omitempty"`
@@ -83,13 +82,6 @@ func (x *Bootstrap) GetData() *Data {
 func (x *Bootstrap) GetOss() *OSS {
 	if x != nil {
 		return x.Oss
-	}
-	return nil
-}
-
-func (x *Bootstrap) GetInference() *Inference {
-	if x != nil {
-		return x.Inference
 	}
 	return nil
 }
@@ -780,58 +772,6 @@ func (x *OSS) GetKnowledgeBucket() string {
 	return ""
 }
 
-type Inference struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Endpoint      string                 `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Timeout       *durationpb.Duration   `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Inference) Reset() {
-	*x = Inference{}
-	mi := &file_internal_conf_conf_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Inference) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Inference) ProtoMessage() {}
-
-func (x *Inference) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Inference.ProtoReflect.Descriptor instead.
-func (*Inference) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *Inference) GetEndpoint() string {
-	if x != nil {
-		return x.Endpoint
-	}
-	return ""
-}
-
-func (x *Inference) GetTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.Timeout
-	}
-	return nil
-}
-
 type AI struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Mode           string                 `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
@@ -841,13 +781,17 @@ type AI struct {
 	ChatModel      string                 `protobuf:"bytes,5,opt,name=chat_model,json=chatModel,proto3" json:"chat_model,omitempty"`
 	VisionModel    string                 `protobuf:"bytes,6,opt,name=vision_model,json=visionModel,proto3" json:"vision_model,omitempty"`
 	EmbeddingModel string                 `protobuf:"bytes,7,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// LLM 单次请求超时（菜谱生成等长输出场景需要较大值），缺省 300s
+	RequestTimeout *durationpb.Duration `protobuf:"bytes,8,opt,name=request_timeout,json=requestTimeout,proto3" json:"request_timeout,omitempty"`
+	// 语音识别模型（小米 MiMo ASR），缺省 mimo-v2.5-asr
+	AsrModel      string `protobuf:"bytes,9,opt,name=asr_model,json=asrModel,proto3" json:"asr_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AI) Reset() {
 	*x = AI{}
-	mi := &file_internal_conf_conf_proto_msgTypes[12]
+	mi := &file_internal_conf_conf_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +803,7 @@ func (x *AI) String() string {
 func (*AI) ProtoMessage() {}
 
 func (x *AI) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_conf_conf_proto_msgTypes[12]
+	mi := &file_internal_conf_conf_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +816,7 @@ func (x *AI) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AI.ProtoReflect.Descriptor instead.
 func (*AI) Descriptor() ([]byte, []int) {
-	return file_internal_conf_conf_proto_rawDescGZIP(), []int{12}
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AI) GetMode() string {
@@ -924,20 +868,33 @@ func (x *AI) GetEmbeddingModel() string {
 	return ""
 }
 
+func (x *AI) GetRequestTimeout() *durationpb.Duration {
+	if x != nil {
+		return x.RequestTimeout
+	}
+	return nil
+}
+
+func (x *AI) GetAsrModel() string {
+	if x != nil {
+		return x.AsrModel
+	}
+	return ""
+}
+
 var File_internal_conf_conf_proto protoreflect.FileDescriptor
 
 const file_internal_conf_conf_proto_rawDesc = "" +
 	"\n" +
-	"\x18internal/conf/conf.proto\x12\vaicook.conf\x1a\x1egoogle/protobuf/duration.proto\"\xd2\x02\n" +
+	"\x18internal/conf/conf.proto\x12\vaicook.conf\x1a\x1egoogle/protobuf/duration.proto\"\xad\x02\n" +
 	"\tBootstrap\x12+\n" +
 	"\x06server\x18\x01 \x01(\v2\x13.aicook.conf.ServerR\x06server\x12%\n" +
 	"\x04data\x18\x02 \x01(\v2\x11.aicook.conf.DataR\x04data\x12\"\n" +
-	"\x03oss\x18\x03 \x01(\v2\x10.aicook.conf.OSSR\x03oss\x124\n" +
-	"\tinference\x18\x04 \x01(\v2\x16.aicook.conf.InferenceR\tinference\x12\x1f\n" +
+	"\x03oss\x18\x03 \x01(\v2\x10.aicook.conf.OSSR\x03oss\x12\x1f\n" +
 	"\x02ai\x18\x05 \x01(\v2\x0f.aicook.conf.AIR\x02ai\x12%\n" +
 	"\x04auth\x18\x06 \x01(\v2\x11.aicook.conf.AuthR\x04auth\x12\"\n" +
 	"\x03log\x18\a \x01(\v2\x10.aicook.conf.LogR\x03log\x12+\n" +
-	"\x06wechat\x18\b \x01(\v2\x13.aicook.conf.WechatR\x06wechat\"6\n" +
+	"\x06wechat\x18\b \x01(\v2\x13.aicook.conf.WechatR\x06wechatJ\x04\b\x04\x10\x05R\tinference\"6\n" +
 	"\x06Wechat\x12\x14\n" +
 	"\x05appid\x18\x01 \x01(\tR\x05appid\x12\x16\n" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\"]\n" +
@@ -989,10 +946,7 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"secret_key\x18\x04 \x01(\tR\tsecretKey\x12\x17\n" +
 	"\ause_ssl\x18\x05 \x01(\bR\x06useSsl\x12!\n" +
 	"\fmedia_bucket\x18\x06 \x01(\tR\vmediaBucket\x12)\n" +
-	"\x10knowledge_bucket\x18\a \x01(\tR\x0fknowledgeBucket\"\\\n" +
-	"\tInference\x12\x1a\n" +
-	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x123\n" +
-	"\atimeout\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xd3\x01\n" +
+	"\x10knowledge_bucket\x18\a \x01(\tR\x0fknowledgeBucket\"\xb4\x02\n" +
 	"\x02AI\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
@@ -1001,7 +955,9 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\n" +
 	"chat_model\x18\x05 \x01(\tR\tchatModel\x12!\n" +
 	"\fvision_model\x18\x06 \x01(\tR\vvisionModel\x12'\n" +
-	"\x0fembedding_model\x18\a \x01(\tR\x0eembeddingModelB9Z7github.com/chengjiang/aicook/backend/internal/conf;confb\x06proto3"
+	"\x0fembedding_model\x18\a \x01(\tR\x0eembeddingModel\x12B\n" +
+	"\x0frequest_timeout\x18\b \x01(\v2\x19.google.protobuf.DurationR\x0erequestTimeout\x12\x1b\n" +
+	"\tasr_model\x18\t \x01(\tR\basrModelB9Z7github.com/chengjiang/aicook/backend/internal/conf;confb\x06proto3"
 
 var (
 	file_internal_conf_conf_proto_rawDescOnce sync.Once
@@ -1015,7 +971,7 @@ func file_internal_conf_conf_proto_rawDescGZIP() []byte {
 	return file_internal_conf_conf_proto_rawDescData
 }
 
-var file_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_internal_conf_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: aicook.conf.Bootstrap
 	(*Wechat)(nil),              // 1: aicook.conf.Wechat
@@ -1028,34 +984,32 @@ var file_internal_conf_conf_proto_goTypes = []any{
 	(*PGDatabase)(nil),          // 8: aicook.conf.PGDatabase
 	(*Redis)(nil),               // 9: aicook.conf.Redis
 	(*OSS)(nil),                 // 10: aicook.conf.OSS
-	(*Inference)(nil),           // 11: aicook.conf.Inference
-	(*AI)(nil),                  // 12: aicook.conf.AI
-	(*durationpb.Duration)(nil), // 13: google.protobuf.Duration
+	(*AI)(nil),                  // 11: aicook.conf.AI
+	(*durationpb.Duration)(nil), // 12: google.protobuf.Duration
 }
 var file_internal_conf_conf_proto_depIdxs = []int32{
 	4,  // 0: aicook.conf.Bootstrap.server:type_name -> aicook.conf.Server
 	7,  // 1: aicook.conf.Bootstrap.data:type_name -> aicook.conf.Data
 	10, // 2: aicook.conf.Bootstrap.oss:type_name -> aicook.conf.OSS
-	11, // 3: aicook.conf.Bootstrap.inference:type_name -> aicook.conf.Inference
-	12, // 4: aicook.conf.Bootstrap.ai:type_name -> aicook.conf.AI
-	2,  // 5: aicook.conf.Bootstrap.auth:type_name -> aicook.conf.Auth
-	3,  // 6: aicook.conf.Bootstrap.log:type_name -> aicook.conf.Log
-	1,  // 7: aicook.conf.Bootstrap.wechat:type_name -> aicook.conf.Wechat
-	13, // 8: aicook.conf.Auth.token_ttl:type_name -> google.protobuf.Duration
-	5,  // 9: aicook.conf.Server.http:type_name -> aicook.conf.HTTP
-	6,  // 10: aicook.conf.Server.grpc:type_name -> aicook.conf.GRPC
-	13, // 11: aicook.conf.HTTP.timeout:type_name -> google.protobuf.Duration
-	13, // 12: aicook.conf.GRPC.timeout:type_name -> google.protobuf.Duration
-	8,  // 13: aicook.conf.Data.pg_database:type_name -> aicook.conf.PGDatabase
-	9,  // 14: aicook.conf.Data.redis:type_name -> aicook.conf.Redis
-	13, // 15: aicook.conf.Redis.read_timeout:type_name -> google.protobuf.Duration
-	13, // 16: aicook.conf.Redis.write_timeout:type_name -> google.protobuf.Duration
-	13, // 17: aicook.conf.Inference.timeout:type_name -> google.protobuf.Duration
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	11, // 3: aicook.conf.Bootstrap.ai:type_name -> aicook.conf.AI
+	2,  // 4: aicook.conf.Bootstrap.auth:type_name -> aicook.conf.Auth
+	3,  // 5: aicook.conf.Bootstrap.log:type_name -> aicook.conf.Log
+	1,  // 6: aicook.conf.Bootstrap.wechat:type_name -> aicook.conf.Wechat
+	12, // 7: aicook.conf.Auth.token_ttl:type_name -> google.protobuf.Duration
+	5,  // 8: aicook.conf.Server.http:type_name -> aicook.conf.HTTP
+	6,  // 9: aicook.conf.Server.grpc:type_name -> aicook.conf.GRPC
+	12, // 10: aicook.conf.HTTP.timeout:type_name -> google.protobuf.Duration
+	12, // 11: aicook.conf.GRPC.timeout:type_name -> google.protobuf.Duration
+	8,  // 12: aicook.conf.Data.pg_database:type_name -> aicook.conf.PGDatabase
+	9,  // 13: aicook.conf.Data.redis:type_name -> aicook.conf.Redis
+	12, // 14: aicook.conf.Redis.read_timeout:type_name -> google.protobuf.Duration
+	12, // 15: aicook.conf.Redis.write_timeout:type_name -> google.protobuf.Duration
+	12, // 16: aicook.conf.AI.request_timeout:type_name -> google.protobuf.Duration
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_internal_conf_conf_proto_init() }
@@ -1069,7 +1023,7 @@ func file_internal_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_conf_conf_proto_rawDesc), len(file_internal_conf_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -35,7 +35,7 @@
       </view>
       <view class="wb__tool {{recording ? 'wb__tool--active' : ''}}" bindtap="onVoiceTap">
         <image class="wb__tool-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
-        <text>{{recording ? '录音中…' : '语音输入'}}</text>
+        <text>{{recording ? '录音 ' + recordSeconds + 's · 点击结束' : '语音输入'}}</text>
       </view>
       <view class="wb__tool" bindtap="onSnapImport">
         <image class="wb__tool-icon" src="/assets/icons/camera.png" mode="aspectFit" />
@@ -54,6 +54,12 @@
     </view>
   </view>
 
+  <!-- 生成失败提示 + 重试 -->
+  <view wx:if="{{errorText && !streaming}}" class="wb__error">
+    <text class="wb__error-text">⚠ {{errorText}}</text>
+    <view class="wb__error-retry" bindtap="onRetry">重试</view>
+  </view>
+
   <view class="wb__spacer"></view>
 
   <!-- 底部 CTA -->
@@ -62,5 +68,9 @@
       <image class="wb__cta-icon" src="/assets/icons/send.svg" mode="aspectFit" />
       <text>{{streaming ? '生成中…' : '✨ AI 生成菜谱'}}</text>
     </view>
+    <view class="wb__manual" bindtap="onManualCreate">想自己写？手动创建菜谱 ›</view>
   </view>
 </view>
+
+<!-- AI 需要补充选择（human-in-loop）时打开此抽屉作答，与本页共享同一会话 -->
+<ai-sheet context="生成菜谱" />

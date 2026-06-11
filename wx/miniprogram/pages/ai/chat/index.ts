@@ -5,7 +5,15 @@ import { chatStore } from '../../../store/chat.store';
 import { aiApi } from '../../../services/ai.api';
 import { voiceApi } from '../../../services/voice.api';
 import { uploadFile } from '../../../services/upload';
-import type { ChatMessage } from '../../../types/chat';
+import type { ApprovalSegment, ChatMessage } from '../../../types/chat';
+
+// 从 store 中按消息 client_id + 审批 id 找到 approval 段（交互回调用）
+function findApprovalSeg(msgClientId: string, approvalId: string): ApprovalSegment | undefined {
+  const msg = chatStore.messages.find((m) => m.client_id === msgClientId);
+  return msg?.segments.find(
+    (s): s is ApprovalSegment => s.kind === 'approval' && s.approval_id === approvalId,
+  );
+}
 
 interface QuickAction { id: 'find' | 'how' | 'snap' | 'voice'; iconSrc: string; label: string; desc: string; }
 
@@ -252,8 +260,67 @@ Page({
     }
   },
 
+  // 卡片点击：已落库（有 recipe_id）→ 详情页；仅草稿 → 编辑页保存；都没有 → 提示
   onRecipeCardTap(e: WechatMiniprogram.BaseEvent) {
-    const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
-    if (id) wx.navigateTo({ url: `/pages/recipes/detail/index?id=${id}` });
+    const ds = (e.currentTarget as unknown as { dataset: { id?: string; cid?: string; idx?: string } }).dataset;
+    if (ds.id) {
+      wx.navigateTo({ url: `/pages/recipes/detail/index?id=${ds.id}` });
+      return;
+    }
+    const msg = chatStore.messages.find((m) => m.client_id === ds.cid);
+    const seg = msg?.segments[Number(ds.idx)];
+    if (seg && seg.kind === 'recipe_card' && seg.draft) {
+      const json = encodeURIComponent(JSON.stringify(seg.draft));
+      wx.navigateTo({ url: `/pages/recipes/editor/index?draft=${json}` });
+      return;
+    }
+    wx.showToast({ title: '草稿数据缺失，请重新生成', icon: 'none' });
+  },
+
+  // 思考过程展开/收起
+  onReasonToggle(e: WechatMiniprogram.BaseEvent) {
+    const cid = (e.currentTarget as unknown as { dataset: { cid?: string } }).dataset.cid;
+    if (cid) chatStore.toggleReasoningCollapsed(cid);
+  },
+
+  // 工作流时间线展开/收起
+  onFlowToggle(e: WechatMiniprogram.BaseEvent) {
+    const cid = (e.currentTarget as unknown as { dataset: { cid?: string } }).dataset.cid;
+    if (cid) chatStore.toggleFlowCollapsed(cid);
+  },
+
+  // human-in-loop：single 模式点选即提交；multi 模式本地勾选
+  onApprovalOptionTap(e: WechatMiniprogram.BaseEvent) {
+    const ds = (e.currentTarget as unknown as { dataset: { cid?: string; aid?: string; oid?: string } }).dataset;
+    if (!ds.cid || !ds.aid || !ds.oid) return;
+    const seg = findApprovalSeg(ds.cid, ds.aid);
+    if (!seg || seg.answered) return;
+    if (seg.selection_mode === 'multi') {
+      chatStore.toggleApprovalChoice(ds.cid, ds.aid, ds.oid);
+      return;
+    }
+    const opt = (seg.options || []).find((o) => o.id === ds.oid);
+    if (opt) chatStore.sendApproval(ds.cid, ds.aid, [opt]);
+  },
+
+  onApprovalConfirm(e: WechatMiniprogram.BaseEvent) {
+    const ds = (e.currentTarget as unknown as { dataset: { cid?: string; aid?: string } }).dataset;
+    if (!ds.cid || !ds.aid) return;
+    const seg = findApprovalSeg(ds.cid, ds.aid);
+    if (!seg || seg.answered) return;
+    const chosen = (seg.options || []).filter((o) => seg.selected_map?.[o.id]);
+    if (!chosen.length) {
+      wx.showToast({ title: '请先选择', icon: 'none' });
+      return;
+    }
+    chatStore.sendApproval(ds.cid, ds.aid, chosen);
+  },
+
+  onApprovalSkip(e: WechatMiniprogram.BaseEvent) {
+    const ds = (e.currentTarget as unknown as { dataset: { cid?: string; aid?: string } }).dataset;
+    if (!ds.cid || !ds.aid) return;
+    const seg = findApprovalSeg(ds.cid, ds.aid);
+    if (!seg || seg.answered) return;
+    chatStore.sendApproval(ds.cid, ds.aid, [], false);
   },
 });

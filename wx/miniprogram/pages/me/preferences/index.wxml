@@ -7,13 +7,13 @@
   </view>
 
   <view class="pref__card">
-    <view class="pref__sec-title">口味</view>
+    <view class="pref__sec-title">🍳 口味</view>
     <view class="pref__sec-sub">支持多选</view>
     <view class="pref__chips">
       <view
         wx:for="{{flavorOptions}}"
         wx:key="*this"
-        class="pref__chip {{flavor.indexOf(item) >= 0 ? 'pref__chip--on' : ''}}"
+        class="pref__chip {{flavorMap[item] ? 'pref__chip--on' : ''}}"
         data-tag="{{item}}"
         bindtap="onFlavorTap"
       >{{item}}</view>
@@ -21,12 +21,12 @@
   </view>
 
   <view class="pref__card">
-    <view class="pref__sec-title">用餐场景</view>
+    <view class="pref__sec-title">🍱 用餐场景</view>
     <view class="pref__chips">
       <view
         wx:for="{{scenarioOptions}}"
         wx:key="*this"
-        class="pref__chip {{scenarios.indexOf(item) >= 0 ? 'pref__chip--on' : ''}}"
+        class="pref__chip {{scenariosMap[item] ? 'pref__chip--on' : ''}}"
         data-tag="{{item}}"
         bindtap="onScenarioTap"
       >{{item}}</view>
@@ -34,13 +34,13 @@
   </view>
 
   <view class="pref__card">
-    <view class="pref__sec-title">饮食禁忌</view>
+    <view class="pref__sec-title">🚫 饮食禁忌</view>
     <view class="pref__sec-sub">AI 会自动避开</view>
     <view class="pref__chips">
       <view
         wx:for="{{restrictionOptions}}"
         wx:key="*this"
-        class="pref__chip pref__chip--alert {{restrictions.indexOf(item) >= 0 ? 'pref__chip--on-alert' : ''}}"
+        class="pref__chip pref__chip--alert {{restrictionsMap[item] ? 'pref__chip--on-alert' : ''}}"
         data-tag="{{item}}"
         bindtap="onRestrictionTap"
       >{{item}}</view>
@@ -48,7 +48,7 @@
   </view>
 
   <view class="pref__card">
-    <view class="pref__sec-title">最大难度</view>
+    <view class="pref__sec-title">📈 最大难度</view>
     <view class="pref__diff">
       <view
         wx:for="{{[1,2,3,4,5]}}"
@@ -62,7 +62,7 @@
   </view>
 
   <view class="pref__card">
-    <view class="pref__sec-title">最大时长</view>
+    <view class="pref__sec-title">⏱️ 最大时长</view>
     <view class="pref__chips">
       <view
         wx:for="{{timeOptions}}"
@@ -72,6 +72,21 @@
         bindtap="onTimeTap"
       >{{item.label}}</view>
     </view>
+  </view>
+
+  <view class="pref__card">
+    <view class="pref__sec-title">✍️ 口味描述</view>
+    <view class="pref__sec-sub">用一句话补充说明，AI 推荐时会参考</view>
+    <textarea
+      class="pref__note"
+      placeholder="比如：不吃香菜，爱吃辣但肠胃弱"
+      placeholder-class="pref__note-ph"
+      value="{{tasteNote}}"
+      bindinput="onTasteNoteInput"
+      maxlength="200"
+      auto-height
+    />
+    <view class="pref__note-count">{{tasteNote.length}}/200</view>
   </view>
 
   <view class="pref__spacer"></view>

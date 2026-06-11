@@ -164,6 +164,7 @@ func toProtoPreferences(p *user.HouseholdPreferences) *v1.HouseholdPreferences {
 		Restrictions:  append([]string(nil), p.Restrictions...),
 		MaxDifficulty: int32(p.MaxDifficulty),
 		MaxMinutes:    int32(p.MaxMinutes),
+		TasteNote:     p.TasteNote,
 	}
 }
 
@@ -178,6 +179,7 @@ func fromProtoPreferences(in *v1.HouseholdPreferences) *user.HouseholdPreference
 		Restrictions:  in.GetRestrictions(),
 		MaxDifficulty: int(in.GetMaxDifficulty()),
 		MaxMinutes:    int(in.GetMaxMinutes()),
+		TasteNote:     in.GetTasteNote(),
 	}
 }
 

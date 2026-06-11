@@ -26,7 +26,8 @@ func (r *Runtime) generateRecipePreferencePlan(
 		return nil, err
 	}
 
-	promptCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	// 推理模型在回答前会消耗较多思考 token，20s 容易误杀，放宽到 60s
+	promptCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	message, err := r.generateMessage(promptCtx, model, buildRecipePreferencePlanMessages(query, preferences), append(

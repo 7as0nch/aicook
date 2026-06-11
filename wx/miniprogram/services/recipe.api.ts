@@ -46,6 +46,7 @@ export interface CreateRecipeDraftReq {
   ingredients: CreateDraftIngredient[];
   steps: CreateDraftStep[];
   gallery_image_urls?: string[];
+  video_url?: string;
 }
 
 export interface UpdateRecipeReq extends CreateRecipeDraftReq {

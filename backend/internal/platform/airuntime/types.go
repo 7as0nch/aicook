@@ -245,6 +245,9 @@ type DraftStep struct {
 	TimerSeconds   int      `json:"timer_seconds"`
 	TimerAnimation string   `json:"timer_animation"`
 	EndCondition   string   `json:"end_condition"`
+	HeatLevel      string   `json:"heat_level,omitempty"`
+	SafetyTips     string   `json:"safety_tips,omitempty"`
+	AIHint         string   `json:"ai_hint,omitempty"`
 	MediaURL       string   `json:"media_url,omitempty"`
 	MediaURLs      []string `json:"media_urls,omitempty"`
 }

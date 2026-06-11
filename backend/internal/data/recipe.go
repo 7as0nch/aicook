@@ -139,6 +139,7 @@ func (r *RecipeRepo) UpdateRecipe(ctx context.Context, householdID int64, recipe
 			"summary":              recipe.Summary,
 			"cover_image_url":      recipe.CoverImageURL,
 			"gallery_image_urls":   recipe.GalleryImageURLs,
+			"video_url":            recipe.VideoURL,
 			"status":               recipe.Status,
 			"category":             recipe.Category,
 			"total_minutes":        recipe.TotalMinutes,

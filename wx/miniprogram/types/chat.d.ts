@@ -14,6 +14,11 @@ export interface ChatMessage {
   status: 'pending' | 'streaming' | 'done' | 'error';
   created_at_ms: number;
   reasoning_collapsed?: boolean;
+  // 工作流时间线（tool_call/agent/status 段）的折叠态与统计（store 维护）
+  flow_collapsed?: boolean;
+  flow_count?: number;
+  // 折叠时展示的最新一条工作流文案（流式中给用户实时进度感）
+  flow_live?: string;
 }
 
 export type ChatSegment =
@@ -30,6 +35,8 @@ export type ChatSegment =
 export interface TextSegment {
   kind: 'text';
   content: string;
+  // 流结束后由 utils/markdown 解析出的 rich-text 节点；存在时优先用它渲染
+  nodes?: unknown[];
 }
 
 export interface ReasoningSegment {
@@ -40,6 +47,9 @@ export interface ReasoningSegment {
 export interface ToolCallSegment {
   kind: 'tool_call';
   tool_name: string;
+  // 后端 running/done 各推一次事件，按 call_id 原地更新同一段（不追加重复行）
+  call_id?: string;
+  status?: string;                // running | done | error
   arguments?: string;             // JSON string
   result?: string;
 }
@@ -58,13 +68,34 @@ export interface RecipeCardSegment {
 export interface AgentSegment {
   kind: 'agent';
   content: string;       // Agent 正在做什么（搜索中、查询食材中）
+  trace_id?: string;     // 按 id 原地更新（running→done 同一行）
+  status?: string;
+}
+
+// human-in-loop 选项（对应 backend airuntime.ApprovalOption）
+export interface ApprovalChoice {
+  id: string;
+  title: string;
+  summary?: string;
 }
 
 export interface ApprovalSegment {
   kind: 'approval';
-  call_id?: string;
+  // 审批 ID（backend PendingApproval.ID），回传 approval_response 时必带
+  approval_id?: string;
   prompt: string;
-  options?: Array<{ label: string; value: string }>;
+  // single = 点选即提交；multi = 多选 + 确认
+  selection_mode?: 'single' | 'multi';
+  allow_skip?: boolean;
+  options?: ApprovalChoice[];
+  // 已选中的选项 id（multi 模式本地暂存；提交后固定）
+  selected_ids?: string[];
+  // 选中态 map（与 selected_ids 同步维护；WXML 不支持 indexOf，用下标访问做高亮）
+  selected_map?: Record<string, boolean>;
+  // 用户已作答：选项变只读展示
+  answered?: boolean;
+  // 已作答的选项标题（历史回放时来自 approval_resolved，仅展示用）
+  selected_label?: string;
 }
 
 export interface SourcesSegment {
@@ -80,6 +111,8 @@ export interface SourcesSegment {
 export interface StatusSegment {
   kind: 'status';
   message: string;
+  step_id?: string;      // 按 step_id 原地更新（running→done 同一行）
+  status?: string;       // running | done | skipped | blocked
 }
 
 export interface ErrorSegment {

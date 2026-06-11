@@ -97,6 +97,7 @@ func (s *RecipeService) CreateRecipeDraft(ctx context.Context, req *v1.CreateRec
 		ScenarioTags:     req.GetScenarioTags(),
 		FlavorTags:       req.GetFlavorTags(),
 		GalleryImageURLs: req.GetGalleryImageUrls(),
+		VideoURL:         req.GetVideoUrl(),
 		Ingredients:      toDraftIngredients(req.GetIngredients()),
 		Steps:            toDraftSteps(req.GetSteps()),
 	})
@@ -121,6 +122,7 @@ func (s *RecipeService) UpdateRecipe(ctx context.Context, req *v1.UpdateRecipeRe
 		Summary:          req.GetSummary(),
 		CoverImageURL:    req.GetCoverImageUrl(),
 		GalleryImageURLs: req.GetGalleryImageUrls(),
+		VideoURL:         req.GetVideoUrl(),
 		Category:         req.GetCategory(),
 		Status:           req.GetStatus(),
 		TotalMinutes:     int(req.GetTotalMinutes()),

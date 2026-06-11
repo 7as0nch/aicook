@@ -454,6 +454,7 @@ type CreateRecipeDraftRequest struct {
 	Ingredients      []*CreateRecipeDraftIngredient `protobuf:"bytes,10,rep,name=ingredients,proto3" json:"ingredients,omitempty"`
 	Steps            []*CreateRecipeDraftStep       `protobuf:"bytes,11,rep,name=steps,proto3" json:"steps,omitempty"`
 	GalleryImageUrls []string                       `protobuf:"bytes,12,rep,name=gallery_image_urls,json=galleryImageUrls,proto3" json:"gallery_image_urls,omitempty"`
+	VideoUrl         string                         `protobuf:"bytes,13,opt,name=video_url,json=videoUrl,proto3" json:"video_url,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -572,6 +573,13 @@ func (x *CreateRecipeDraftRequest) GetGalleryImageUrls() []string {
 	return nil
 }
 
+func (x *CreateRecipeDraftRequest) GetVideoUrl() string {
+	if x != nil {
+		return x.VideoUrl
+	}
+	return ""
+}
+
 type CreateRecipeDraftReply struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Detail        *RecipeDetail          `protobuf:"bytes,1,opt,name=detail,proto3" json:"detail,omitempty"`
@@ -633,6 +641,7 @@ type UpdateRecipeRequest struct {
 	Metadata         *structpb.Struct               `protobuf:"bytes,13,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	Ingredients      []*CreateRecipeDraftIngredient `protobuf:"bytes,14,rep,name=ingredients,proto3" json:"ingredients,omitempty"`
 	Steps            []*CreateRecipeDraftStep       `protobuf:"bytes,15,rep,name=steps,proto3" json:"steps,omitempty"`
+	VideoUrl         string                         `protobuf:"bytes,16,opt,name=video_url,json=videoUrl,proto3" json:"video_url,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -770,6 +779,13 @@ func (x *UpdateRecipeRequest) GetSteps() []*CreateRecipeDraftStep {
 		return x.Steps
 	}
 	return nil
+}
+
+func (x *UpdateRecipeRequest) GetVideoUrl() string {
+	if x != nil {
+		return x.VideoUrl
+	}
+	return ""
 }
 
 type UpdateRecipeReply struct {
@@ -1438,7 +1454,7 @@ const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	" \x01(\tR\x06aiHint\x12\x1b\n" +
 	"\tmedia_url\x18\v \x01(\tR\bmediaUrl\x12\x1d\n" +
 	"\n" +
-	"media_urls\x18\f \x03(\tR\tmediaUrls\"\xdf\x03\n" +
+	"media_urls\x18\f \x03(\tR\tmediaUrls\"\xfc\x03\n" +
 	"\x18CreateRecipeDraftRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
 	"\asummary\x18\x02 \x01(\tR\asummary\x12&\n" +
@@ -1455,9 +1471,10 @@ const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	"\vingredients\x18\n" +
 	" \x03(\v2&.aicook.v1.CreateRecipeDraftIngredientR\vingredients\x126\n" +
 	"\x05steps\x18\v \x03(\v2 .aicook.v1.CreateRecipeDraftStepR\x05steps\x12,\n" +
-	"\x12gallery_image_urls\x18\f \x03(\tR\x10galleryImageUrls\"I\n" +
+	"\x12gallery_image_urls\x18\f \x03(\tR\x10galleryImageUrls\x12\x1b\n" +
+	"\tvideo_url\x18\r \x01(\tR\bvideoUrl\"I\n" +
 	"\x16CreateRecipeDraftReply\x12/\n" +
-	"\x06detail\x18\x01 \x01(\v2\x17.aicook.v1.RecipeDetailR\x06detail\"\xb7\x04\n" +
+	"\x06detail\x18\x01 \x01(\v2\x17.aicook.v1.RecipeDetailR\x06detail\"\xd4\x04\n" +
 	"\x13UpdateRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -1477,7 +1494,8 @@ const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	"flavorTags\x123\n" +
 	"\bmetadata\x18\r \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12H\n" +
 	"\vingredients\x18\x0e \x03(\v2&.aicook.v1.CreateRecipeDraftIngredientR\vingredients\x126\n" +
-	"\x05steps\x18\x0f \x03(\v2 .aicook.v1.CreateRecipeDraftStepR\x05steps\"D\n" +
+	"\x05steps\x18\x0f \x03(\v2 .aicook.v1.CreateRecipeDraftStepR\x05steps\x12\x1b\n" +
+	"\tvideo_url\x18\x10 \x01(\tR\bvideoUrl\"D\n" +
 	"\x11UpdateRecipeReply\x12/\n" +
 	"\x06detail\x18\x01 \x01(\v2\x17.aicook.v1.RecipeDetailR\x06detail\"%\n" +
 	"\x13DeleteRecipeRequest\x12\x0e\n" +

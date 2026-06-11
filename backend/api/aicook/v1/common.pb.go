@@ -784,7 +784,9 @@ type Recipe struct {
 	UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	GalleryImageUrls   []string               `protobuf:"bytes,21,rep,name=gallery_image_urls,json=galleryImageUrls,proto3" json:"gallery_image_urls,omitempty"`
 	// 当前用户是否已收藏此菜谱（由后端按需 join 计算）。
-	Favored       bool `protobuf:"varint,22,opt,name=favored,proto3" json:"favored,omitempty"`
+	Favored bool `protobuf:"varint,22,opt,name=favored,proto3" json:"favored,omitempty"`
+	// 菜谱介绍视频（storage_url，读取时与图片一样按 host/path 重签）。
+	VideoUrl      string `protobuf:"bytes,23,opt,name=video_url,json=videoUrl,proto3" json:"video_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -971,6 +973,13 @@ func (x *Recipe) GetFavored() bool {
 		return x.Favored
 	}
 	return false
+}
+
+func (x *Recipe) GetVideoUrl() string {
+	if x != nil {
+		return x.VideoUrl
+	}
+	return ""
 }
 
 type RecipeIngredient struct {
@@ -2075,7 +2084,7 @@ const file_api_aicook_v1_common_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xdb\x06\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xf8\x06\n" +
 	"\x06Recipe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
 	"\fhousehold_id\x18\x02 \x01(\x03R\vhouseholdId\x12\"\n" +
@@ -2105,7 +2114,8 @@ const file_api_aicook_v1_common_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12,\n" +
 	"\x12gallery_image_urls\x18\x15 \x03(\tR\x10galleryImageUrls\x12\x18\n" +
-	"\afavored\x18\x16 \x01(\bR\afavoredB\x16\n" +
+	"\afavored\x18\x16 \x01(\bR\afavored\x12\x1b\n" +
+	"\tvideo_url\x18\x17 \x01(\tR\bvideoUrlB\x16\n" +
 	"\x14_source_household_idB\x18\n" +
 	"\x16_forked_from_recipe_id\"\xec\x01\n" +
 	"\x10RecipeIngredient\x12\x0e\n" +

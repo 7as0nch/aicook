@@ -166,3 +166,28 @@
   background: #DDD8D0;
   box-shadow: none;
 }
+
+/* 口味文字描述 */
+.pref__note {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 120rpx;
+  background: #F4F5F7;
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx;
+  font-size: 27rpx;
+  color: #1F1B16;
+  line-height: 1.6;
+  margin-top: 16rpx;
+}
+
+.pref__note-ph {
+  color: #B8B4AC;
+}
+
+.pref__note-count {
+  text-align: right;
+  font-size: 22rpx;
+  color: #B8B4AC;
+  margin-top: 8rpx;
+}

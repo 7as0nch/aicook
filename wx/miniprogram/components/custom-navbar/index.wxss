@@ -29,15 +29,19 @@
   flex: 1;
 }
 
-.cnav__left,
-.cnav__right {
+.cnav__left {
   display: flex;
   align-items: center;
   gap: 12rpx;
   min-width: 72rpx;
 }
 
+/* 右插槽不再保留固定最小宽：胶囊空间由 cnav__bar 的 padding-right 让出，
+   右插槽内容贴着胶囊左缘排列，不会跑到胶囊下方 */
 .cnav__right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
   justify-content: flex-end;
 }
 

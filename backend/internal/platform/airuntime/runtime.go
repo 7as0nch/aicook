@@ -88,11 +88,20 @@ func newChatModel(cfg *conf.AI, modelName string) (*einoopenai.ChatModel, error)
 		return nil, fmt.Errorf("chat model is not configured")
 	}
 
+	// LLM client 默认不设 http.Client 级超时（Timeout=0，eino-ext 文档语义为 no timeout）：
+	// 推理模型生成完整菜谱（推理 token + 长 JSON）耗时不可预估，client 级超时会把
+	// 合法的长生成拦腰斩断（表现为 "context deadline exceeded"），且对流式读取同样生效。
+	// 整体生命周期由请求 context 兜底（Kratos server.http.timeout，当前 1000s）；
+	// 如确需硬上限可配置 ai.request_timeout。
+	var timeout time.Duration
+	if d := cfg.GetRequestTimeout().AsDuration(); d > 0 {
+		timeout = d
+	}
 	model, err := einoopenai.NewChatModel(context.Background(), &einoopenai.ChatModelConfig{
 		APIKey:  strings.TrimSpace(cfg.GetApiKey()),
 		BaseURL: resolveBaseURL(cfg),
 		Model:   modelName,
-		Timeout: 60 * time.Second,
+		Timeout: timeout,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init model %s failed: %w", modelName, err)

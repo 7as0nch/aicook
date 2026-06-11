@@ -270,6 +270,30 @@
   font-weight: 500;
 }
 
+/* ========== 按类型浏览 ========== */
+.home__cats {
+  width: 100%;
+  white-space: nowrap;
+  margin-bottom: 28rpx;
+}
+
+.home__cats-row {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 4rpx 0;
+}
+
+.home__cat {
+  padding: 16rpx 34rpx;
+  background: #FFF6EE;
+  color: #FF7A00;
+  border-radius: 9999rpx;
+  font-size: 27rpx;
+  font-weight: 500;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
 /* ========== 双列网格 ========== */
 .home__grid {
   display: flex;

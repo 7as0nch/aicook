@@ -45,10 +45,6 @@ log:
   filename: aicook.log
   level: info
 
-inference:
-  endpoint: http://127.0.0.1:8088
-  timeout: 30s
-
 ai:
   mode: adk
   # Xiaomi MiMo 兼容 OpenAI Chat Completions。
@@ -61,6 +57,8 @@ ai:
   chat_model: "mimo-v2-pro" # mimo-v2-pro
   # 上传图片/音频/文件时自动切到多模态模型。
   vision_model: "mimo-v2-omni"
+  # 语音识别模型（取代原 inference-service 的 FunASR）。
+  asr_model: "mimo-v2.5-asr"
   embedding:
     provider:
       doubao:

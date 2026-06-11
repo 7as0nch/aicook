@@ -10,8 +10,8 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
-	"github.com/chengjiang/aicook/backend/internal/platform/inference"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
+	"github.com/go-kratos/kratos/v2/log"
 	"gorm.io/datatypes"
 )
 
@@ -33,17 +33,15 @@ type ImportUsecase struct {
 	mediaRepo     user.MediaRepo
 	recipeRepo    RecipeRepo
 	objectStorage storage.ObjectStorage
-	inference     *inference.Client
 	aiRuntime     *airuntime.Runtime
 }
 
-func NewImportUsecase(repo *data.ImportRepo, mediaRepo *data.MediaRepo, recipeRepo *data.RecipeRepo, objectStorage storage.ObjectStorage, inferenceClient *inference.Client, aiRuntime *airuntime.Runtime) *ImportUsecase {
+func NewImportUsecase(repo *data.ImportRepo, mediaRepo *data.MediaRepo, recipeRepo *data.RecipeRepo, objectStorage storage.ObjectStorage, aiRuntime *airuntime.Runtime) *ImportUsecase {
 	usecase := &ImportUsecase{
 		repo:          repo,
 		mediaRepo:     mediaRepo,
 		recipeRepo:    recipeRepo,
 		objectStorage: objectStorage,
-		inference:     inferenceClient,
 		aiRuntime:     aiRuntime,
 	}
 	if aiRuntime != nil {
@@ -69,23 +67,15 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 
 	assets, err := u.mediaRepo.ListByIDs(ctx, req.MediaAssetIDs)
 	if err != nil {
+		// 各失败分支记录 job_id + 阶段名，便于按链路排查识别失败
+		log.Errorf("image recipe import failed: job_id=%d stage=fetch_media asset_ids=%v err=%v", job.ID, req.MediaAssetIDs, err)
 		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "ocr", nil, nil, err.Error())
 		return nil, err
 	}
 
-	files := make([]inference.FilePayload, 0, len(assets))
+	// 仅取图片附件交给多模态视觉模型（vision_model 直接识图，已不再走 OCR）。
 	attachments := make([]airuntime.Attachment, 0, len(assets))
 	for _, asset := range assets {
-		content, readErr := u.objectStorage.GetObject(ctx, asset.Bucket, asset.ObjectKey)
-		if readErr != nil {
-			_ = u.repo.UpdateResult(ctx, job.ID, "failed", "ocr", nil, nil, readErr.Error())
-			return nil, readErr
-		}
-		files = append(files, inference.FilePayload{
-			FileName:    asset.FileName,
-			ContentType: asset.ContentType,
-			Data:        content,
-		})
 		attachments = append(attachments, airuntime.Attachment{
 			Type:        "image",
 			URL:         asset.StorageURL,
@@ -94,34 +84,15 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 		})
 	}
 
+	// vision 直识别；运行时内部在多模态失败时会回退启发式草稿，返回 err 仅代表真异常。
 	draft, draftSource, err := u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
 		TitleHint: req.TitleHint,
 		Images:    attachments,
 	})
-	var ocrText string
-	var multimodalError string
 	if err != nil {
-		multimodalError = err.Error()
-		ocrResult, ocrErr := u.inference.OCR(ctx, files)
-		if ocrErr != nil {
-			_ = u.repo.UpdateResult(ctx, job.ID, "failed", "ocr", nil, map[string]any{
-				"multimodal_error": multimodalError,
-			}, ocrErr.Error())
-			return nil, ocrErr
-		}
-		ocrText = ocrResult.Text
-		draft, draftSource, err = u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
-			TitleHint: req.TitleHint,
-			OCRText:   ocrText,
-			Images:    attachments,
-		})
-	}
-	if err != nil {
+		log.Errorf("image recipe import failed: job_id=%d stage=ai_draft draft_source=%s err=%v", job.ID, draftSource, err)
 		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "normalize", nil, map[string]any{
-			"draft_source":      draftSource,
-			"multimodal_error":  multimodalError,
-			"ocr_text":          ocrText,
-			"fallback_attempted": ocrText != "",
+			"draft_source": draftSource,
 		}, err.Error())
 		return nil, err
 	}
@@ -169,16 +140,14 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 	}
 
 	if err := u.recipeRepo.CreateDraft(ctx, recipe, ingredients, steps); err != nil {
+		log.Errorf("image recipe import failed: job_id=%d stage=persist err=%v", job.ID, err)
 		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "persist", nil, nil, err.Error())
 		return nil, err
 	}
 
 	resultPayload := map[string]any{
-		"ocr_text":           ocrText,
-		"draft":              draft,
-		"draft_source":       draftSource,
-		"multimodal_error":   multimodalError,
-		"fallback_attempted": ocrText != "",
+		"draft":        draft,
+		"draft_source": draftSource,
 	}
 	if err := u.repo.UpdateResult(ctx, job.ID, "review_required", "done", &recipe.ID, resultPayload, ""); err != nil {
 		return nil, err

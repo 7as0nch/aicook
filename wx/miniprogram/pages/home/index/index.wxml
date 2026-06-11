@@ -17,8 +17,7 @@
         <image class="home__search-scan" src="/assets/icons/scan.png" mode="aspectFit" catchtap="onScanTap" />
       </view>
       <view class="home__avatar" bindtap="onAvatarTap">
-        <image wx:if="{{user && user.avatar_url}}" class="home__avatar-img" src="{{user.avatar_url}}" mode="aspectFill" />
-        <image wx:else class="home__avatar-fallback" src="/assets/icons/me.png" mode="aspectFit" />
+        <user-avatar url="{{user.avatar_url}}" name="{{user.display_name || user.username}}" size="88rpx" />
       </view>
     </view>
   </view>
@@ -81,6 +80,23 @@
       <text class="home__qe-label">我的收藏</text>
     </view>
   </view>
+
+  <!-- 按类型浏览（点选跳菜谱 Tab 预选该类目） -->
+  <view wx:if="{{categories.length}}" class="home__sec-head">
+    <text class="home__sec-title">按类型浏览</text>
+    <text class="home__sec-sub">挑个口味</text>
+  </view>
+  <scroll-view wx:if="{{categories.length}}" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" class="home__cats">
+    <view class="home__cats-row">
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="home__cat"
+        data-name="{{item.name}}"
+        bindtap="onCategoryTap"
+      >{{item.name}}</view>
+    </view>
+  </scroll-view>
 
   <!-- 灵感推荐 -->
   <view class="home__sec-head">

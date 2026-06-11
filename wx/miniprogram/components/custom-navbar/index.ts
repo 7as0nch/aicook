@@ -23,23 +23,29 @@ Component({
     statusBarHeight: 44,
     navBarHeight: 88,
     totalHeight: 132,
+    // 右侧需为微信胶囊让出的宽度（px）：导航内容（右插槽/标题）不得伸到胶囊下方
+    capsuleInset: 96,
   },
   lifetimes: {
     attached() {
       try {
-        const sys = (wx as unknown as { getWindowInfo?: () => { statusBarHeight?: number } })
+        const sys = (wx as unknown as { getWindowInfo?: () => { statusBarHeight?: number; windowWidth?: number; screenWidth?: number } })
           .getWindowInfo?.() || wx.getSystemInfoSync();
         const statusBarHeight = sys.statusBarHeight || 44;
+        const windowWidth = sys.windowWidth || sys.screenWidth || 375;
         // 优先用胶囊算 navbar 高度（更准确）
         let navBarHeight = 88;
+        let capsuleInset = 96;
         try {
           const menu = wx.getMenuButtonBoundingClientRect?.();
           if (menu && menu.height) {
             navBarHeight = (menu.top - statusBarHeight) * 2 + menu.height;
+            // 从胶囊左缘到屏幕右缘 + 8px 安全间距，作为导航右侧内边距
+            capsuleInset = Math.max(0, windowWidth - menu.left + 8);
           }
         } catch (_) { /* 胶囊 API 不可用时用默认高度 */ }
         const totalHeight = statusBarHeight + navBarHeight;
-        this.setData({ statusBarHeight, navBarHeight, totalHeight });
+        this.setData({ statusBarHeight, navBarHeight, totalHeight, capsuleInset });
       } catch (_) { /* 系统信息获取失败时用 data 默认值 */ }
     },
   },

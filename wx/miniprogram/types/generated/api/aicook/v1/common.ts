@@ -116,7 +116,11 @@ export interface Recipe {
     | string[]
     | undefined;
   /** 当前用户是否已收藏此菜谱（由后端按需 join 计算）。 */
-  favored?: boolean | undefined;
+  favored?:
+    | boolean
+    | undefined;
+  /** 菜谱介绍视频（storage_url，读取时与图片一样按 host/path 重签）。 */
+  video_url?: string | undefined;
 }
 
 export interface RecipeIngredient {

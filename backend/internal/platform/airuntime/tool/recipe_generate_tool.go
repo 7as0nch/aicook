@@ -34,6 +34,7 @@ func NewRecipeGenerateTool(
 	searchExisting func(context.Context, string, int) ([]RecipeCard, error),
 	generate func(context.Context, string, TextRecipePreferences, string) (*TextRecipeResult, error),
 	planPreferences func(context.Context, string, TextRecipePreferences) (*RecipePreferencePlan, error),
+	alreadyGenerated func(context.Context) bool,
 ) (einotool.BaseTool, error) {
 	return toolutils.InferTool("recipe_generate", "为用户生成可确认保存的新菜谱；若已有近似菜谱则先让用户确认。", func(ctx context.Context, input QueryArgs) (string, error) {
 		query := strings.TrimSpace(input.Query)
@@ -43,6 +44,14 @@ func NewRecipeGenerateTool(
 
 		wasInterrupted, hasState, state := einotool.GetInterruptState[*textRecipeState](ctx)
 		if !wasInterrupted {
+			// 确定性护栏：本轮已经产出过菜谱卡片时，禁止 planner 再次发起生成——
+			// 否则新调用会重新规划偏好追问，造成"菜谱出来了又弹问题"的死循环。
+			if alreadyGenerated != nil && alreadyGenerated(ctx) {
+				return marshal(TextRecipeResult{
+					Status:  "already_generated",
+					Summary: "本轮已经生成过菜谱卡片，请引导用户查看或保存当前卡片；若用户提出新的调整需求，等用户在下一条消息明确说明后再生成。",
+				})
+			}
 			limit := input.Limit
 			if limit <= 0 {
 				limit = 3

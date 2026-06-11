@@ -37,6 +37,7 @@ type CreateRecipeDraftRequest struct {
 	ScenarioTags  []string
 	FlavorTags       []string
 	GalleryImageURLs []string
+	VideoURL         string
 	Ingredients      []airuntime.DraftIngredient
 	Steps            []airuntime.DraftStep
 }
@@ -48,6 +49,7 @@ type UpdateRecipeRequest struct {
 	Summary          string
 	CoverImageURL    string
 	GalleryImageURLs []string
+	VideoURL         string
 	Category         string
 	Status           string
 	TotalMinutes     int
@@ -162,6 +164,9 @@ func (u *RecipeUsecase) UpdateRecipe(ctx context.Context, req UpdateRecipeReques
 			TimerSeconds:   maxDraftTimer(item.TimerSeconds, item.NeedTimer),
 			TimerAnimation: fallbackDraftTimerAnimation(strings.TrimSpace(item.TimerAnimation), item.NeedTimer || item.TimerSeconds > 0),
 			EndCondition:   strings.TrimSpace(item.EndCondition),
+			HeatLevel:      strings.TrimSpace(item.HeatLevel),
+			SafetyTips:     strings.TrimSpace(item.SafetyTips),
+			AIHint:         strings.TrimSpace(item.AIHint),
 			MediaURL:       firstMedia,
 			MediaURLs:      mediaJSON,
 		})
@@ -199,6 +204,7 @@ func (u *RecipeUsecase) UpdateRecipe(ctx context.Context, req UpdateRecipeReques
 		Summary:          strings.TrimSpace(req.Summary),
 		CoverImageURL:    stripPresignedQuery(req.CoverImageURL),
 		GalleryImageURLs: data.GalleryImageURLsJSON(canonicalizeGalleryImageURLs(req.GalleryImageURLs)),
+		VideoURL:         stripPresignedQuery(req.VideoURL),
 		Status:           status,
 		Category:         strings.TrimSpace(req.Category),
 		TotalMinutes:     totalMinutes,
@@ -267,6 +273,9 @@ func (u *RecipeUsecase) CreateDraft(ctx context.Context, req CreateRecipeDraftRe
 			TimerSeconds:   maxDraftTimer(item.TimerSeconds, item.NeedTimer),
 			TimerAnimation: fallbackDraftTimerAnimation(strings.TrimSpace(item.TimerAnimation), item.NeedTimer || item.TimerSeconds > 0),
 			EndCondition:   strings.TrimSpace(item.EndCondition),
+			HeatLevel:      strings.TrimSpace(item.HeatLevel),
+			SafetyTips:     strings.TrimSpace(item.SafetyTips),
+			AIHint:         strings.TrimSpace(item.AIHint),
 			MediaURL:       firstMedia,
 			MediaURLs:      mediaJSON,
 		})
@@ -300,6 +309,7 @@ func (u *RecipeUsecase) CreateDraft(ctx context.Context, req CreateRecipeDraftRe
 		Summary:          strings.TrimSpace(req.Summary),
 		CoverImageURL:    stripPresignedQuery(req.CoverImageURL),
 		GalleryImageURLs: data.GalleryImageURLsJSON(canonicalizeGalleryImageURLs(req.GalleryImageURLs)),
+		VideoURL:         stripPresignedQuery(req.VideoURL),
 		Status:           "draft",
 		SourceType:       "ai_text",
 		Language:         "zh-CN",

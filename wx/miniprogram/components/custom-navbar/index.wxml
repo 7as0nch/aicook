@@ -3,7 +3,7 @@
   style="background: {{bg}}; height: {{totalHeight}}px;"
 >
   <view class="cnav__status" style="height: {{statusBarHeight}}px;"></view>
-  <view class="cnav__bar" style="height: {{navBarHeight}}px;">
+  <view class="cnav__bar" style="height: {{navBarHeight}}px; padding-right: {{capsuleInset}}px;">
     <view class="cnav__left">
       <slot name="left"></slot>
       <view wx:if="{{showBack}}" class="cnav__back" bindtap="onBack">

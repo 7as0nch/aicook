@@ -12,7 +12,6 @@ DOCKERHUB_USER="${DOCKERHUB_USER:-7as0nch}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 VERSION_BACKEND="${VERSION_BACKEND:-v0.1.0}"
 VERSION_FRONTEND="${VERSION_FRONTEND:-v0.1.0}"
-VERSION_INFERENCE="${VERSION_INFERENCE:-v0.1.0}"
 REMOTE_HOST="${REMOTE_HOST:-root@sshjd.aihelper.chat}"
 REMOTE_K8S_PATH="${REMOTE_K8S_PATH:-/root/k3s/aicook/aicook.yaml}"
 SKIP_K8S_DEPLOY="${SKIP_K8S_DEPLOY:-false}"
@@ -66,10 +65,6 @@ fi
 if [ -z "${SERVICE}" ] || [ "${SERVICE}" = "frontend" ]; then
   build_frontend_dist
   build_and_push "frontend" "${ROOT_DIR}/frontend" "${ROOT_DIR}/frontend/Dockerfile" "${VERSION_FRONTEND}"
-fi
-
-if [ -z "${SERVICE}" ] || [ "${SERVICE}" = "inference" ]; then
-  build_and_push "inference" "${ROOT_DIR}/inference-service" "${ROOT_DIR}/inference-service/Dockerfile" "${VERSION_INFERENCE}"
 fi
 
 deploy_k8s_manifest

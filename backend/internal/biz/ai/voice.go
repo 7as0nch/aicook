@@ -3,27 +3,27 @@ package ai
 import (
 	"context"
 
-	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
-	"github.com/chengjiang/aicook/backend/internal/platform/inference"
+	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/platform/asr"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
 )
 
 type VoiceUsecase struct {
 	mediaRepo     user.MediaRepo
 	objectStorage storage.ObjectStorage
-	inference     *inference.Client
+	asr           *asr.Client
 }
 
-func NewVoiceUsecase(mediaRepo *data.MediaRepo, objectStorage storage.ObjectStorage, inferenceClient *inference.Client) *VoiceUsecase {
+func NewVoiceUsecase(mediaRepo *data.MediaRepo, objectStorage storage.ObjectStorage, asrClient *asr.Client) *VoiceUsecase {
 	return &VoiceUsecase{
 		mediaRepo:     mediaRepo,
 		objectStorage: objectStorage,
-		inference:     inferenceClient,
+		asr:           asrClient,
 	}
 }
 
-func (u *VoiceUsecase) TranscribeAsset(ctx context.Context, assetID int64) (*inference.SpeechResult, error) {
+func (u *VoiceUsecase) TranscribeAsset(ctx context.Context, assetID int64) (*asr.SpeechResult, error) {
 	asset, err := u.mediaRepo.Get(ctx, assetID)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (u *VoiceUsecase) TranscribeAsset(ctx context.Context, assetID int64) (*inf
 		return nil, err
 	}
 
-	return u.inference.Transcribe(ctx, inference.FilePayload{
+	return u.asr.Transcribe(ctx, asr.FilePayload{
 		FileName:    asset.FileName,
 		ContentType: asset.ContentType,
 		Data:        payload,

@@ -73,6 +73,8 @@ export interface HouseholdPreferences {
   restrictions: string[];
   max_difficulty: number;
   max_minutes: number;
+  // 口味的自由文字描述（如"不吃香菜，爱吃辣但肠胃弱"），后端限长 200 字
+  taste_note?: string;
 }
 
 // === 菜谱 ===
@@ -96,6 +98,7 @@ export interface Recipe {
   flavor_tags?: string[];
   tools?: string[];
   gallery_image_urls?: string[];
+  video_url?: string;
   metadata?: Record<string, unknown>;
   favored?: boolean;                   // 当前用户是否已收藏（后端在返回时 join 计算）
   created_at?: Timestamp;
@@ -297,6 +300,10 @@ export interface Source {
   title: string;
   document_id?: string;
   snippet?: string;
+  source_kind?: string;
+  site_name?: string;
+  publish_time?: string;
+  logo_url?: string;
 }
 
 export interface AISession {
@@ -311,6 +318,36 @@ export interface AISession {
   updated_at?: Timestamp;
 }
 
+// 助手消息持久化的回复元数据（response_meta.metadata，对应 backend airuntime.ReplyMetadata）。
+// 历史回放时据此重建菜谱卡片 / 思考过程 / 待选择项等富内容段。
+export interface AIMessageReplyMeta {
+  reasoning_content?: string;
+  recipe_card?: {
+    recipe_id?: string;
+    title?: string;
+    summary?: string;
+    cover_image_url?: string;
+    draft?: Record<string, unknown>;
+  };
+  // 未作答的 human-in-loop 提问（作答后后端会替换为 approval_resolved）
+  pending_approval?: {
+    id?: string;
+    prompt?: string;
+    selection_mode?: string;
+    allow_skip?: boolean;
+    options?: Array<{ id?: string; title?: string; summary?: string }>;
+  };
+  // 已作答记录（防历史重载后重复提交）
+  approval_resolved?: {
+    approval_id?: string;
+    option_id?: string;
+    option_ids?: string[];
+    title?: string;
+    titles?: string[];
+    prompt?: string;
+  };
+}
+
 export interface AIMessage {
   id: Int64Like;
   ai_session_id: Int64Like;
@@ -320,7 +357,9 @@ export interface AIMessage {
   quote_context?: QuoteContext;
   attachments?: Attachment[];
   response_sources?: Source[];
-  response_meta?: Record<string, unknown>;
+  // 注意：service 层（helpers.go toProtoAIMessage）把持久化信封的 metadata 内层
+  // 直接放进 response_meta，所以这里就是 ReplyMetadata 本体（无 metadata 嵌套）
+  response_meta?: AIMessageReplyMeta;
   created_at?: Timestamp;
   updated_at?: Timestamp;
 }

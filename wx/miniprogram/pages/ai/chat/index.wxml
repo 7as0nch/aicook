@@ -78,65 +78,123 @@
       </view>
     </view>
 
-    <!-- 消息列表 -->
+    <!-- 消息列表（无任何可渲染内容的旧空消息直接隐藏） -->
     <block wx:for="{{messages}}" wx:key="client_id" wx:for-item="msg">
-      <view id="m-{{msg.client_id}}" class="chat__msg chat__msg--{{msg.role}}">
+      <view wx:if="{{msg.segments.length || msg.status === 'streaming' || msg.flow_count}}" id="m-{{msg.client_id}}" class="chat__msg chat__msg--{{msg.role}}">
         <view wx:if="{{msg.role === 'assistant'}}" class="chat__avatar">
           <image class="chat__avatar-img" src="/assets/mascot/bao-default.png" mode="aspectFit" />
         </view>
-        <view class="chat__bubble">
-          <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
-            <view wx:if="{{seg.kind === 'text'}}" class="chat__text">{{seg.content}}</view>
-            <view wx:elif="{{seg.kind === 'reasoning'}}" class="chat__reasoning">
-              <view class="chat__reasoning-head">
-                <view class="chat__reasoning-dot"></view>
-                <text class="chat__reasoning-label">推理过程</text>
+        <view class="chat__col">
+          <view class="chat__bubble">
+            <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
+              <block wx:if="{{seg.kind === 'text'}}">
+                <rich-text wx:if="{{seg.nodes}}" class="chat__rich" nodes="{{seg.nodes}}" />
+                <view wx:else class="chat__text">{{seg.content}}</view>
+              </block>
+              <view wx:elif="{{seg.kind === 'reasoning'}}" class="chat__reasoning">
+                <view class="chat__reasoning-head" data-cid="{{msg.client_id}}" catchtap="onReasonToggle">
+                  <view class="chat__reasoning-dot"></view>
+                  <text class="chat__reasoning-label">💭 推理过程</text>
+                  <text class="chat__reasoning-chevron">{{msg.reasoning_collapsed ? '展开 ▸' : '收起 ▾'}}</text>
+                </view>
+                <text wx:if="{{!msg.reasoning_collapsed}}" class="chat__reasoning-text">{{seg.content}}</text>
               </view>
-              <text class="chat__reasoning-text">{{seg.content}}</text>
-            </view>
-            <view wx:elif="{{seg.kind === 'tool_call'}}" class="chat__tool">
-              <view class="chat__tool-dot"></view>
-              <text>调用 {{seg.tool_name}}</text>
-            </view>
-            <view wx:elif="{{seg.kind === 'agent'}}" class="chat__agent">
-              <view class="chat__agent-dot"></view>
-              <text>{{seg.content}}</text>
-            </view>
-            <view wx:elif="{{seg.kind === 'recipe_card'}}" class="chat__recipe" data-id="{{seg.recipe_id}}" bindtap="onRecipeCardTap">
-              <view class="chat__recipe-cover chat__recipe-cover--ph">
-                <image wx:if="{{seg.cover_image_url}}" class="chat__recipe-cover-img" src="{{seg.cover_image_url}}" mode="aspectFill" />
+              <view wx:elif="{{seg.kind === 'recipe_card'}}" class="chat__recipe" data-id="{{seg.recipe_id}}" data-cid="{{msg.client_id}}" data-idx="{{index}}" bindtap="onRecipeCardTap">
+                <view class="chat__recipe-cover chat__recipe-cover--ph">
+                  <image wx:if="{{seg.cover_image_url}}" class="chat__recipe-cover-img" src="{{seg.cover_image_url}}" mode="aspectFill" />
+                </view>
+                <view class="chat__recipe-body">
+                  <view class="chat__recipe-title">{{seg.title}}</view>
+                  <view class="chat__recipe-summary">{{seg.summary || ''}}</view>
+                  <view class="chat__recipe-cta">{{seg.recipe_id ? '查看详情 ›' : '✎ 编辑并保存 ›'}}</view>
+                </view>
               </view>
-              <view class="chat__recipe-body">
-                <view class="chat__recipe-title">{{seg.title}}</view>
-                <view class="chat__recipe-summary">{{seg.summary || ''}}</view>
-                <view class="chat__recipe-cta">查看详情 ›</view>
-              </view>
-            </view>
-            <view wx:elif="{{seg.kind === 'approval'}}" class="chat__approval">
-              <text class="chat__approval-prompt">{{seg.prompt}}</text>
-            </view>
-            <view wx:elif="{{seg.kind === 'sources'}}" class="chat__sources">
-              <text class="chat__sources-head">参考来源</text>
-              <scroll-view scroll-x class="chat__sources-scroll">
-                <view class="chat__sources-row">
+              <view wx:elif="{{seg.kind === 'approval'}}" class="chat__approval">
+                <text class="chat__approval-prompt">{{seg.prompt}}</text>
+                <view wx:if="{{seg.options.length}}" class="chat__approval-opts">
                   <view
-                    wx:for="{{seg.sources}}"
-                    wx:for-item="src"
-                    wx:key="title"
-                    class="chat__source-card"
+                    wx:for="{{seg.options}}"
+                    wx:for-item="opt"
+                    wx:key="id"
+                    class="chat__approval-opt {{seg.selected_map[opt.id] ? 'chat__approval-opt--on' : ''}} {{seg.answered ? 'chat__approval-opt--done' : ''}}"
+                    data-cid="{{msg.client_id}}"
+                    data-aid="{{seg.approval_id}}"
+                    data-oid="{{opt.id}}"
+                    catchtap="onApprovalOptionTap"
                   >
-                    <text class="chat__source-title">{{src.title}}</text>
-                    <text wx:if="{{src.snippet}}" class="chat__source-snippet">{{src.snippet}}</text>
+                    <text class="chat__approval-opt-title">{{opt.title}}</text>
+                    <text wx:if="{{opt.summary}}" class="chat__approval-opt-sum">{{opt.summary}}</text>
                   </view>
                 </view>
-              </scroll-view>
+                <view wx:if="{{!seg.answered && (seg.selection_mode === 'multi' || seg.allow_skip)}}" class="chat__approval-actions">
+                  <view
+                    wx:if="{{seg.allow_skip}}"
+                    class="chat__approval-skip"
+                    data-cid="{{msg.client_id}}"
+                    data-aid="{{seg.approval_id}}"
+                    catchtap="onApprovalSkip"
+                  >跳过</view>
+                  <view
+                    wx:if="{{seg.selection_mode === 'multi'}}"
+                    class="chat__approval-confirm"
+                    data-cid="{{msg.client_id}}"
+                    data-aid="{{seg.approval_id}}"
+                    catchtap="onApprovalConfirm"
+                  >确认选择</view>
+                </view>
+                <view wx:if="{{seg.answered}}" class="chat__approval-answered">✓ 已选择{{seg.selected_label ? '：' + seg.selected_label : ''}}</view>
+              </view>
+              <view wx:elif="{{seg.kind === 'sources'}}" class="chat__sources">
+                <text class="chat__sources-head">🔎 参考来源（{{seg.sources.length}}）</text>
+                <scroll-view scroll-x class="chat__sources-scroll">
+                  <view class="chat__sources-row">
+                    <view
+                      wx:for="{{seg.sources}}"
+                      wx:for-item="src"
+                      wx:key="title"
+                      class="chat__source-card"
+                    >
+                      <text class="chat__source-title">{{src.title}}</text>
+                      <text wx:if="{{src.snippet}}" class="chat__source-snippet">{{src.snippet}}</text>
+                      <text wx:if="{{src.site_name}}" class="chat__source-site">{{src.site_name}}</text>
+                    </view>
+                  </view>
+                </scroll-view>
+              </view>
+              <view wx:elif="{{seg.kind === 'error'}}" class="chat__error">⚠ {{seg.message}}</view>
+            </block>
+            <view wx:if="{{msg.status === 'streaming' && !msg.segments.length}}" class="chat__typing">
+              <text>包包正在思考</text>
+              <text class="chat__typing-dots">...</text>
             </view>
-            <view wx:elif="{{seg.kind === 'status'}}" class="chat__status">{{seg.message}}</view>
-            <view wx:elif="{{seg.kind === 'error'}}" class="chat__error">⚠ {{seg.message}}</view>
-          </block>
-          <view wx:if="{{msg.status === 'streaming' && !msg.segments.length}}" class="chat__typing">
-            <text>包包正在思考</text>
-            <text class="chat__typing-dots">...</text>
+          </view>
+          <!-- 工作流时间线（tool_call / agent / status）：默认折叠，头部计数 + 流式中实时行 -->
+          <view wx:if="{{msg.role === 'assistant' && msg.flow_count}}" class="chat__flowline">
+            <view class="chat__flow-head" data-cid="{{msg.client_id}}" catchtap="onFlowToggle">
+              <text class="chat__flow-head-icon">⚙️</text>
+              <text class="chat__flow-head-text">执行过程 · {{msg.flow_count}} 步</text>
+              <text class="chat__flow-head-chevron">{{msg.flow_collapsed ? '展开 ▸' : '收起 ▾'}}</text>
+            </view>
+            <view wx:if="{{msg.flow_collapsed && msg.status === 'streaming' && msg.flow_live}}" class="chat__flow">
+              <view class="chat__flow-dot chat__flow-dot--running"></view>
+              <text>{{msg.flow_live}}</text>
+            </view>
+            <block wx:if="{{!msg.flow_collapsed}}">
+              <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
+                <view wx:if="{{seg.kind === 'tool_call'}}" class="chat__flow">
+                  <view class="chat__flow-dot {{seg.status === 'running' ? 'chat__flow-dot--running' : ''}}"></view>
+                  <text>调用 {{seg.tool_name}}</text>
+                </view>
+                <view wx:elif="{{seg.kind === 'agent'}}" class="chat__flow">
+                  <view class="chat__flow-dot chat__flow-dot--agent {{seg.status === 'running' ? 'chat__flow-dot--running' : ''}}"></view>
+                  <text>{{seg.content}}</text>
+                </view>
+                <view wx:elif="{{seg.kind === 'status'}}" class="chat__flow">
+                  <view class="chat__flow-dot chat__flow-dot--status {{seg.status === 'running' ? 'chat__flow-dot--running' : ''}}"></view>
+                  <text>{{seg.message}}</text>
+                </view>
+              </block>
+            </block>
           </view>
         </view>
       </view>
@@ -146,9 +204,9 @@
   </scroll-view>
 
   <view class="chat__modes">
-    <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:tap="onToggleReasoning" />
-    <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:tap="onToggleWebSearch" />
-    <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:tap="onToggleImageRecipe" />
+    <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:toggle="onToggleReasoning" />
+    <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:toggle="onToggleWebSearch" />
+    <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:toggle="onToggleImageRecipe" />
   </view>
 
   <view class="chat__input">
@@ -165,7 +223,9 @@
       confirm-type="send"
       bindconfirm="onSendTap"
     />
-    <view wx:if="{{streaming}}" class="chat__input-stop" bindtap="onAbort">■</view>
+    <view wx:if="{{streaming}}" class="chat__input-stop" bindtap="onAbort">
+      <image class="chat__input-send-icon" src="/assets/icons/stop.svg" mode="aspectFit" />
+    </view>
     <view wx:else class="chat__input-send" bindtap="onSendTap">
       <image class="chat__input-send-icon" src="/assets/icons/send.svg" mode="aspectFit" />
     </view>

@@ -28,6 +28,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
+	"github.com/go-kratos/kratos/v2/log"
 )
 
 type AIChatHandler struct {
@@ -197,7 +198,9 @@ func (h *AIChatHandler) handleSend(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		_ = writeSSE(w, "error", map[string]any{"message": err.Error()})
+		// 完整原始错误进日志（排查用），对用户只吐友好文案，不暴露内部细节
+		log.Errorf("chat stream failed: session_id=%d scene=%s err=%v", sessionID, req.Scene, err)
+		_ = writeSSE(w, "error", map[string]any{"message": friendlyStreamError(err)})
 		flusher.Flush()
 		return
 	}
@@ -341,6 +344,24 @@ func (h *AIChatHandler) authContext(r *http.Request) (context.Context, error) {
 		return nil, fmt.Errorf("invalid authorization token: %w", err)
 	}
 	return gca.NewContext(ctx, claims), nil
+}
+
+// friendlyStreamError 把流式执行中的内部错误转为用户可读的中文提示。
+// 原始错误（含 Eino 节点路径、HTTP 细节等）只进服务端日志，绝不直接渲染给用户。
+func friendlyStreamError(err error) string {
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "context deadline exceeded") || strings.Contains(msg, "timeout"):
+		return "生成超时了，请稍后重试"
+	case strings.Contains(msg, "context canceled"):
+		return "生成已中断"
+	case strings.Contains(msg, "failed to invoke tool") || strings.Contains(msg, "tool call"):
+		return "处理过程中出了点问题，请换个说法重新提问"
+	case strings.Contains(msg, "connection refused") || strings.Contains(msg, "no such host"):
+		return "AI 服务暂时不可用，请稍后重试"
+	default:
+		return "出错了，请稍后重试"
+	}
 }
 
 func writeSSE(w http.ResponseWriter, event string, payload any) error {

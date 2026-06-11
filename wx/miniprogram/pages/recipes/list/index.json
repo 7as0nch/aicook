@@ -1,7 +1,8 @@
 {
   "usingComponents": {
     "ai-fab": "/components/ai-fab/index",
-    "ai-sheet": "/components/ai-sheet/index"
+    "ai-sheet": "/components/ai-sheet/index",
+    "input-dialog": "/components/input-dialog/index"
   },
   "navigationBarTitleText": "菜谱"
 }

@@ -30,6 +30,13 @@ Component({
     iconSrc: { type: String, value: '' },
     // 浮球离底部的默认距离（rpx 字符串）；未拖拽过时生效
     bottom: { type: String, value: '200rpx' },
+    // 当前页面场景（透传给后端，让 AI 知道用户在哪个页面、做什么）
+    // 取值与后端一致：chat / recipe_detail / cooking_guide / recipe_workbench …
+    scene: { type: String, value: 'chat' },
+    // 当前页面关联的菜谱 id（详情/做菜页传入），随会话带给 AI 作上下文
+    recipeId: { type: String, value: '' },
+    // 当前页面的一句话上下文（如菜谱标题），增强"知道你在看哪道菜"
+    contextHint: { type: String, value: '' },
   },
   data: {
     // 以下 3 个字段由 storeBinding 自动注入（来自 uiStore）
@@ -181,14 +188,22 @@ Component({
     },
 
     onTap() {
-      // 点击：隐藏招呼气泡 + 唤起 sheet
+      // 点击：隐藏招呼气泡 + 唤起 sheet，带上本页场景/菜谱上下文
       const self = this as unknown as { _greetTimer?: number };
       if (self._greetTimer) {
         clearTimeout(self._greetTimer);
         self._greetTimer = undefined;
       }
       if (this.data.greetingVisible) this.setData({ greetingVisible: false });
-      chatStore.openSheet({ scene: 'chat' });
+      const props = this.properties as { scene?: string; recipeId?: string; contextHint?: string };
+      const scene = (props.scene || 'chat').trim() || 'chat';
+      const recipeId = (props.recipeId || '').trim();
+      const hint = (props.contextHint || '').trim();
+      chatStore.openSheet({
+        scene,
+        recipe_id: recipeId || undefined,
+        quote_context: hint ? { scene, surrounding_text: hint } : undefined,
+      });
     },
   },
 });

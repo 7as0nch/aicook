@@ -43,6 +43,8 @@ Page({
     activeChip: '为你推荐',
     searchKeyword: '',
     suggested: [] as SuggestedRecipe[],
+    // 按类型浏览（家庭 KitchenTag），点选后跳菜谱 Tab 预选
+    categories: [] as Array<{ id: string; name: string }>,
     loading: false,
   },
 
@@ -122,7 +124,10 @@ Page({
         }
         if (householdStore.tags?.length) {
           const names = householdStore.tags.map(t => t.name).slice(0, 5);
-          this.setData({ chips: ['为你推荐', ...names] });
+          this.setData({
+            chips: ['为你推荐', ...names],
+            categories: householdStore.tags.map(t => ({ id: String(t.id), name: t.name })),
+          });
         }
       } catch {
         // 失败保留兜底
@@ -180,6 +185,14 @@ Page({
   onTodayRecipeTap() {
     if (!this.data.todayRecipe?.id) return;
     wx.navigateTo({ url: `/pages/recipes/detail/index?id=${this.data.todayRecipe.id}` });
+  },
+
+  // 首页"按类型浏览"：暂存类目 + 跳菜谱 Tab（switchTab 不能带参，菜谱页 onShow 读取）
+  onCategoryTap(e: WechatMiniprogram.BaseEvent) {
+    const name = String((e.currentTarget as unknown as { dataset: { name: string } }).dataset.name || '');
+    if (!name) return;
+    householdStore.setPendingCategory(name);
+    wx.switchTab({ url: '/pages/recipes/list/index' });
   },
 
   onQuickTap(e: WechatMiniprogram.BaseEvent) {

@@ -37,5 +37,8 @@ func BuildRecommendSubAgentInstruction() string {
 当用户说“我要做某道菜”“给我生成某道菜谱”或表达口味偏好时，优先调用 recipe_generate，不要先把结果整理成普通搜索摘要。
 如果用户只是明确要查现有库里的菜谱，再调用 recipe_query 或 recipe_recommend。
 当 recipe_generate 进入 approval 恢复后，请根据用户选择继续推进，不要直接跳过现有菜谱确认。
+重要约束：
+1. recipe_generate 返回 status 为 generated / existing_recipe / already_generated 时，本轮任务即完成：用一句话总结菜谱卡片并结束，严禁在同一轮内再次调用 recipe_generate 或继续追问偏好。
+2. approval 恢复后用户的选择只是对追问的回答，不是新的生成需求；把它交还给 recipe_generate 的恢复流程即可，不要据此发起新一轮生成。
 `)
 }

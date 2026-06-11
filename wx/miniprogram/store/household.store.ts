@@ -7,10 +7,28 @@ import type { HouseholdPreferences, KitchenTag } from '../types/api';
 export const householdStore = observable({
   tags: [] as KitchenTag[],
   preferences: null as HouseholdPreferences | null,
+  // 首页"按类型浏览"点选类目后暂存，菜谱 Tab onShow 读取并预选（switchTab 不能带参）
+  pendingCategory: '' as string,
 
   loadTags: action(async function (this: typeof householdStore) {
     const res = await householdApi.listKitchenTags();
     this.tags = res.tags || [];
+  }),
+
+  setPendingCategory: action(function (this: typeof householdStore, name: string) {
+    this.pendingCategory = name;
+  }),
+
+  // 新建家庭类目（KitchenTag），成功后刷新 tags
+  createTag: action(async function (this: typeof householdStore, name: string) {
+    await householdApi.createKitchenTag(name);
+    await this.loadTags();
+  }),
+
+  // 删除家庭类目（仅 type=2 用户标签可删，系统标签后端会拒绝）
+  deleteTag: action(async function (this: typeof householdStore, id: KitchenTag['id']) {
+    await householdApi.deleteKitchenTag(id);
+    await this.loadTags();
   }),
 
   loadPreferences: action(async function (this: typeof householdStore) {

@@ -26,6 +26,14 @@ const KNOWN_EVENTS: readonly string[] = [
   'error',
 ];
 
+// human-in-loop 审批回传（对应 backend airuntime.ApprovalResponse）
+export interface ChatApprovalResponse {
+  approval_id: string;
+  option_id: string;
+  option_ids?: string[];
+  confirmed: boolean;
+}
+
 export interface ChatSendRequest {
   session_id?: string;
   scene?: string;
@@ -38,6 +46,7 @@ export interface ChatSendRequest {
   reasoning_enabled?: boolean;
   web_search_enabled?: boolean;
   image_recipe_enabled?: boolean;
+  approval_response?: ChatApprovalResponse;
 }
 
 export interface SSEHandlers {

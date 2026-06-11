@@ -838,7 +838,9 @@ type HouseholdPreferences struct {
 	// 偏好难度，1-5，0 表示无要求。
 	MaxDifficulty int32 `protobuf:"varint,4,opt,name=max_difficulty,json=maxDifficulty,proto3" json:"max_difficulty,omitempty"`
 	// 偏好用时，分钟，0 表示无要求。
-	MaxMinutes    int32 `protobuf:"varint,5,opt,name=max_minutes,json=maxMinutes,proto3" json:"max_minutes,omitempty"`
+	MaxMinutes int32 `protobuf:"varint,5,opt,name=max_minutes,json=maxMinutes,proto3" json:"max_minutes,omitempty"`
+	// 口味的自由文字描述，如 "不吃香菜，爱吃辣但肠胃弱"；AI 推荐时作为补充上下文。
+	TasteNote     string `protobuf:"bytes,6,opt,name=taste_note,json=tasteNote,proto3" json:"taste_note,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -906,6 +908,13 @@ func (x *HouseholdPreferences) GetMaxMinutes() int32 {
 		return x.MaxMinutes
 	}
 	return 0
+}
+
+func (x *HouseholdPreferences) GetTasteNote() string {
+	if x != nil {
+		return x.TasteNote
+	}
+	return ""
 }
 
 type GetHouseholdPreferencesRequest struct {
@@ -1689,14 +1698,16 @@ const file_api_aicook_v1_household_proto_rawDesc = "" +
 	"\x03tag\x18\x01 \x01(\v2\x15.aicook.v1.KitchenTagR\x03tag\")\n" +
 	"\x17DeleteKitchenTagRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"\x17\n" +
-	"\x15DeleteKitchenTagReply\"\xb8\x01\n" +
+	"\x15DeleteKitchenTagReply\"\xd7\x01\n" +
 	"\x14HouseholdPreferences\x12\x16\n" +
 	"\x06flavor\x18\x01 \x03(\tR\x06flavor\x12\x1c\n" +
 	"\tscenarios\x18\x02 \x03(\tR\tscenarios\x12\"\n" +
 	"\frestrictions\x18\x03 \x03(\tR\frestrictions\x12%\n" +
 	"\x0emax_difficulty\x18\x04 \x01(\x05R\rmaxDifficulty\x12\x1f\n" +
 	"\vmax_minutes\x18\x05 \x01(\x05R\n" +
-	"maxMinutes\" \n" +
+	"maxMinutes\x12\x1d\n" +
+	"\n" +
+	"taste_note\x18\x06 \x01(\tR\ttasteNote\" \n" +
 	"\x1eGetHouseholdPreferencesRequest\"a\n" +
 	"\x1cGetHouseholdPreferencesReply\x12A\n" +
 	"\vpreferences\x18\x01 \x01(\v2\x1f.aicook.v1.HouseholdPreferencesR\vpreferences\"f\n" +

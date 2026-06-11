@@ -33,6 +33,11 @@ func signRecipeMediaURLs(ctx context.Context, m *user.MediaUsecase, r *v1.Recipe
 		}
 	}
 	r.GalleryImageUrls = g
+	if r.GetVideoUrl() != "" {
+		if signed, err := m.SignMediaURL(ctx, r.GetVideoUrl()); err == nil && signed != "" {
+			r.VideoUrl = signed
+		}
+	}
 }
 
 func signRecipeStepMediaURLs(ctx context.Context, m *user.MediaUsecase, s *v1.RecipeStep) {
@@ -80,6 +85,7 @@ func toProtoRecipe(model *data.Recipe) *v1.Recipe {
 		Summary:            model.Summary,
 		CoverImageUrl:      model.CoverImageURL,
 		GalleryImageUrls:   data.RecipeGalleryURLs(model),
+		VideoUrl:           model.VideoURL,
 		Status:             model.Status,
 		SourceType:         model.SourceType,
 		Language:           model.Language,
@@ -250,6 +256,9 @@ func toDraftSteps(items []*v1.CreateRecipeDraftStep) []airuntime.DraftStep {
 			TimerSeconds:   int(item.GetTimerSeconds()),
 			TimerAnimation: item.GetTimerAnimation(),
 			EndCondition:   item.GetEndCondition(),
+			HeatLevel:      item.GetHeatLevel(),
+			SafetyTips:     item.GetSafetyTips(),
+			AIHint:         item.GetAiHint(),
 			MediaURL:       item.GetMediaUrl(),
 			MediaURLs:      urls,
 		})

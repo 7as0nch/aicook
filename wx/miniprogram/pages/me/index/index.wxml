@@ -3,8 +3,7 @@
   <view class="me__card me__user-card">
     <view class="me__user-row">
       <view class="me__avatar" bindtap="onAvatarTap">
-        <image wx:if="{{user && user.avatar_url}}" class="me__avatar-img" src="{{user.avatar_url}}" mode="aspectFill" />
-        <image wx:else class="me__avatar-default" src="/assets/icons/me.png" mode="aspectFit" />
+        <user-avatar url="{{user.avatar_url}}" name="{{user.display_name || user.username}}" size="104rpx" />
       </view>
       <view class="me__user-body">
         <view class="me__user-name">{{user && user.display_name ? user.display_name : '点击登录'}}</view>

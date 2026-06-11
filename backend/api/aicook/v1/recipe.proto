@@ -128,6 +128,7 @@ message CreateRecipeDraftRequest {
   repeated CreateRecipeDraftIngredient ingredients = 10;
   repeated CreateRecipeDraftStep steps = 11;
   repeated string gallery_image_urls = 12;
+  string video_url = 13;
 }
 
 message CreateRecipeDraftReply {
@@ -150,6 +151,7 @@ message UpdateRecipeRequest {
   google.protobuf.Struct metadata = 13;
   repeated CreateRecipeDraftIngredient ingredients = 14;
   repeated CreateRecipeDraftStep steps = 15;
+  string video_url = 16;
 }
 
 message UpdateRecipeReply {

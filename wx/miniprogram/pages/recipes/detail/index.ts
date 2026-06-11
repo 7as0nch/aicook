@@ -6,7 +6,7 @@ import { chatStore } from '../../../store/chat.store';
 import { authStore } from '../../../store/auth.store';
 import type { Recipe, RecipeIngredient, RecipeStep } from '../../../types/api';
 
-type DetailTab = 'ingredients' | 'steps' | 'ai' | 'nutrition';
+type DetailTab = 'ingredients' | 'steps' | 'nutrition';
 
 interface IngredGroup {
   groupName: string;
@@ -18,6 +18,8 @@ Page({
     id: '' as string,
     activeTab: 'steps' as DetailTab,
     statusBarHeight: 20,
+    // 顶部悬浮操作栏的 top：与微信胶囊垂直对齐（取胶囊 top）
+    capsuleTop: 30,
     loading: true,
     recipe: null as Recipe | null,
     difficultyLabel: '',
@@ -25,13 +27,17 @@ Page({
     steps: [] as RecipeStep[],
     favored: false,
     canEdit: false,
-    // AI 指导 hint 兜底
-    aiHints: ['💡 火候建议：参考步骤中的提示', '🥬 替代方案：可向 AI 助理咨询', '📊 营养：暂未提供详细数据'],
   },
 
   onLoad(query: Record<string, string>) {
     const info = wx.getWindowInfo?.() || wx.getSystemInfoSync();
-    this.setData({ statusBarHeight: (info as any).statusBarHeight || 20, id: query.id || '' });
+    const statusBarHeight = (info as any).statusBarHeight || 20;
+    let capsuleTop = statusBarHeight + 6;
+    try {
+      const menu = wx.getMenuButtonBoundingClientRect?.();
+      if (menu && menu.top) capsuleTop = menu.top;
+    } catch (_) { /* 胶囊 API 不可用时回退 */ }
+    this.setData({ statusBarHeight, capsuleTop, id: query.id || '' });
     void this.loadDetail();
   },
 
@@ -146,19 +152,6 @@ Page({
       title: recipe ? `${recipe.title} - 馋猫厨房 AI 菜谱` : '馋猫厨房',
       imageUrl: recipe?.cover_image_url,
     };
-  },
-
-  onAskAI() {
-    const title = this.data.recipe?.title || '当前菜谱';
-    chatStore.openSheet({
-      scene: 'recipe_detail',
-      recipe_id: this.data.id,
-      quote_context: {
-        scene: 'recipe_detail',
-        surrounding_text: title,
-        selection_source: `recipe/${this.data.id}`,
-      },
-    });
   },
 
   onStepLongpress(e: WechatMiniprogram.BaseEvent) {

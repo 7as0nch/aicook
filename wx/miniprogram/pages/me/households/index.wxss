@@ -61,6 +61,7 @@
   border-radius: 40rpx;
   padding: 28rpx;
   overflow: hidden;
+  box-shadow: 0 16rpx 40rpx rgba(255, 122, 0, 0.10);
 }
 
 .hh__active-stripe {
@@ -300,7 +301,17 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 22rpx 0;
+  padding: 22rpx 8rpx;
+  margin: 0 -8rpx;
+  border-radius: 20rpx;
+  transition: background 0.15s ease;
+}
+
+/* 按压反馈：成员行/切换行可点击的视觉暗示 */
+.hh__member-row:active,
+.hh__switch-row:active,
+.hh__join-row:active {
+  background: #FAF7F2;
 }
 
 .hh__member-avatar {

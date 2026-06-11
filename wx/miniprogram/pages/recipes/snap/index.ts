@@ -1,7 +1,7 @@
 // 拍照识别页（设计稿 02）
 // 流程：相机取景器 → takePhoto → uploadFile → importApi.createImageRecipe →
 //      poll getImportJob → 抽取食材 chips → "✨ 生成推荐菜谱" CTA 跳今日推荐页
-import { importApi } from '../../../services/import.api';
+import { importApi, isImportJobDone, isImportJobFailed } from '../../../services/import.api';
 import { uploadFile } from '../../../services/upload';
 import { emojiFor } from '../../../utils/food-emoji';
 import type { ImportJob } from '../../../types/api';
@@ -27,7 +27,9 @@ Page({
     statusBarHeight: 20,
     capturedPath: '',
     error: '',
+    cameraBroken: false,         // 相机初始化失败/被占用：显示相册降级入口
     sheetOpen: false,            // 抽屉是否展开：默认收起
+    addChipVisible: false,       // 添加食材弹层（input-dialog）
   },
 
   onLoad() {
@@ -71,7 +73,10 @@ Page({
     this.cameraCtx.takePhoto({
       quality: 'high',
       success: (res) => this.processImage(res.tempImagePath),
-      fail: () => this.pickFromAlbum(),
+      fail: (err) => {
+        console.error('[snap] takePhoto fail', err);
+        this.pickFromAlbum();
+      },
     });
   },
 
@@ -92,18 +97,22 @@ Page({
     try {
       // 1. 上传图片
       const info = await getFileInfo(tempPath);
+      console.info('[snap] upload start, size =', info.size);
       const asset = await uploadFile({
         tempFilePath: tempPath,
         mediaKind: 'image',
         contentType: 'image/jpeg',
         sizeBytes: info.size,
       });
-      // 2. 创建识别任务
+      console.info('[snap] upload done, asset_id =', String(asset.id));
+      // 2. 创建识别任务（后端同步执行，返回时 job 已是终态）
       const created = await importApi.createImageRecipe([String(asset.id)]);
-      // 3. 轮询
+      console.info('[snap] job created, id =', String(created.job.id), 'status =', created.job.status);
+      // 3. 轮询兜底（正常情况下 create 返回即终态，最多再确认一轮）
       const final = await this.pollJob(created.job.id);
       // 4. 抽取食材 chip
       const names = extractIngredientNames(final);
+      console.info('[snap] recognized ingredients:', names);
       const chips: IngredChip[] = names.map((name, i) => ({
         id: `c${i}`,
         name,
@@ -111,13 +120,18 @@ Page({
       }));
       // 识别完成自动展开抽屉
       this.setData({ recognizing: false, recognized: true, chips, sheetOpen: true });
+      if (!chips.length) {
+        wx.showToast({ title: '没有识别到食材，可手动添加', icon: 'none' });
+      }
     } catch (err) {
-      console.error('process image error', err);
+      console.error('[snap] process image error', err);
+      const msg = (err as { message?: string })?.message || '识别失败，请重试';
       this.setData({
         recognizing: false,
         recognized: false,
-        error: '识别失败，请重试',
+        error: msg,
       });
+      wx.showToast({ title: msg, icon: 'none', duration: 3000 });
     }
   },
 
@@ -129,21 +143,22 @@ Page({
         try {
           const res = await importApi.getImportJob(jobId);
           const job = res.job;
-          const status = (job.status || '').toLowerCase();
-          if (status === 'success' || status === 'completed') {
+          // 注意：后端成功时状态是 review_required（草稿待确认），不是 success
+          if (isImportJobDone(job.status)) {
             resolve(job);
             return;
           }
-          if (status === 'failed' || status === 'error') {
+          if (isImportJobFailed(job.status)) {
             reject(new Error(job.error_message || '识别失败'));
             return;
           }
           if (Date.now() - start > TIMEOUT) {
-            reject(new Error('识别超时'));
+            reject(new Error('识别超时，请重试'));
             return;
           }
           this.pollTimer = setTimeout(tick, 1500);
         } catch (e) {
+          console.error('[snap] poll job error', e);
           reject(e);
         }
       };
@@ -176,23 +191,25 @@ Page({
     });
   },
 
+  // 添加食材：自定义弹层（wx.showModal 的 editable 已弃用）
   onChipAdd() {
-    wx.showModal({
-      title: '添加食材',
-      placeholderText: '请输入食材名称',
-      editable: true,
-      success: (res) => {
-        if (!res.confirm || !res.content) return;
-        const name = res.content.trim();
-        if (!name) return;
-        const chips = this.data.chips.concat({
-          id: `c${Date.now()}`,
-          name,
-          emoji: emojiFor(name),
-        });
-        this.setData({ chips });
-      },
+    this.setData({ addChipVisible: true });
+  },
+
+  onChipAddClose() {
+    this.setData({ addChipVisible: false });
+  },
+
+  onChipAddConfirm(e: WechatMiniprogram.CustomEvent<{ value: string }>) {
+    const name = (e.detail?.value || '').trim();
+    this.setData({ addChipVisible: false });
+    if (!name) return;
+    const chips = this.data.chips.concat({
+      id: `c${Date.now()}`,
+      name,
+      emoji: emojiFor(name),
     });
+    this.setData({ chips });
   },
 
   onGenerateTap() {
@@ -217,17 +234,33 @@ Page({
     });
   },
 
-  onCameraError() {
-    // 相机权限拒绝或不可用：退到相册选择
-    this.setData({ error: '相机不可用，请从相册选择图片' });
+  onCameraReady() {
+    console.info('[snap] camera init done');
+    if (this.data.cameraBroken) {
+      this.setData({ cameraBroken: false, error: '' });
+    }
+  },
+
+  onCameraError(e: WechatMiniprogram.CustomEvent) {
+    // 相机权限拒绝 / 被其它应用占用 / 硬件不可用：记录详情并提供相册降级
+    console.error('[snap] camera error', e?.detail);
+    this.setData({
+      cameraBroken: true,
+      error: '相机不可用（可能被占用或未授权）',
+    });
+  },
+
+  // 相册降级入口（相机坏掉时的显式按钮）
+  onPickAlbum() {
+    this.pickFromAlbum();
   },
 });
 
 function getFileInfo(path: string): Promise<{ size: number }> {
   return new Promise((resolve) => {
-    (wx as any).getFileInfo({
+    wx.getFileSystemManager().getFileInfo({
       filePath: path,
-      success: (res: { size: number }) => resolve({ size: res.size }),
+      success: (res) => resolve({ size: res.size }),
       fail: () => resolve({ size: 0 }),
     });
   });

@@ -1,39 +1,15 @@
 .today {
   min-height: 100vh;
   background: #FFFFFF;
-  padding: 0 48rpx 220rpx;
+  padding: 8rpx 48rpx 220rpx;
 }
-
-.today__topbar {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 0 16rpx;
-  gap: 16rpx;
-}
-
-.today__top-btn {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: #FFF6EE;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.today__top-icon {
-  width: 40rpx;
-  height: 40rpx;
-}
-
-.today__top-spacer { flex: 1; }
 
 .today__title {
   font-size: 48rpx;
   font-weight: 700;
   color: #1F1B16;
   line-height: 1.1;
-  margin-top: 24rpx;
+  margin-top: 12rpx;
 }
 
 .today__sub {

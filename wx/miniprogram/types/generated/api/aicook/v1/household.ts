@@ -103,7 +103,11 @@ export interface HouseholdPreferences {
     | number
     | undefined;
   /** 偏好用时，分钟，0 表示无要求。 */
-  max_minutes?: number | undefined;
+  max_minutes?:
+    | number
+    | undefined;
+  /** 口味的自由文字描述，如 "不吃香菜，爱吃辣但肠胃弱"；AI 推荐时作为补充上下文。 */
+  taste_note?: string | undefined;
 }
 
 export interface GetHouseholdPreferencesRequest {

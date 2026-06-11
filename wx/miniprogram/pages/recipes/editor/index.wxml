@@ -1,36 +1,78 @@
 <view class="ed">
-  <custom-navbar title="编辑菜谱">
-    <view slot="right" class="ed__nav-save {{saving ? 'ed__nav-save--saving' : ''}}" bindtap="onSave">
-      <text>{{saving ? '保存中…' : '保存'}}</text>
-    </view>
-  </custom-navbar>
+  <!-- 保存按钮放底部固定条（右上角会被微信胶囊遮挡） -->
+  <custom-navbar title="{{editingId ? '编辑菜谱' : '创建菜谱'}}" />
 
   <scroll-view scroll-y class="ed__scroll">
-    <!-- 标题 + 简介 -->
+    <!-- 封面图集 + 视频 -->
     <view class="ed__card">
       <view class="ed__field">
-        <text class="ed__label">封面图</text>
-        <view class="ed__cover" bindtap="onPickCover">
-          <image wx:if="{{coverImageUrl}}" class="ed__cover-img" src="{{coverImageUrl}}" mode="aspectFill" />
-          <view wx:else class="ed__cover-empty">
-            <image src="/assets/icons/camera.png" class="ed__cover-cam" mode="aspectFit" />
-            <text>点击上传封面</text>
+        <view class="ed__label-row">
+          <text class="ed__label">封面图集</text>
+          <text class="ed__label-hint">第一张为封面，最多 {{maxGallery}} 张</text>
+        </view>
+        <view class="ed__gallery">
+          <view
+            wx:for="{{galleryImages}}"
+            wx:for-item="img"
+            wx:for-index="gi"
+            wx:key="*this"
+            class="ed__g-item"
+            data-idx="{{gi}}"
+            bindtap="onSetCover"
+          >
+            <image class="ed__g-img" src="{{img}}" mode="aspectFill" />
+            <view wx:if="{{gi === 0}}" class="ed__g-cover-badge">封面</view>
+            <view wx:else class="ed__g-set">设为封面</view>
+            <view class="ed__g-del" data-idx="{{gi}}" catchtap="onRemoveGalleryImage">×</view>
           </view>
-          <view wx:if="{{coverUploading}}" class="ed__cover-mask">上传中…</view>
+          <view wx:if="{{galleryImages.length < maxGallery}}" class="ed__g-item ed__g-add" bindtap="onAddGalleryImage">
+            <image wx:if="{{!galleryUploading}}" class="ed__g-cam" src="/assets/icons/camera.png" mode="aspectFit" />
+            <text wx:else class="ed__g-uploading">…</text>
+          </view>
         </view>
       </view>
+
+      <view class="ed__field">
+        <text class="ed__label">介绍视频（选填）</text>
+        <view wx:if="{{videoUrl}}" class="ed__video">
+          <video class="ed__video-player" src="{{videoUrl}}" object-fit="cover" show-center-play-btn></video>
+          <view class="ed__video-del" catchtap="onRemoveVideo">删除视频</view>
+        </view>
+        <view wx:else class="ed__video-add" bindtap="onPickVideo">
+          <text wx:if="{{!videoUploading}}">＋ 上传介绍视频</text>
+          <text wx:else>上传中…</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 标题 + 简介 + 类目 -->
+    <view class="ed__card">
       <view class="ed__field">
         <text class="ed__label">菜谱名称</text>
-        <input class="ed__input" placeholder="给菜谱起个名字" value="{{title}}" bindinput="onTitleInput" />
+        <input class="ed__input" placeholder="给菜谱起个名字" value="{{title}}" bindinput="onTitleInput" bindfocus="onInputFocus" bindblur="onInputBlur" adjust-position cursor-spacing="40" />
       </view>
       <view class="ed__field">
         <text class="ed__label">简介</text>
-        <textarea class="ed__textarea" placeholder="简单介绍一下这道菜" value="{{summary}}" bindinput="onSummaryInput" auto-height />
+        <textarea class="ed__textarea" placeholder="简单介绍一下这道菜" value="{{summary}}" bindinput="onSummaryInput" bindfocus="onInputFocus" bindblur="onInputBlur" adjust-position cursor-spacing="40" auto-height />
+      </view>
+      <view class="ed__field">
+        <text class="ed__label">类目</text>
+        <view class="ed__cats">
+          <view
+            wx:for="{{tags}}"
+            wx:for-item="tag"
+            wx:key="id"
+            class="ed__cat {{category === tag.name ? 'ed__cat--on' : ''}}"
+            data-name="{{tag.name}}"
+            bindtap="onCategoryTap"
+          >{{tag.name}}</view>
+          <view class="ed__cat ed__cat--add" bindtap="onOpenCatDialog">＋ 新建</view>
+        </view>
       </view>
       <view class="ed__row-two">
         <view class="ed__field">
           <text class="ed__label">预计时长（分钟）</text>
-          <input class="ed__input" type="number" value="{{totalMinutes}}" bindinput="onMinutesInput" />
+          <input class="ed__input" type="number" value="{{totalMinutes}}" bindinput="onMinutesInput" bindfocus="onInputFocus" bindblur="onInputBlur" />
         </view>
         <view class="ed__field">
           <text class="ed__label">难度</text>
@@ -60,8 +102,8 @@
         wx:key="_key"
         class="ed__ing"
       >
-        <input class="ed__ing-name" placeholder="食材名" value="{{ing.name}}" data-idx="{{i}}" bindinput="onIngNameInput" />
-        <input class="ed__ing-amount" placeholder="数量" value="{{ing.amount_text}}" data-idx="{{i}}" bindinput="onIngAmountInput" />
+        <input class="ed__ing-name" placeholder="食材名" value="{{ing.name}}" data-idx="{{i}}" bindinput="onIngNameInput" bindfocus="onInputFocus" bindblur="onInputBlur" />
+        <input class="ed__ing-amount" placeholder="数量" value="{{ing.amount_text}}" data-idx="{{i}}" bindinput="onIngAmountInput" bindfocus="onInputFocus" bindblur="onInputBlur" />
         <view class="ed__ing-del" data-idx="{{i}}" catchtap="onRemoveIngredient">
           <image src="/assets/icons/trash.svg" class="ed__ing-del-icon" mode="aspectFit" />
         </view>
@@ -83,18 +125,91 @@
         wx:for-item="step"
         wx:for-index="i"
         wx:key="_key"
-        class="ed__step"
+        class="ed__step-block"
       >
-        <view class="ed__step-no">{{i + 1}}</view>
-        <textarea
-          class="ed__step-desc"
-          placeholder="描述步骤..."
-          value="{{step.description}}"
-          data-idx="{{i}}"
-          bindinput="onStepDescInput"
-          auto-height
-        />
-        <view class="ed__step-del" data-idx="{{i}}" catchtap="onRemoveStep">×</view>
+        <view class="ed__step">
+          <view class="ed__step-no">{{i + 1}}</view>
+          <textarea
+            class="ed__step-desc"
+            placeholder="描述这一步怎么做…"
+            value="{{step.description}}"
+            data-idx="{{i}}"
+            bindinput="onStepDescInput"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
+            adjust-position
+            cursor-spacing="60"
+            auto-height
+          />
+          <view class="ed__step-del" data-idx="{{i}}" catchtap="onRemoveStep">×</view>
+        </view>
+
+        <!-- 步骤参数：火候 / 计时 / 完成条件 -->
+        <view class="ed__step-params">
+          <view class="ed__step-param-row">
+            <text class="ed__step-param-label">🔥 火候</text>
+            <view class="ed__heat">
+              <view
+                wx:for="{{heatLevels}}"
+                wx:for-item="h"
+                wx:key="*this"
+                class="ed__heat-opt {{step.heat_level === h ? 'ed__heat-opt--on' : ''}}"
+                data-idx="{{i}}"
+                data-heat="{{h}}"
+                bindtap="onStepHeatTap"
+              >{{h}}</view>
+            </view>
+          </view>
+          <view class="ed__step-param-row">
+            <text class="ed__step-param-label">⏱ 计时</text>
+            <input
+              class="ed__step-param-input"
+              type="number"
+              placeholder="选填"
+              value="{{step.timer_seconds || ''}}"
+              data-idx="{{i}}"
+              bindinput="onStepTimerInput"
+              bindfocus="onInputFocus"
+              bindblur="onInputBlur"
+              maxlength="5"
+            />
+            <text class="ed__step-param-unit">秒</text>
+          </view>
+          <view class="ed__step-param-row">
+            <text class="ed__step-param-label">✅ 完成条件</text>
+            <input
+              class="ed__step-param-input ed__step-param-input--wide"
+              placeholder="如：土豆软烂可插筷"
+              value="{{step.end_condition}}"
+              data-idx="{{i}}"
+              bindinput="onStepEndConditionInput"
+              bindfocus="onInputFocus"
+              bindblur="onInputBlur"
+            />
+          </view>
+        </view>
+
+        <!-- 步骤配图 -->
+        <view class="ed__step-imgs">
+          <view
+            wx:for="{{step.media_urls}}"
+            wx:for-item="img"
+            wx:for-index="j"
+            wx:key="*this"
+            class="ed__step-img"
+          >
+            <image class="ed__step-img-i" src="{{img}}" mode="aspectFill" />
+            <view class="ed__step-img-del" data-idx="{{i}}" data-img-idx="{{j}}" catchtap="onStepRemoveImage">×</view>
+          </view>
+          <view
+            wx:if="{{!step.media_urls || step.media_urls.length < 3}}"
+            class="ed__step-img ed__step-img--add"
+            data-idx="{{i}}"
+            bindtap="onStepAddImage"
+          >
+            <image class="ed__step-img-cam" src="/assets/icons/camera.png" mode="aspectFit" />
+          </view>
+        </view>
       </view>
       <view class="ed__add-btn" bindtap="onAddStep">
         <image src="/assets/icons/plus.svg" class="ed__add-icon" mode="aspectFit" />
@@ -104,4 +219,23 @@
 
     <view class="ed__spacer"></view>
   </scroll-view>
+
+  <!-- 底部固定保存条：键盘弹起（typing）时隐藏，避免遮挡输入 -->
+  <view wx:if="{{!typing}}" class="ed__save-bar">
+    <view class="ed__save-btn {{saving ? 'ed__save-btn--saving' : ''}}" bindtap="onSave">
+      <text>{{saving ? '保存中…' : (editingId ? '保存修改' : '保存菜谱')}}</text>
+    </view>
+    <view class="ed__save-safe"></view>
+  </view>
+
+  <!-- 新建类目 -->
+  <input-dialog
+    visible="{{catDialogVisible}}"
+    title="新建类目"
+    placeholder="输入类目名称，如 家常菜"
+    confirmText="创建"
+    maxlength="20"
+    bind:confirm="onCatDialogConfirm"
+    bind:close="onCatDialogClose"
+  />
 </view>

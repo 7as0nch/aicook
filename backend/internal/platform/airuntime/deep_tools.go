@@ -201,6 +201,11 @@ func (r *Runtime) buildDeepTools() ([]componenttool.BaseTool, error) {
 		func(ctx context.Context, query string, preferences airtool.TextRecipePreferences) (*airtool.RecipePreferencePlan, error) {
 			return r.generateRecipePreferencePlan(ctx, query, preferences)
 		},
+		// 本轮是否已产出菜谱卡片：是则护栏拦截重复生成（防"生成后又追问"循环）
+		func(ctx context.Context) bool {
+			bridge, err := streamBridgeFromContext(ctx)
+			return err == nil && bridge != nil && bridge.reply.Metadata.RecipeCard != nil
+		},
 	)
 	if err != nil {
 		return nil, err

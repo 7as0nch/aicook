@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS recipes (
   summary TEXT NOT NULL DEFAULT '',
   cover_image_url TEXT NOT NULL DEFAULT '',
   gallery_image_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
+  video_url TEXT NOT NULL DEFAULT '',
   status VARCHAR(20) NOT NULL DEFAULT 'draft',
   source_type VARCHAR(30) NOT NULL DEFAULT 'manual',
   language VARCHAR(12) NOT NULL DEFAULT 'zh-CN',

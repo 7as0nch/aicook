@@ -13,6 +13,14 @@ const TIME_OPTIONS = [
   { label: '不限', value: 0 },
 ];
 
+// 数组 → 选中态 map。WXML 表达式不支持 indexOf 等方法调用（会静默失败导致
+// 选中样式永远不亮），所以选中态用 map 维护，WXML 里用下标访问。
+function toSelectedMap(arr: string[]): Record<string, boolean> {
+  const m: Record<string, boolean> = {};
+  for (const item of arr) m[item] = true;
+  return m;
+}
+
 Page({
   data: {
     flavorOptions: FLAVOR_OPTIONS,
@@ -22,8 +30,13 @@ Page({
     flavor: [] as string[],
     scenarios: [] as string[],
     restrictions: [] as string[],
+    // 选中态 map（与同名数组同步维护，供 WXML 高亮用）
+    flavorMap: {} as Record<string, boolean>,
+    scenariosMap: {} as Record<string, boolean>,
+    restrictionsMap: {} as Record<string, boolean>,
     maxDifficulty: 3,
     maxMinutes: 60,
+    tasteNote: '',
     saving: false,
     loaded: false,
     memberId: '' as string,        // 从厨房管理跳过来时带上：编辑该成员的偏好
@@ -44,16 +57,24 @@ Page({
         ? await householdApi.getMemberPreferences(this.data.memberId)
         : await householdApi.getPreferences();
       const p = res.preferences;
+      const flavor = p.flavor || [];
+      const scenarios = p.scenarios || [];
+      const restrictions = p.restrictions || [];
       this.setData({
-        flavor: p.flavor || [],
-        scenarios: p.scenarios || [],
-        restrictions: p.restrictions || [],
+        flavor,
+        scenarios,
+        restrictions,
+        flavorMap: toSelectedMap(flavor),
+        scenariosMap: toSelectedMap(scenarios),
+        restrictionsMap: toSelectedMap(restrictions),
         maxDifficulty: p.max_difficulty || 3,
         maxMinutes: p.max_minutes || 60,
+        tasteNote: p.taste_note || '',
         loaded: true,
       });
     } catch (e) {
       console.error('[preferences] load fail', e);
+      wx.showToast({ title: '加载偏好失败', icon: 'none' });
       this.setData({ loaded: true });
     }
   },
@@ -78,7 +99,12 @@ Page({
     const idx = arr.indexOf(tag);
     if (idx >= 0) arr.splice(idx, 1);
     else arr.push(tag);
-    this.setData({ [key]: arr });
+    // 数组与选中态 map 同步更新（map 供 WXML 高亮）
+    this.setData({ [key]: arr, [`${key}Map`]: toSelectedMap(arr) });
+  },
+
+  onTasteNoteInput(e: WechatMiniprogram.Input) {
+    this.setData({ tasteNote: e.detail.value });
   },
 
   onDifficultyTap(e: WechatMiniprogram.BaseEvent) {
@@ -100,6 +126,7 @@ Page({
         restrictions: this.data.restrictions,
         max_difficulty: this.data.maxDifficulty,
         max_minutes: this.data.maxMinutes,
+        taste_note: this.data.tasteNote.trim(),
       };
       if (this.data.memberId) {
         await householdApi.updateMemberPreferences(this.data.memberId, data);

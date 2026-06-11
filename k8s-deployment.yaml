@@ -54,9 +54,6 @@ data:
       path: /app/logs
       filename: aicook.log
       level: info
-    inference:
-      endpoint: http://inference-service.aicook.svc.cluster.local:8088
-      timeout: 30s
     ai:
       mode: adk
       provider: openai-compatible
@@ -64,6 +61,7 @@ data:
       api_key: ""
       chat_model: ""
       vision_model: ""
+      asr_model: ""
       embedding_model: ""
 ---
 apiVersion: v1
@@ -141,65 +139,6 @@ spec:
     - name: console
       port: 9001
       targetPort: 9001
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: inference-service
-  namespace: aicook
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: inference-service
-  template:
-    metadata:
-      labels:
-        app: inference-service
-    spec:
-      containers:
-        - name: inference-service
-          image: 7as0nch/aicook-inference:latest
-          env:
-            - name: AICOOK_ALLOW_DUMMY
-              value: "true"
-            - name: FUNASR_DEVICE
-              value: "cpu"
-            - name: PADDLEOCR_LANG
-              value: "ch"
-          ports:
-            - containerPort: 8088
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8088
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8088
-            initialDelaySeconds: 20
-            periodSeconds: 20
-          resources:
-            requests:
-              cpu: 300m
-              memory: 768Mi
-            limits:
-              cpu: 1500m
-              memory: 2Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: inference-service
-  namespace: aicook
-spec:
-  selector:
-    app: inference-service
-  ports:
-    - port: 8088
-      targetPort: 8088
 ---
 apiVersion: apps/v1
 kind: Deployment

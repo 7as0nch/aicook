@@ -1,7 +1,8 @@
 {
   "usingComponents": {
     "ingredient-pill": "/components/ingredient-pill/index",
-    "mascot-bubble": "/components/mascot-bubble/index"
+    "mascot-bubble": "/components/mascot-bubble/index",
+    "input-dialog": "/components/input-dialog/index"
   },
   "navigationBarTitleText": "食材识别",
   "navigationStyle": "custom",

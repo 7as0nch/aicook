@@ -1,147 +1,88 @@
-<view class="recipes-page">
+<view class="rl">
   <!-- 顶部 -->
-  <view class="page-header">
-    <text class="page-title">菜谱</text>
-    <view class="page-action" bindtap="onWorkbenchTap">
-      <image class="page-action-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
+  <view class="rl__header">
+    <text class="rl__title">菜谱</text>
+    <view class="rl__new" bindtap="onWorkbenchTap">
+      <image class="rl__new-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
       <text>新建</text>
     </view>
   </view>
 
   <!-- 搜索 -->
-  <view class="search-bar">
-    <image class="search-icon" src="/assets/icons/search.png" mode="aspectFit" />
+  <view class="rl__search">
+    <image class="rl__search-ic" src="/assets/icons/search.png" mode="aspectFit" />
     <input
-      class="search-input"
+      class="rl__search-input"
       placeholder="搜索菜谱、食材、做法…"
       value="{{keyword}}"
       bindinput="onKeywordInput"
       bindconfirm="onSearchConfirm"
       confirm-type="search"
     />
-    <image class="search-filter" src="/assets/icons/filter.svg" mode="aspectFit" />
   </view>
 
-  <!-- 标签筛选 -->
-  <scroll-view class="filter-scroll" scroll-x>
-    <view class="filter-row">
+  <!-- 美团式：左类目 + 右菜谱 -->
+  <view class="rl__body">
+    <!-- 左类目栏 -->
+    <scroll-view scroll-y class="rl__side" show-scrollbar="{{false}}">
       <view
-        class="filter-chip {{activeFilter === item.id ? 'active' : ''}}"
-        wx:for="{{filters}}"
-        wx:key="id"
-        data-id="{{item.id}}"
-        bindtap="onFilterTap"
-      >
-        {{item.text}}
-      </view>
-    </view>
-  </scroll-view>
-
-  <!-- 今日常做 -->
-  <view wx:if="{{todayPicks.length}}" class="section">
-    <view class="section-title">
-      <text class="title-main">今日常做</text>
-      <text class="title-link" bindtap="onWorkbenchTap">新建 ›</text>
-    </view>
-    <view class="grid-2">
-      <view
-        class="recipe-card"
-        wx:for="{{todayPicks}}"
-        wx:key="id"
-        data-id="{{item.id}}"
-        bindtap="onRecipeTap"
-      >
-        <view class="card-cover">
-          <image wx:if="{{item.cover_image_url}}" class="card-cover-img" src="{{item.cover_image_url}}" mode="aspectFill" />
-          <view class="card-fav-btn" data-id="{{item.id}}" catchtap="onFavoriteTap">
-            <image class="card-fav-icon" src="/assets/icons/heart.png" mode="aspectFit" />
-          </view>
-        </view>
-        <view class="card-body">
-          <text class="card-title">{{item.title}}</text>
-          <view class="card-meta">
-            <text>{{item.total_minutes || 30}}分钟 · {{item.difficulty ? '难度' + item.difficulty : '简单'}}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 按类型浏览 -->
-  <view class="section">
-    <view class="section-title">
-      <text class="title-main">按类型浏览</text>
-    </view>
-    <view class="cat-grid">
-      <view
-        class="cat-cell"
         wx:for="{{categories}}"
+        wx:for-item="cat"
         wx:key="id"
-        data-id="{{item.id}}"
-        data-text="{{item.text}}"
+        class="rl__side-item {{activeCat === cat.id ? 'rl__side-item--on' : ''}}"
+        data-id="{{cat.id}}"
+        data-name="{{cat.name}}"
+        data-deletable="{{cat.deletable}}"
         bindtap="onCategoryTap"
+        bindlongpress="onCategoryLongpress"
       >
-        <view class="cat-cover">
-          <image class="cat-cover-img" src="{{item.iconSrc}}" mode="aspectFit" />
-        </view>
-        <text class="cat-label">{{item.text}}</text>
+        <text>{{cat.label}}</text>
       </view>
-    </view>
-  </view>
+      <view class="rl__side-add" bindtap="onAddCategory">＋ 新建类目</view>
+    </scroll-view>
 
-  <!-- 列表（按筛选结果） -->
-  <view wx:if="{{recipes.length}}" class="section">
-    <view class="section-title">
-      <text class="title-main">所有菜谱</text>
-    </view>
-    <view class="grid-2">
+    <!-- 右菜谱列 -->
+    <scroll-view scroll-y class="rl__main" show-scrollbar="{{false}}">
       <view
-        class="recipe-card"
         wx:for="{{recipes}}"
+        wx:for-item="r"
         wx:key="id"
-        data-id="{{item.id}}"
+        class="rl__row"
+        data-id="{{r.id}}"
         bindtap="onRecipeTap"
       >
-        <view class="card-cover">
-          <image wx:if="{{item.cover_image_url}}" class="card-cover-img" src="{{item.cover_image_url}}" mode="aspectFill" />
-          <view class="card-fav-btn" data-id="{{item.id}}" catchtap="onFavoriteTap">
-            <image class="card-fav-icon" src="{{item.favored ? '/assets/icons/heart.png' : '/assets/icons/heart.png'}}" mode="aspectFit" />
+        <view class="rl__row-cover">
+          <image wx:if="{{r.cover_image_url}}" class="rl__row-cover-img" src="{{r.cover_image_url}}" mode="aspectFill" />
+        </view>
+        <view class="rl__row-body">
+          <text class="rl__row-title">{{r.title}}</text>
+          <text wx:if="{{r.__meta}}" class="rl__row-meta">{{r.__meta}}</text>
+          <view class="rl__row-actions">
+            <view class="rl__row-btn" data-id="{{r.id}}" catchtap="onEditRecipe">编辑</view>
+            <view class="rl__row-btn rl__row-btn--del" data-id="{{r.id}}" catchtap="onDeleteRecipe">删除</view>
           </view>
         </view>
-        <view class="card-body">
-          <text class="card-title">{{item.title}}</text>
-          <view class="card-meta">
-            <text>{{item.total_minutes || 30}}分钟</text>
-          </view>
-        </view>
       </view>
-    </view>
+
+      <view wx:if="{{!recipes.length && !loading}}" class="rl__empty">
+        <text>该类目下暂无菜谱</text>
+        <view class="rl__empty-btn" bindtap="onWorkbenchTap">＋ 新建菜谱</view>
+      </view>
+      <view class="rl__main-spacer"></view>
+    </scroll-view>
   </view>
-
-  <view wx:if="{{!recipes.length && !todayPicks.length && !loading}}" class="empty-tip">暂无菜谱，去创建一个吧</view>
-
-  <!-- 我的菜谱 -->
-  <view class="section">
-    <view class="section-title">
-      <text class="title-main">我的菜谱</text>
-    </view>
-    <view class="my-list">
-      <view class="my-item" bindtap="onFavTap">
-        <image class="my-icon" src="/assets/icons/bookmark.svg" mode="aspectFit" />
-        <text class="my-text">我的收藏</text>
-        <text class="my-count">{{myCounts.total}}</text>
-        <text class="my-arrow">›</text>
-      </view>
-      <view class="my-item" bindtap="onWorkbenchTap">
-        <image class="my-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
-        <text class="my-text">新建菜谱</text>
-        <text class="my-arrow">›</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="bottom-spacer"></view>
 </view>
 
-<ai-fab />
+<ai-fab scene="chat" />
 <ai-sheet context="菜谱浏览" />
+
+<!-- 新建类目 -->
+<input-dialog
+  visible="{{catDialogVisible}}"
+  title="新建类目"
+  placeholder="输入类目名称，如 家常菜"
+  confirmText="创建"
+  maxlength="20"
+  bind:confirm="onCatDialogConfirm"
+  bind:close="onCatDialogClose"
+/>

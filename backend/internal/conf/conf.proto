@@ -10,7 +10,8 @@ message Bootstrap {
   Server server = 1;
   Data data = 2;
   OSS oss = 3;
-  Inference inference = 4;
+  reserved 4;  // 原 Inference（已删除：OCR 改 vision_model，ASR 改 mimo-v2.5-asr）
+  reserved "inference";
   AI ai = 5;
   Auth auth = 6;
   Log log = 7;
@@ -86,11 +87,6 @@ message OSS {
   string knowledge_bucket = 7;
 }
 
-message Inference {
-  string endpoint = 1;
-  google.protobuf.Duration timeout = 2;
-}
-
 message AI {
   string mode = 1;
   string provider = 2;
@@ -99,4 +95,8 @@ message AI {
   string chat_model = 5;
   string vision_model = 6;
   string embedding_model = 7;
+  // LLM 单次请求超时（菜谱生成等长输出场景需要较大值），缺省 300s
+  google.protobuf.Duration request_timeout = 8;
+  // 语音识别模型（小米 MiMo ASR），缺省 mimo-v2.5-asr
+  string asr_model = 9;
 }

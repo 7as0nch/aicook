@@ -125,6 +125,7 @@ type Recipe struct {
 	Summary        string            `gorm:"type:text" json:"summary"`
 	CoverImageURL    string         `gorm:"type:text" json:"cover_image_url"`
 	GalleryImageURLs datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"gallery_image_urls"`
+	VideoURL         string         `gorm:"type:text" json:"video_url"`
 	Status             string       `gorm:"size:20;default:'draft';index" json:"status"`
 	SourceType     string            `gorm:"size:30;default:'manual';index" json:"source_type"`
 	Language       string            `gorm:"size:12;default:'zh-CN'" json:"language"`

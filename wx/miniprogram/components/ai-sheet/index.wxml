@@ -29,8 +29,12 @@
           <view class="ais__icon-btn {{historyVisible ? 'ais__icon-btn--active' : ''}}" catchtap="onOpenHistory">
             <image class="ais__icon-btn-img" src="/assets/icons/clock.png" mode="aspectFit" />
           </view>
-          <view class="ais__icon-btn" catchtap="onToggleExpand">{{sheetExpanded ? '▾' : '⤢'}}</view>
-          <view class="ais__icon-btn" catchtap="onClose">×</view>
+          <view class="ais__icon-btn" catchtap="onToggleExpand">
+            <image class="ais__icon-btn-img" src="{{sheetExpanded ? '/assets/icons/collapse.svg' : '/assets/icons/expand.svg'}}" mode="aspectFit" />
+          </view>
+          <view class="ais__icon-btn" catchtap="onClose">
+            <image class="ais__icon-btn-img" src="/assets/icons/close.svg" mode="aspectFit" />
+          </view>
         </view>
       </view>
     </view>
@@ -127,39 +131,121 @@
           wx:for="{{messages}}"
           wx:key="client_id"
           wx:for-item="msg"
+          wx:if="{{msg.segments.length || msg.status === 'streaming' || msg.flow_count}}"
           id="m-{{msg.client_id}}"
           class="ais__msg ais__msg--{{msg.role}}"
         >
           <view wx:if="{{msg.role === 'assistant'}}" class="ais__msg-avatar">
             <image class="ais__msg-avatar-img" src="/assets/mascot/bao-default.png" mode="aspectFit" />
           </view>
-          <view class="ais__msg-bubble">
-            <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
-              <view wx:if="{{seg.kind === 'text'}}" class="ais__msg-text">{{seg.content}}</view>
-              <view wx:elif="{{seg.kind === 'reasoning'}}" class="ais__msg-reason">
-                <view class="ais__msg-reason-dot"></view>
-                <text>{{seg.content}}</text>
+          <view class="ais__msg-col">
+            <view class="ais__msg-bubble">
+              <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
+                <block wx:if="{{seg.kind === 'text'}}">
+                  <rich-text wx:if="{{seg.nodes}}" class="ais__msg-rich" nodes="{{seg.nodes}}" />
+                  <view wx:else class="ais__msg-text">{{seg.content}}</view>
+                </block>
+                <view wx:elif="{{seg.kind === 'reasoning'}}" class="ais__msg-reason">
+                  <view class="ais__msg-reason-head" data-cid="{{msg.client_id}}" catchtap="onReasonToggle">
+                    <view class="ais__msg-reason-dot"></view>
+                    <text class="ais__msg-reason-label">💭 推理过程</text>
+                    <text class="ais__msg-reason-chevron">{{msg.reasoning_collapsed ? '展开 ▸' : '收起 ▾'}}</text>
+                  </view>
+                  <text wx:if="{{!msg.reasoning_collapsed}}" class="ais__msg-reason-text">{{seg.content}}</text>
+                </view>
+                <view wx:elif="{{seg.kind === 'recipe_card'}}" class="ais__msg-recipe" data-id="{{seg.recipe_id}}" data-cid="{{msg.client_id}}" data-idx="{{index}}" bindtap="onRecipeCardTap">
+                  <view wx:if="{{seg.cover_image_url}}" class="ais__msg-recipe-cover">
+                    <image class="ais__msg-recipe-cover-img" src="{{seg.cover_image_url}}" mode="aspectFill" />
+                  </view>
+                  <view class="ais__msg-recipe-body">
+                    <view class="ais__msg-recipe-title">{{seg.title}}</view>
+                    <view wx:if="{{seg.summary}}" class="ais__msg-recipe-sum">{{seg.summary}}</view>
+                    <view class="ais__msg-recipe-cta">{{seg.recipe_id ? '查看详情 ›' : '✎ 编辑并保存 ›'}}</view>
+                  </view>
+                </view>
+                <view wx:elif="{{seg.kind === 'approval'}}" class="ais__msg-approval">
+                  <text class="ais__msg-approval-prompt">{{seg.prompt}}</text>
+                  <view wx:if="{{seg.options.length}}" class="ais__msg-approval-opts">
+                    <view
+                      wx:for="{{seg.options}}"
+                      wx:for-item="opt"
+                      wx:key="id"
+                      class="ais__msg-approval-opt {{seg.selected_map[opt.id] ? 'ais__msg-approval-opt--on' : ''}} {{seg.answered ? 'ais__msg-approval-opt--done' : ''}}"
+                      data-cid="{{msg.client_id}}"
+                      data-aid="{{seg.approval_id}}"
+                      data-oid="{{opt.id}}"
+                      catchtap="onApprovalOptionTap"
+                    >
+                      <text class="ais__msg-approval-opt-title">{{opt.title}}</text>
+                      <text wx:if="{{opt.summary}}" class="ais__msg-approval-opt-sum">{{opt.summary}}</text>
+                    </view>
+                  </view>
+                  <view wx:if="{{!seg.answered && (seg.selection_mode === 'multi' || seg.allow_skip)}}" class="ais__msg-approval-actions">
+                    <view
+                      wx:if="{{seg.allow_skip}}"
+                      class="ais__msg-approval-skip"
+                      data-cid="{{msg.client_id}}"
+                      data-aid="{{seg.approval_id}}"
+                      catchtap="onApprovalSkip"
+                    >跳过</view>
+                    <view
+                      wx:if="{{seg.selection_mode === 'multi'}}"
+                      class="ais__msg-approval-confirm"
+                      data-cid="{{msg.client_id}}"
+                      data-aid="{{seg.approval_id}}"
+                      catchtap="onApprovalConfirm"
+                    >确认选择</view>
+                  </view>
+                  <view wx:if="{{seg.answered}}" class="ais__msg-approval-answered">✓ 已选择{{seg.selected_label ? '：' + seg.selected_label : ''}}</view>
+                </view>
+                <view wx:elif="{{seg.kind === 'sources'}}" class="ais__msg-sources">
+                  <text class="ais__msg-sources-head">🔎 参考来源（{{seg.sources.length}}）</text>
+                  <view
+                    wx:for="{{seg.sources}}"
+                    wx:for-item="src"
+                    wx:key="title"
+                    class="ais__msg-source"
+                  >
+                    <text class="ais__msg-source-title">{{src.title}}</text>
+                    <text wx:if="{{src.snippet}}" class="ais__msg-source-snippet">{{src.snippet}}</text>
+                    <text wx:if="{{src.site_name}}" class="ais__msg-source-site">{{src.site_name}}</text>
+                  </view>
+                </view>
+                <view wx:elif="{{seg.kind === 'error'}}" class="ais__msg-error">⚠ {{seg.message}}</view>
+              </block>
+              <view wx:if="{{msg.status === 'streaming' && !msg.segments.length}}" class="ais__msg-typing">
+                <view class="ais__msg-typing-dot"></view>
+                <view class="ais__msg-typing-dot"></view>
+                <view class="ais__msg-typing-dot"></view>
               </view>
-              <view wx:elif="{{seg.kind === 'tool_call'}}" class="ais__msg-tool">
-                <view class="ais__msg-tool-dot"></view>
-                <text>调用 {{seg.tool_name}}</text>
+            </view>
+            <!-- 工作流时间线（tool_call / agent / status）：默认折叠，头部计数 + 流式中实时行 -->
+            <view wx:if="{{msg.role === 'assistant' && msg.flow_count}}" class="ais__msg-flowline">
+              <view class="ais__msg-flow-head" data-cid="{{msg.client_id}}" catchtap="onFlowToggle">
+                <text class="ais__msg-flow-head-icon">⚙️</text>
+                <text class="ais__msg-flow-head-text">执行过程 · {{msg.flow_count}} 步</text>
+                <text class="ais__msg-flow-head-chevron">{{msg.flow_collapsed ? '展开 ▸' : '收起 ▾'}}</text>
               </view>
-              <view wx:elif="{{seg.kind === 'agent'}}" class="ais__msg-agent">
-                <view class="ais__msg-agent-dot"></view>
-                <text>{{seg.content}}</text>
+              <view wx:if="{{msg.flow_collapsed && msg.status === 'streaming' && msg.flow_live}}" class="ais__msg-flow">
+                <view class="ais__msg-flow-dot ais__msg-flow-dot--running"></view>
+                <text>{{msg.flow_live}}</text>
               </view>
-              <view wx:elif="{{seg.kind === 'status'}}" class="ais__msg-status">{{seg.message}}</view>
-              <view wx:elif="{{seg.kind === 'recipe_card'}}" class="ais__msg-recipe" data-id="{{seg.recipe_id}}" bindtap="onRecipeCardTap">
-                <view class="ais__msg-recipe-title">{{seg.title}}</view>
-                <view wx:if="{{seg.summary}}" class="ais__msg-recipe-sum">{{seg.summary}}</view>
-                <view class="ais__msg-recipe-cta">查看详情 ›</view>
-              </view>
-              <view wx:elif="{{seg.kind === 'error'}}" class="ais__msg-error">⚠ {{seg.message}}</view>
-            </block>
-            <view wx:if="{{msg.status === 'streaming' && !msg.segments.length}}" class="ais__msg-typing">
-              <view class="ais__msg-typing-dot"></view>
-              <view class="ais__msg-typing-dot"></view>
-              <view class="ais__msg-typing-dot"></view>
+              <block wx:if="{{!msg.flow_collapsed}}">
+                <block wx:for="{{msg.segments}}" wx:for-item="seg" wx:key="index">
+                  <view wx:if="{{seg.kind === 'tool_call'}}" class="ais__msg-flow">
+                    <view class="ais__msg-flow-dot {{seg.status === 'running' ? 'ais__msg-flow-dot--running' : ''}}"></view>
+                    <text>调用 {{seg.tool_name}}</text>
+                  </view>
+                  <view wx:elif="{{seg.kind === 'agent'}}" class="ais__msg-flow">
+                    <view class="ais__msg-flow-dot ais__msg-flow-dot--agent {{seg.status === 'running' ? 'ais__msg-flow-dot--running' : ''}}"></view>
+                    <text>{{seg.content}}</text>
+                  </view>
+                  <view wx:elif="{{seg.kind === 'status'}}" class="ais__msg-flow">
+                    <view class="ais__msg-flow-dot ais__msg-flow-dot--status {{seg.status === 'running' ? 'ais__msg-flow-dot--running' : ''}}"></view>
+                    <text>{{seg.message}}</text>
+                  </view>
+                </block>
+              </block>
             </view>
           </view>
         </view>
@@ -170,9 +256,9 @@
 
     <!-- mode chip -->
     <view class="ais__modes">
-      <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:tap="onToggleReasoning" />
-      <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:tap="onToggleWebSearch" />
-      <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:tap="onToggleImageRecipe" />
+      <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:toggle="onToggleReasoning" />
+      <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:toggle="onToggleWebSearch" />
+      <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:toggle="onToggleImageRecipe" />
     </view>
 
     <!-- 输入条 -->
@@ -188,7 +274,9 @@
         confirm-type="send"
         bindconfirm="onSendTap"
       />
-      <view wx:if="{{streaming}}" class="ais__input-stop" bindtap="onAbort">■</view>
+      <view wx:if="{{streaming}}" class="ais__input-stop" bindtap="onAbort">
+        <image class="ais__input-send-icon" src="/assets/icons/stop.svg" mode="aspectFit" />
+      </view>
       <view wx:else class="ais__input-send" bindtap="onSendTap">
         <image class="ais__input-send-icon" src="/assets/icons/send.svg" mode="aspectFit" />
       </view>

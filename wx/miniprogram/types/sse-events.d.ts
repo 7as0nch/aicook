@@ -24,16 +24,53 @@ export interface SSEDeltaPayload {
   [key: string]: unknown;
 }
 
-// event: tool_call —— metadata 中平铺工具调用信息
+// event: status_delta —— graph 工作流步骤（running/done 各推一次，按 step_id 合并）
+export interface SSEStatusPayload extends SSEDeltaPayload {
+  step_id?: string;
+  title?: string;
+  status?: string;
+  detail?: string;
+}
+
+// event: agent_delta —— 子 agent 调度状态（按 id 合并）
+export interface SSEAgentPayload extends SSEDeltaPayload {
+  id?: string;
+  name?: string;
+  status?: string;
+  detail?: string;
+}
+
+// event: tool_call —— metadata 中平铺工具调用信息（running/done 各推一次，按 call_id 合并）
 export interface SSEToolCallPayload extends SSEDeltaPayload {
   tool_name?: string;
   name?: string;
+  status?: string;
   arguments?: string;
   result?: string;
 }
 
-// event: recipe_card —— metadata 中平铺菜谱卡片信息
+// 菜谱卡片对象（对应 backend airuntime.RecipeCard，经 metadata["card"] 传输，
+// 见 stream_bridge.go emitRecipeCard）
+export interface SSERecipeCardDetail {
+  recipe_id?: string;
+  title?: string;
+  summary?: string;
+  cover_image_url?: string;
+  ingredients?: string[];
+  time?: string;
+  difficulty?: string;
+  status?: string;
+  source?: string;
+  is_recipe?: boolean;
+  reject_reason?: string;
+  // 完整草稿（TextRecipeDraft，字段与 editor 的 DraftPayload 对齐），未落库时用它进编辑页
+  draft?: Record<string, unknown>;
+}
+
+// event: recipe_card —— 卡片在 card 字段（注意不是平铺）
 export interface SSERecipeCardPayload extends SSEDeltaPayload {
+  card?: SSERecipeCardDetail;
+  // 兼容历史平铺字段
   recipe_id?: Int64Like;
   title?: string;
   summary?: string;
@@ -41,10 +78,34 @@ export interface SSERecipeCardPayload extends SSEDeltaPayload {
   draft?: Record<string, unknown>;
 }
 
-// event: approval —— 需要用户确认的操作
+// human-in-loop 审批选项（对应 backend airuntime.ApprovalOption）
+export interface SSEApprovalOption {
+  id?: string;
+  title?: string;
+  summary?: string;
+  preference_key?: string;
+  value?: string;
+}
+
+// 审批对象（对应 backend airuntime.PendingApproval，经 metadata["approval"] 平铺传输）
+export interface SSEApprovalDetail {
+  id?: string;
+  kind?: string;
+  prompt?: string;
+  status?: string;
+  selection_mode?: string;
+  step_index?: number;
+  step_total?: number;
+  allow_skip?: boolean;
+  selected_option_ids?: string[];
+  options?: SSEApprovalOption[];
+}
+
+// event: approval —— 需要用户确认/选择的操作。
+// content=prompt、call_id=审批 ID，完整对象在 approval 字段（见 chat_http.go + stream_bridge.go:181）
 export interface SSEApprovalPayload extends SSEDeltaPayload {
   prompt?: string;
-  options?: Array<{ label: string; value: string }>;
+  approval?: SSEApprovalDetail;
 }
 
 // event: done —— 流结束，附完整回复元数据
@@ -76,8 +137,8 @@ export type ChatSSEEvent =
   | { event: 'start'; data: SSEStartPayload; raw: string }
   | { event: 'answer_delta'; data: SSEDeltaPayload; raw: string }
   | { event: 'reasoning_delta'; data: SSEDeltaPayload; raw: string }
-  | { event: 'status_delta'; data: SSEDeltaPayload; raw: string }
-  | { event: 'agent_delta'; data: SSEDeltaPayload; raw: string }
+  | { event: 'status_delta'; data: SSEStatusPayload; raw: string }
+  | { event: 'agent_delta'; data: SSEAgentPayload; raw: string }
   | { event: 'tool_call'; data: SSEToolCallPayload; raw: string }
   | { event: 'recipe_card'; data: SSERecipeCardPayload; raw: string }
   | { event: 'approval'; data: SSEApprovalPayload; raw: string }

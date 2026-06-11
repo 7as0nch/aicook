@@ -59,8 +59,9 @@ Page({
   },
 
   onShow() {
-    // 从导入预览页等子页返回时同步最新状态
+    // 从导入预览页/口味编辑页等子页返回时同步最新状态（含成员口味标签）
     this.rebuild();
+    void this.loadMembers();
   },
 
   async loadMembers() {

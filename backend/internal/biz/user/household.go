@@ -31,6 +31,20 @@ type HouseholdPreferences struct {
 	Restrictions  []string
 	MaxDifficulty int
 	MaxMinutes    int
+	// TasteNote 口味的自由文字描述（如 "不吃香菜，爱吃辣但肠胃弱"），AI 推荐时作为补充上下文
+	TasteNote string
+}
+
+// 口味文字描述的最大长度（字符数），防止超长内容塞进 JSONB
+const tasteNoteMaxLen = 200
+
+func normalizeTasteNote(s string) string {
+	s = strings.TrimSpace(s)
+	runes := []rune(s)
+	if len(runes) > tasteNoteMaxLen {
+		return string(runes[:tasteNoteMaxLen])
+	}
+	return s
 }
 
 // GetPreferences 读取当前家庭的偏好。读不到时返回零值（不报错）。
@@ -279,6 +293,7 @@ func encodePreferencesJSON(prefs *HouseholdPreferences) ([]byte, error) {
 		"restrictions":   uniqueTrimmedTags(prefs.Restrictions),
 		"max_difficulty": clampInt(prefs.MaxDifficulty, 0, 5),
 		"max_minutes":    clampInt(prefs.MaxMinutes, 0, 600),
+		"taste_note":     normalizeTasteNote(prefs.TasteNote),
 	}
 	return json.Marshal(payload)
 }
@@ -304,6 +319,7 @@ func (u *HouseholdUsecase) UpdatePreferences(ctx context.Context, actor common.A
 		"restrictions":   uniqueTrimmedTags(prefs.Restrictions),
 		"max_difficulty": clampInt(prefs.MaxDifficulty, 0, 5),
 		"max_minutes":    clampInt(prefs.MaxMinutes, 0, 600),
+		"taste_note":     normalizeTasteNote(prefs.TasteNote),
 	}
 	if err := u.repo.UpdatePreferences(ctx, actor.HouseholdID, payload); err != nil {
 		return nil, err
@@ -321,6 +337,9 @@ func preferencesFromJSON(raw map[string]any) *HouseholdPreferences {
 	out.Restrictions = uniqueTrimmedTags(jsonAnyToStrings(raw["restrictions"]))
 	out.MaxDifficulty = clampInt(int(coerceJSONNumber(raw["max_difficulty"])), 0, 5)
 	out.MaxMinutes = clampInt(int(coerceJSONNumber(raw["max_minutes"])), 0, 600)
+	if s, ok := raw["taste_note"].(string); ok {
+		out.TasteNote = normalizeTasteNote(s)
+	}
 	return out
 }
 

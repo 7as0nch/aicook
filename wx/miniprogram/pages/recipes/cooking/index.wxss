@@ -16,6 +16,7 @@
 }
 
 .ck__nav-btn,
+.ck__nav-back,
 .ck__nav-ai {
   width: 72rpx;
   height: 72rpx;
@@ -25,14 +26,19 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4rpx 12rpx rgba(31, 27, 22, 0.06);
+  flex-shrink: 0;
 }
 
 .ck__nav-icon { width: 36rpx; height: 36rpx; }
+
+/* 返回图标必须显式约束尺寸，否则 <image> 用默认大图把导航撑爆 */
+.ck__nav-back-icon { width: 32rpx; height: 32rpx; }
 
 .ck__nav-ai-icon { width: 40rpx; height: 40rpx; }
 
 .ck__nav-body {
   flex: 1;
+  min-width: 0;
   text-align: center;
 }
 
@@ -41,6 +47,9 @@
   font-size: 30rpx;
   font-weight: 600;
   color: #1F1B16;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .ck__nav-sub {
@@ -68,15 +77,65 @@
   padding: 32rpx;
 }
 
-.ck__media {
-  border-radius: 32rpx;
-  overflow: hidden;
-  height: 360rpx;
-  margin-bottom: 32rpx;
-  background: linear-gradient(135deg, #FFE4CC 0%, #FFCCAA 100%);
+/* 步骤标签 */
+.ck__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+.ck__tag {
+  padding: 6rpx 20rpx;
+  border-radius: 9999rpx;
+  background: #FFF1E6;
+  color: #E5604A;
+  font-size: 22rpx;
+  font-weight: 500;
 }
 
-.ck__media-img { width: 100%; height: 100%; }
+/* 多媒体步骤 */
+.ck__media { margin-bottom: 28rpx; }
+
+.ck__media-hero {
+  position: relative;
+  border-radius: 28rpx;
+  overflow: hidden;
+  height: 360rpx;
+  background: #F4F5F7;
+}
+
+.ck__media-hero-img { width: 100%; height: 100%; }
+
+.ck__media-count {
+  position: absolute;
+  right: 16rpx;
+  bottom: 16rpx;
+  padding: 4rpx 18rpx;
+  background: rgba(31, 27, 22, 0.55);
+  color: #FFFFFF;
+  font-size: 22rpx;
+  border-radius: 9999rpx;
+}
+
+.ck__media-thumbs {
+  white-space: nowrap;
+  margin-top: 16rpx;
+}
+
+.ck__media-thumb {
+  display: inline-block;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-right: 12rpx;
+  border: 4rpx solid transparent;
+  box-sizing: border-box;
+}
+
+.ck__media-thumb--on { border-color: #FF7A00; }
+
+.ck__media-thumb-img { width: 100%; height: 100%; }
 
 .ck__step-title {
   font-size: 36rpx;
@@ -102,48 +161,80 @@
   margin: 32rpx 0;
 }
 
-.ck__timer-circle {
-  width: 280rpx;
-  height: 280rpx;
+/* 倒计时圆环（conic-gradient 进度 + 内圈白底） */
+.ck__ring {
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ck__ring-inner {
+  width: 244rpx;
+  height: 244rpx;
   border-radius: 50%;
   background: #FFFFFF;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12rpx 32rpx rgba(255, 122, 0, 0.18);
+  box-shadow: inset 0 2rpx 8rpx rgba(255, 122, 0, 0.06);
 }
 
-.ck__timer-time {
-  font-size: 72rpx;
+.ck__ring-label {
+  font-size: 24rpx;
+  color: #9B978F;
+  margin-bottom: 6rpx;
+}
+
+.ck__ring-time {
+  font-size: 76rpx;
   font-weight: 700;
   color: #FF7A00;
   font-variant-numeric: tabular-nums;
 }
 
-.ck__timer-label {
+.ck__timer-status {
+  margin-top: 20rpx;
   font-size: 24rpx;
   color: #9B978F;
-  margin-top: 4rpx;
 }
 
 .ck__timer-actions {
   margin-top: 24rpx;
+  display: flex;
+  gap: 16rpx;
 }
 
-.ck__play-btn {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 20rpx 48rpx;
+.ck__timer-btn {
+  padding: 18rpx 40rpx;
   background: #FF7A00;
   color: #FFFFFF;
   border-radius: 9999rpx;
   font-size: 28rpx;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.ck__play-icon { width: 28rpx; height: 28rpx; filter: brightness(0) invert(1); }
+.ck__timer-btn--ghost {
+  background: #FFFFFF;
+  color: #FF7A00;
+  border: 2rpx solid #FFD2AC;
+}
+
+/* 预计完成条件 */
+.ck__cond {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #F0FAF3;
+  margin-top: 24rpx;
+}
+.ck__cond-label { font-size: 24rpx; font-weight: 600; color: #2D9D62; }
+.ck__cond-text { font-size: 28rpx; line-height: 1.5; color: #1F1B16; }
 
 .ck__tip {
   display: flex;

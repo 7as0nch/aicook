@@ -5,21 +5,16 @@
     <view class="rd__hero-overlay"></view>
   </view>
 
-  <!-- 顶部按钮 -->
-  <view class="rd__topbar" style="top: {{statusBarHeight + 6}}px">
+  <!-- 顶部悬浮操作（全部靠左，右上角留给微信胶囊；分享走胶囊 ··· 菜单或这里的按钮） -->
+  <view class="rd__topbar" style="top: {{capsuleTop}}px">
     <view class="rd__top-btn" bindtap="onBack">
       <image class="rd__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
     </view>
-    <view class="rd__top-actions">
-      <view wx:if="{{canEdit}}" class="rd__top-btn rd__top-btn--edit" bindtap="onEditTap">
-        <text class="rd__top-edit-text">编辑</text>
-      </view>
-      <view class="rd__top-btn" bindtap="onFavTap">
-        <image class="rd__top-icon" src="/assets/icons/star.svg" mode="aspectFit" />
-      </view>
-      <view class="rd__top-btn" bindtap="onShareTap">
-        <image class="rd__top-icon" src="/assets/icons/share.svg" mode="aspectFit" />
-      </view>
+    <view wx:if="{{canEdit}}" class="rd__top-btn rd__top-btn--edit" bindtap="onEditTap">
+      <text class="rd__top-edit-text">编辑</text>
+    </view>
+    <view class="rd__top-btn" bindtap="onShareTap">
+      <image class="rd__top-icon" src="/assets/icons/share.svg" mode="aspectFit" />
     </view>
   </view>
 
@@ -45,10 +40,6 @@
       <view class="rd__tab {{activeTab === 'steps' ? 'rd__tab--active' : ''}}" data-tab="steps" bindtap="onTabSwitch">
         步骤
         <view wx:if="{{activeTab === 'steps'}}" class="rd__tab-bar"></view>
-      </view>
-      <view class="rd__tab {{activeTab === 'ai' ? 'rd__tab--active' : ''}}" data-tab="ai" bindtap="onTabSwitch">
-        AI 指导
-        <view wx:if="{{activeTab === 'ai'}}" class="rd__tab-bar"></view>
       </view>
       <view class="rd__tab {{activeTab === 'nutrition' ? 'rd__tab--active' : ''}}" data-tab="nutrition" bindtap="onTabSwitch">
         营养
@@ -88,14 +79,6 @@
       <view wx:if="{{!steps.length}}" class="rd__empty">暂无步骤</view>
     </view>
 
-    <!-- AI 指导 -->
-    <view wx:if="{{activeTab === 'ai'}}" class="rd__panel">
-      <view wx:for="{{aiHints}}" wx:key="*this" class="rd__ai-hint">{{item}}</view>
-      <view class="rd__ai-cta" bindtap="onAskAI">
-        <text>✨ 问问厨艺助理</text>
-      </view>
-    </view>
-
     <!-- 营养 -->
     <view wx:if="{{activeTab === 'nutrition'}}" class="rd__panel">
       <view class="rd__empty">营养数据敬请期待</view>
@@ -107,7 +90,8 @@
   <!-- 底部 sticky 操作栏 -->
   <view class="rd__footer">
     <view class="rd__fav-btn {{favored ? 'rd__fav-btn--on' : ''}}" bindtap="onFavTap">
-      <image class="rd__fav-icon" src="/assets/icons/star.svg" mode="aspectFit" />
+      <image class="rd__fav-icon" src="{{favored ? '/assets/icons/star-fill.svg' : '/assets/icons/star-line.svg'}}" mode="aspectFit" />
+      <text class="rd__fav-text">{{favored ? '已收藏' : '收藏'}}</text>
     </view>
     <view class="rd__cook-btn" bindtap="onCookTap">
       <image class="rd__cook-icon" src="/assets/icons/play.svg" mode="aspectFit" />
@@ -115,3 +99,7 @@
     </view>
   </view>
 </view>
+
+<!-- 全局 AI 浮球：携带本页菜谱上下文（让助手知道你在看哪道菜） -->
+<ai-fab scene="recipe_detail" recipeId="{{id}}" contextHint="{{recipe.title}}" bottom="240rpx" />
+<ai-sheet context="{{recipe.title || '菜谱详情'}}" />

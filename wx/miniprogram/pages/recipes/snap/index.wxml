@@ -6,6 +6,7 @@
       class="snap__camera"
       device-position="{{devicePosition}}"
       flash="off"
+      bindinitdone="onCameraReady"
       binderror="onCameraError"
     />
     <image wx:else class="snap__captured" src="{{capturedPath}}" mode="aspectFill" />
@@ -38,8 +39,14 @@
       <view class="snap__status-dot"></view>
       <text>识别中… 请保持画面清晰</text>
     </view>
-    <view wx:elif="{{error}}" class="snap__status-pill snap__status-pill--err">
-      <text>⚠ {{error}}</text>
+    <view wx:elif="{{error}}" class="snap__error-box">
+      <view class="snap__status-pill snap__status-pill--err">
+        <text>⚠ {{error}}</text>
+      </view>
+      <view class="snap__error-actions">
+        <view wx:if="{{captured}}" class="snap__error-btn" bindtap="onRetake">重拍</view>
+        <view class="snap__error-btn snap__error-btn--primary" bindtap="onPickAlbum">从相册选图</view>
+      </view>
     </view>
     <view wx:elif="{{!captured}}" class="snap__status-pill">
       <text>对准冰箱食材，点击下方拍照</text>
@@ -127,4 +134,14 @@
 
     <text wx:if="{{chips.length}}" class="snap__hint">AI 将基于以上 {{chips.length}} 种食材为你智能推荐</text>
   </view>
+
+  <!-- 添加食材弹层（替代已弃用的 wx.showModal editable） -->
+  <input-dialog
+    visible="{{addChipVisible}}"
+    title="添加食材"
+    placeholder="请输入食材名称"
+    confirmText="添加"
+    bind:confirm="onChipAddConfirm"
+    bind:close="onChipAddClose"
+  />
 </view>

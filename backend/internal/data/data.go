@@ -10,9 +10,9 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/model"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
+	"github.com/chengjiang/aicook/backend/internal/platform/asr"
 	"github.com/chengjiang/aicook/backend/internal/platform/demo"
 	"github.com/chengjiang/aicook/backend/internal/platform/embeddings"
-	"github.com/chengjiang/aicook/backend/internal/platform/inference"
 	"github.com/chengjiang/aicook/backend/internal/platform/persistence"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
 )
@@ -21,7 +21,7 @@ var ProviderSet = wire.NewSet(
 	NewDB,
 	NewRedis,
 	NewObjectStorage,
-	NewInferenceClient,
+	NewASRClient,
 	NewAIRuntime,
 	NewEmbeddingClient,
 	auth.NewAuthRepo,
@@ -86,8 +86,8 @@ func NewObjectStorage(cfg *conf.Bootstrap) (storage.ObjectStorage, func(), error
 	return objectStorage, func() {}, nil
 }
 
-func NewInferenceClient(cfg *conf.Bootstrap) *inference.Client {
-	return inference.NewClient(cfg.GetInference())
+func NewASRClient(cfg *conf.Bootstrap) *asr.Client {
+	return asr.NewClient(cfg.GetAi())
 }
 
 func NewAIRuntime(cfg *conf.Bootstrap) *airuntime.Runtime {

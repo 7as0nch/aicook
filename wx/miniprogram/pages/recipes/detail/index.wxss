@@ -26,16 +26,12 @@
 .rd__topbar {
   position: fixed;
   left: 32rpx;
-  right: 32rpx;
+  /* 右上角留给微信胶囊，操作按钮一律靠左排 */
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  z-index: 50;
-}
-
-.rd__top-actions {
-  display: flex;
   gap: 16rpx;
+  z-index: 50;
 }
 
 .rd__top-btn {
@@ -264,28 +260,6 @@
 
 .rd__step-img-i { width: 100%; height: 100%; }
 
-/* AI 指导 */
-.rd__ai-hint {
-  background: #FFF6EE;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  font-size: 26rpx;
-  color: #1F1B16;
-  margin-bottom: 14rpx;
-}
-
-.rd__ai-cta {
-  margin-top: 16rpx;
-  background: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%);
-  color: #FFFFFF;
-  font-size: 28rpx;
-  font-weight: 600;
-  text-align: center;
-  padding: 24rpx 0;
-  border-radius: 28rpx;
-  box-shadow: 0 8rpx 20rpx rgba(255, 122, 0, 0.28);
-}
-
 .rd__sheet-spacer { height: 240rpx; }
 
 /* ========== 底部 sticky ========== */
@@ -302,23 +276,44 @@
 }
 
 .rd__fav-btn {
-  width: 108rpx;
+  width: 132rpx;
   height: 108rpx;
-  border-radius: 32rpx;
-  background: #FFF6EE;
+  border-radius: 28rpx;
+  background: #F4F2EE;
+  border: 2rpx solid transparent;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4rpx;
   flex-shrink: 0;
 }
 
+/* 已收藏：实心橙星 + 橙底描边 + 橙字，和未收藏（灰星灰底）形成强对比 */
 .rd__fav-btn--on {
-  background: #FFE4C9;
+  background: #FFEAD9;
+  border-color: #FF7A00;
 }
 
 .rd__fav-icon {
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.rd__fav-text {
+  font-size: 20rpx;
+  color: #9B978F;
+}
+
+.rd__fav-btn--on .rd__fav-text {
+  color: #FF7A00;
+  font-weight: 600;
+}
+
+/* 顶部星标：收藏后白圈带橙色光晕 */
+.rd__top-btn--fav {
+  background: #FFFFFF;
+  box-shadow: 0 4rpx 14rpx rgba(255, 122, 0, 0.35);
 }
 
 .rd__cook-btn {

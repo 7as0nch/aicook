@@ -1,14 +1,5 @@
+<custom-navbar title="" border="{{false}}" bg="#FFFFFF" />
 <view class="today">
-  <view class="today__topbar">
-    <view class="today__top-btn" bindtap="onBack">
-      <image class="today__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
-    </view>
-    <view class="today__top-spacer"></view>
-    <view class="today__top-btn">
-      <image class="today__top-icon" src="/assets/icons/star.svg" mode="aspectFit" />
-    </view>
-  </view>
-
   <view class="today__title">{{pageTitle}}</view>
   <view wx:if="{{ingredients.length}}" class="today__sub">已根据 {{ingredients.length + extraCount}} 种识别食材为你智能排序</view>
   <view wx:else class="today__sub">{{recipes.length}} 道菜谱</view>

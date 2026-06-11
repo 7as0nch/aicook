@@ -32,8 +32,6 @@ oss:
   secret_key: test
   media_bucket: media
   knowledge_bucket: kb
-inference:
-  endpoint: http://127.0.0.1:8088
 ai:
   provider: xiaomi
   base_url: "https://api.xiaomimimo.com/v1"

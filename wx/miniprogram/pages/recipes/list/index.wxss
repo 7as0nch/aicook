@@ -1,163 +1,187 @@
-.recipes-page {
-  min-height: 100vh;
-  background: #FFFFFF;
-  padding: 0 24rpx 200rpx;
-}
-
-.page-header {
+.rl {
+  height: 100vh;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 32rpx 0 16rpx;
+  flex-direction: column;
+  background: #FAFAF8;
 }
 
-.page-title {
-  font-size: 50rpx;
+/* 顶部 */
+.rl__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx 12rpx;
+}
+
+.rl__title {
+  font-size: 40rpx;
   font-weight: 700;
   color: #1F1B16;
 }
 
-.page-action {
+.rl__new {
   display: flex;
   align-items: center;
-  gap: 6rpx;
-  padding: 10rpx 22rpx;
+  gap: 8rpx;
+  padding: 12rpx 26rpx;
   background: #FFF6EE;
   border-radius: 9999rpx;
+  color: #FF7A00;
   font-size: 26rpx;
+  font-weight: 500;
+}
+.rl__new-icon { width: 28rpx; height: 28rpx; }
+
+/* 搜索 */
+.rl__search {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 0 32rpx 16rpx;
+  padding: 16rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 9999rpx;
+  box-shadow: 0 2rpx 10rpx rgba(31, 27, 22, 0.04);
+}
+.rl__search-ic { width: 32rpx; height: 32rpx; opacity: 0.5; }
+.rl__search-input { flex: 1; font-size: 28rpx; color: #1F1B16; }
+
+/* 美团式两栏 */
+.rl__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* 左类目栏 */
+.rl__side {
+  width: 200rpx;
+  background: #F4F2EE;
+  height: 100%;
+}
+
+.rl__side-item {
+  padding: 30rpx 20rpx;
+  font-size: 27rpx;
+  color: #5C544A;
+  text-align: center;
+  position: relative;
+}
+
+.rl__side-item--on {
+  background: #FAFAF8;
+  color: #FF7A00;
+  font-weight: 600;
+}
+
+.rl__side-item--on::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6rpx;
+  height: 36rpx;
+  background: #FF7A00;
+  border-radius: 0 6rpx 6rpx 0;
+}
+
+.rl__side-add {
+  margin: 16rpx 16rpx;
+  padding: 18rpx 0;
+  text-align: center;
+  font-size: 24rpx;
+  color: #FF7A00;
+  background: #FFF6EE;
+  border: 1rpx dashed #FFBE8C;
+  border-radius: 16rpx;
+}
+
+/* 右菜谱列 */
+.rl__main {
+  flex: 1;
+  height: 100%;
+  padding: 16rpx 24rpx;
+  box-sizing: border-box;
+}
+
+.rl__row {
+  display: flex;
+  gap: 20rpx;
+  padding: 20rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(31, 27, 22, 0.05);
+}
+
+.rl__row-cover {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 18rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #FFE4CC 0%, #FFD0A8 100%);
+  flex-shrink: 0;
+}
+.rl__row-cover-img { width: 100%; height: 100%; }
+
+.rl__row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rl__row-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rl__row-meta {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #9B978F;
+}
+
+.rl__row-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 16rpx;
+}
+
+.rl__row-btn {
+  padding: 8rpx 28rpx;
+  border-radius: 9999rpx;
+  font-size: 24rpx;
+  background: #FFF6EE;
   color: #FF7A00;
 }
 
-.page-action-icon { width: 30rpx; height: 30rpx; }
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  background: #F4F5F7;
-  border-radius: 9999rpx;
-  padding: 16rpx 24rpx;
-  gap: 14rpx;
-  margin-bottom: 16rpx;
+.rl__row-btn--del {
+  background: #FCEBE8;
+  color: #E5604A;
 }
 
-.search-icon { width: 30rpx; height: 30rpx; opacity: 0.7; }
-.search-filter { width: 32rpx; height: 32rpx; opacity: 0.7; }
-
-.search-input {
-  flex: 1;
-  font-size: 26rpx;
-  color: #1F1B16;
-}
-
-.filter-scroll { white-space: nowrap; }
-.filter-row { display: inline-flex; gap: 12rpx; padding: 8rpx 0 16rpx; }
-.filter-chip {
-  flex-shrink: 0;
-  padding: 12rpx 28rpx;
-  background: #F4F5F7;
-  border-radius: 9999rpx;
-  font-size: 24rpx;
-  color: #5C544A;
-}
-.filter-chip.active {
-  background: #FF7A00;
-  color: #FFFFFF;
-}
-
-.section { margin-top: 32rpx; }
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 16rpx;
-}
-.title-main { font-size: 34rpx; font-weight: 600; color: #1F1B16; }
-.title-link { font-size: 24rpx; color: #FF7A00; }
-
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
-
-.recipe-card {
-  background: #FFFFFF;
-  border-radius: 24rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(31, 27, 22, 0.06);
-}
-.card-cover {
-  position: relative;
-  width: 100%;
-  height: 220rpx;
-  background: linear-gradient(135deg, #FFE4CC 0%, #FFCCAA 100%);
-}
-.card-cover-img { width: 100%; height: 100%; }
-.card-fav-btn {
-  position: absolute;
-  top: 12rpx;
-  right: 12rpx;
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.card-fav-icon { width: 28rpx; height: 28rpx; }
-
-.card-body { padding: 16rpx 20rpx 20rpx; }
-.card-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 500;
-  color: #1F1B16;
-  margin-bottom: 6rpx;
-}
-.card-meta { font-size: 22rpx; color: #9B978F; }
-
-.cat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16rpx;
-}
-.cat-cell {
+.rl__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-.cat-cover {
-  width: 108rpx;
-  height: 108rpx;
-  border-radius: 28rpx;
-  margin-bottom: 12rpx;
-  background: #FFF6EE;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.cat-cover-img { width: 56rpx; height: 56rpx; }
-.cat-label { font-size: 24rpx; color: #5C544A; }
-
-.empty-tip {
-  padding: 80rpx 0;
-  text-align: center;
+  gap: 24rpx;
+  padding: 120rpx 0;
   color: #9B978F;
   font-size: 26rpx;
 }
 
-.my-list {
-  background: #FFFFFF;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(31, 27, 22, 0.06);
-  overflow: hidden;
+.rl__empty-btn {
+  padding: 16rpx 40rpx;
+  background: #FF7A00;
+  color: #FFFFFF;
+  border-radius: 9999rpx;
+  font-size: 26rpx;
 }
-.my-item {
-  display: flex;
-  align-items: center;
-  padding: 28rpx 24rpx;
-  border-bottom: 1rpx solid #F4F2EE;
-  gap: 16rpx;
-}
-.my-item:last-child { border-bottom: none; }
-.my-icon { width: 36rpx; height: 36rpx; }
-.my-text { flex: 1; font-size: 28rpx; color: #1F1B16; }
-.my-count { font-size: 24rpx; color: #9B978F; }
-.my-arrow { font-size: 28rpx; color: #BFBFBF; }
+
+.rl__main-spacer { height: 160rpx; }

@@ -11,10 +11,11 @@ AICook is an AI-powered recipe management app (Chinese-language). Users upload r
 ```
 backend/          Go monolith (Kratos v2 + Eino AI framework)
 frontend/         React SPA (Vite + Tailwind + Capacitor for mobile)
-inference-service/  Python FastAPI service (speech recognition + OCR)
 wx/               WeChat mini-program (native + TypeScript, no Taro/uni-app)
 deploy/sql/       Database migrations and seed data
 ```
+
+> 历史的 `inference-service/`（Python FunASR/PaddleOCR）已删除：图文识别改用 MiMo `vision_model`（直接传图，无需 OCR），语音转写改用 MiMo `mimo-v2.5-asr`（`internal/platform/asr`，走同一个 OpenAI 兼容 API）。
 
 ## Build & Run Commands
 
@@ -64,14 +65,6 @@ pnpm install
 pnpm dev          # dev server
 pnpm build        # production build
 pnpm preview
-```
-
-### Inference Service (Python)
-
-```bash
-cd inference-service
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8088
 ```
 
 ### Docker
@@ -135,11 +128,11 @@ Protocol Buffers in `backend/api/aicook/v1/` (buf-managed; vendored `google/api`
 
 Feature-based organization under `frontend/src/features/` (cooking, home, knowledge, plan, profile, recipes, shopping). State management: Zustand with browser persistence. UI: Radix UI + Ant Design X + Tailwind CSS. Mobile: Capacitor for iOS/Android builds. All API calls go through `src/lib/api/client.ts`.
 
-### Inference Service
+### AI Media Recognition (replaces the old inference-service)
 
-Lightweight Python service for heavy ML tasks the Go backend delegates:
-- **FunASR**: Automatic speech recognition
-- **PaddleOCR**: Image text extraction (recipe parsing)
+Heavy ML now runs through the MiMo API, not a separate Python service:
+- **Speech-to-text**: `internal/platform/asr` posts audio (base64 data-URL, mp3/wav) to MiMo `mimo-v2.5-asr` via `/chat/completions`. Used by `VoiceService.Transcribe`.
+- **Image→recipe**: the multimodal `vision_model` ingests image URLs directly (`airuntime` draft path); there is no OCR step.
 
 ## Configuration
 
@@ -149,7 +142,7 @@ Key services the backend depends on:
 - **PostgreSQL** (schema: `aicook`) with pgvector extension
 - **Redis** for caching
 - **MinIO** for object storage (buckets: `aicook-media`, `aicook-kb`)
-- **Inference service** at port 8088
+- **MiMo API** (Xiaomi, OpenAI-compatible) for chat / vision / ASR
 
 ## Database
 

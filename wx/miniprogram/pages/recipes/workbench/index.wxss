@@ -216,3 +216,40 @@
 }
 
 .wb__cta-icon { width: 32rpx; height: 32rpx; filter: brightness(0) invert(1); }
+
+/* 生成失败提示条 */
+.wb__error {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 20rpx 48rpx 0;
+  padding: 20rpx 24rpx;
+  background: rgba(229, 96, 74, 0.08);
+  border: 2rpx solid rgba(229, 96, 74, 0.25);
+  border-radius: 20rpx;
+}
+
+.wb__error-text {
+  flex: 1;
+  font-size: 25rpx;
+  color: #E5604A;
+  line-height: 1.5;
+}
+
+.wb__error-retry {
+  flex-shrink: 0;
+  padding: 10rpx 28rpx;
+  border-radius: 28rpx;
+  background: #E5604A;
+  color: #FFFFFF;
+  font-size: 24rpx;
+}
+
+/* 手动创建入口 */
+.wb__manual {
+  text-align: center;
+  margin-top: 20rpx;
+  font-size: 25rpx;
+  color: #9B978F;
+  padding: 8rpx 0 4rpx;
+}

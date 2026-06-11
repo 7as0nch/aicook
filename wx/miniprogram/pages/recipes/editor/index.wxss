@@ -51,6 +51,9 @@
 .ed__scroll {
   flex: 1;
   padding: 24rpx;
+  /* scroll-view 默认占满视口宽，padding 不收缩内容会把卡片顶出右边界 */
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .ed__card {
@@ -228,47 +231,275 @@
 
 .ed__add-icon { width: 32rpx; height: 32rpx; }
 
-.ed__spacer { height: 80rpx; }
+/* 给底部固定保存条留出空间 */
+.ed__spacer { height: 200rpx; }
 
-/* 封面上传 */
-.ed__cover {
+/* label 行（标题 + 右侧提示） */
+.ed__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+.ed__label-hint { font-size: 22rpx; color: #B8B4AC; }
+
+/* 封面图集 */
+.ed__gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.ed__g-item {
   position: relative;
-  width: 100%;
-  height: 280rpx;
-  border-radius: 24rpx;
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 16rpx;
   overflow: hidden;
   background: #F4F5F7;
 }
 
-.ed__cover-img {
-  width: 100%;
-  height: 100%;
+.ed__g-img { width: 100%; height: 100%; }
+
+.ed__g-cover-badge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 4rpx 14rpx;
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-size: 20rpx;
+  border-top-right-radius: 12rpx;
 }
 
-.ed__cover-empty {
+.ed__g-set {
+  position: absolute;
+  left: 0;
+  bottom: 0;
   width: 100%;
-  height: 100%;
+  padding: 4rpx 0;
+  background: rgba(31, 27, 22, 0.5);
+  color: #FFFFFF;
+  font-size: 20rpx;
+  text-align: center;
+}
+
+.ed__g-del {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40rpx;
+  height: 40rpx;
+  background: rgba(31, 27, 22, 0.55);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-bottom-left-radius: 12rpx;
+}
+
+.ed__g-add {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  border: 2rpx dashed #DDD8D0;
+  background: #FAFAF8;
+}
+
+.ed__g-cam { width: 48rpx; height: 48rpx; opacity: 0.5; }
+.ed__g-uploading { font-size: 40rpx; color: #C8C4BC; }
+
+/* 介绍视频 */
+.ed__video {
+  position: relative;
+  width: 100%;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+.ed__video-player { width: 100%; height: 360rpx; border-radius: 20rpx; }
+.ed__video-del {
+  margin-top: 12rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #E5604A;
+}
+.ed__video-add {
+  height: 120rpx;
+  border-radius: 20rpx;
+  border: 2rpx dashed #DDD8D0;
+  background: #FAFAF8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #9B978F;
   font-size: 26rpx;
 }
 
-.ed__cover-cam {
-  width: 56rpx;
-  height: 56rpx;
+/* 类目选择 */
+.ed__cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  padding-top: 8rpx;
+}
+.ed__cat {
+  padding: 10rpx 24rpx;
+  border-radius: 9999rpx;
+  background: #F4F2EE;
+  color: #5C544A;
+  font-size: 26rpx;
+}
+.ed__cat--on {
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+.ed__cat--add {
+  background: #FFF6EE;
+  color: #FF7A00;
+  border: 1rpx dashed #FFBE8C;
 }
 
-.ed__cover-mask {
+/* 步骤块（步骤行 + 配图行） */
+.ed__step-block {
+  margin-bottom: 8rpx;
+}
+
+/* 步骤配图 */
+.ed__step-imgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 0 0 12rpx 72rpx;
+}
+
+.ed__step-imgs:empty { display: none; }
+
+.ed__step-img {
+  position: relative;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #F4F5F7;
+}
+
+.ed__step-img-i {
+  width: 100%;
+  height: 100%;
+}
+
+.ed__step-img-del {
   position: absolute;
-  inset: 0;
-  background: rgba(31, 27, 22, 0.45);
+  top: 0;
+  right: 0;
+  width: 36rpx;
+  height: 36rpx;
+  background: rgba(31, 27, 22, 0.55);
   color: #FFFFFF;
-  font-size: 28rpx;
+  font-size: 26rpx;
+  line-height: 36rpx;
+  text-align: center;
+  border-bottom-left-radius: 12rpx;
+}
+
+.ed__step-img--add {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2rpx dashed #DDD8D0;
+  background: #FAFAF8;
+}
+
+.ed__step-img-cam {
+  width: 44rpx;
+  height: 44rpx;
+  opacity: 0.5;
+}
+
+/* 底部固定保存条 */
+.ed__save-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #FFFFFF;
+  border-top: 2rpx solid #EFEDE8;
+  padding: 20rpx 48rpx 0;
+  z-index: 100;
+}
+
+.ed__save-btn {
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: linear-gradient(135deg, #FFB366 0%, #FF7A00 100%);
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 28rpx rgba(255, 122, 0, 0.32);
+}
+
+.ed__save-btn--saving {
+  background: #DDD8D0;
+  box-shadow: none;
+}
+
+.ed__save-safe {
+  height: calc(env(safe-area-inset-bottom) + 12rpx);
+}
+
+/* 步骤参数（火候 / 计时 / 完成条件） */
+.ed__step-params {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 0 0 12rpx 72rpx;
+}
+
+.ed__step-param-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.ed__step-param-label {
+  font-size: 23rpx;
+  color: #9B978F;
+  flex-shrink: 0;
+  width: 132rpx;
+}
+
+.ed__step-param-input {
+  width: 140rpx;
+  font-size: 26rpx;
+  color: #1F1B16;
+  padding: 8rpx 16rpx;
+  background: #FAFAF8;
+  border-radius: 12rpx;
+  text-align: center;
+}
+
+.ed__step-param-input--wide {
+  flex: 1;
+  width: auto;
+  text-align: left;
+}
+
+.ed__step-param-unit { font-size: 23rpx; color: #9B978F; }
+
+.ed__heat { display: flex; gap: 10rpx; }
+.ed__heat-opt {
+  padding: 6rpx 20rpx;
+  border-radius: 9999rpx;
+  background: #FAFAF8;
+  color: #5C544A;
+  font-size: 24rpx;
+}
+.ed__heat-opt--on {
+  background: #FFE7D6;
+  color: #E5604A;
+  font-weight: 600;
 }

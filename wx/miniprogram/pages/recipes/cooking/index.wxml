@@ -7,36 +7,62 @@
       <text class="ck__nav-title">{{detail.recipe.title || '做菜'}}</text>
       <text class="ck__nav-sub">第 {{stepIndex + 1}} / {{totalSteps}} 步</text>
     </view>
-    <view slot="right" class="ck__nav-ai" bindtap="onAskAI">
-      <image class="ck__nav-ai-icon" src="/assets/icons/robot.svg" mode="aspectFit" />
-    </view>
   </custom-navbar>
 
-  <!-- 进度条 -->
+  <!-- 步骤进度条 -->
   <view class="ck__progress">
     <view class="ck__progress-fill" style="width: {{((stepIndex + 1) / totalSteps) * 100}}%"></view>
   </view>
 
-  <!-- 主体 -->
   <view wx:if="{{currentStep}}" class="ck__body">
-    <view wx:if="{{currentStep.media_url}}" class="ck__media">
-      <image class="ck__media-img" src="{{currentStep.media_url}}" mode="aspectFill" />
+    <!-- 步骤标签（预处理 / 大火 / 需计时） -->
+    <view wx:if="{{stepTags.length}}" class="ck__tags">
+      <text wx:for="{{stepTags}}" wx:key="*this" class="ck__tag">{{item}}</text>
     </view>
+
+    <!-- 多媒体步骤：主图 + 缩略图条 -->
+    <view wx:if="{{mediaList.length}}" class="ck__media">
+      <view class="ck__media-hero" bindtap="onPreviewMedia">
+        <image class="ck__media-hero-img" src="{{mediaList[mediaIndex]}}" mode="aspectFill" />
+        <view wx:if="{{mediaList.length > 1}}" class="ck__media-count">{{mediaIndex + 1}}/{{mediaList.length}}</view>
+      </view>
+      <scroll-view wx:if="{{mediaList.length > 1}}" scroll-x class="ck__media-thumbs">
+        <view
+          wx:for="{{mediaList}}"
+          wx:for-item="m"
+          wx:for-index="mi"
+          wx:key="*this"
+          class="ck__media-thumb {{mi === mediaIndex ? 'ck__media-thumb--on' : ''}}"
+          data-idx="{{mi}}"
+          bindtap="onSelectMedia"
+        >
+          <image class="ck__media-thumb-img" src="{{m}}" mode="aspectFill" />
+        </view>
+      </scroll-view>
+    </view>
+
     <view wx:if="{{currentStep.title}}" class="ck__step-title">{{currentStep.title}}</view>
     <view class="ck__step-desc">{{currentStep.description}}</view>
 
-    <!-- 倒计时 -->
+    <!-- 倒计时模式 -->
     <view wx:if="{{timerTotalSeconds > 0}}" class="ck__timer">
-      <view class="ck__timer-circle">
-        <view class="ck__timer-time">{{(timerRemaining / 60 | 0) < 10 ? '0' : ''}}{{(timerRemaining / 60) | 0}}:{{(timerRemaining % 60) < 10 ? '0' : ''}}{{timerRemaining % 60}}</view>
-        <view class="ck__timer-label">剩余</view>
-      </view>
-      <view class="ck__timer-actions">
-        <view class="ck__play-btn" bindtap="onPlayPause">
-          <image class="ck__play-icon" src="{{timerRunning ? '/assets/icons/play.svg' : '/assets/icons/play.svg'}}" mode="aspectFit" />
-          <text>{{timerRunning ? '暂停' : '开始计时'}}</text>
+      <view class="ck__ring" style="background: conic-gradient(#FF7A00 {{timerProgress}}%, #FFE2CC 0);">
+        <view class="ck__ring-inner">
+          <text class="ck__ring-label">剩余时间</text>
+          <text class="ck__ring-time">{{timerText}}</text>
         </view>
       </view>
+      <text class="ck__timer-status">{{timerRunning ? '计时中，注意火候～' : '点"开始计时"启动倒计时'}}</text>
+      <view class="ck__timer-actions">
+        <view class="ck__timer-btn" bindtap="onPlayPause">{{timerRunning ? '⏸ 暂停' : '▶ 开始计时'}}</view>
+        <view class="ck__timer-btn ck__timer-btn--ghost" bindtap="onExtendMinute">＋ 延长1分钟</view>
+      </view>
+    </view>
+
+    <!-- 预计完成条件 -->
+    <view wx:if="{{currentStep.end_condition}}" class="ck__cond">
+      <text class="ck__cond-label">✅ 预计完成条件</text>
+      <text class="ck__cond-text">{{currentStep.end_condition}}</text>
     </view>
 
     <view wx:if="{{currentStep.safety_tips}}" class="ck__tip ck__tip--warn">
@@ -63,5 +89,5 @@
   </view>
 </view>
 
+<ai-fab scene="cooking_guide" recipeId="{{recipeId}}" contextHint="{{detail.recipe.title}}" bottom="240rpx" />
 <ai-sheet context="做菜中" />
-

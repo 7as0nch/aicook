@@ -68,6 +68,7 @@ export interface CreateRecipeDraftRequest {
   ingredients?: CreateRecipeDraftIngredient[] | undefined;
   steps?: CreateRecipeDraftStep[] | undefined;
   gallery_image_urls?: string[] | undefined;
+  video_url?: string | undefined;
 }
 
 export interface CreateRecipeDraftReply {
@@ -90,6 +91,7 @@ export interface UpdateRecipeRequest {
   metadata?: { [key: string]: any } | undefined;
   ingredients?: CreateRecipeDraftIngredient[] | undefined;
   steps?: CreateRecipeDraftStep[] | undefined;
+  video_url?: string | undefined;
 }
 
 export interface UpdateRecipeReply {

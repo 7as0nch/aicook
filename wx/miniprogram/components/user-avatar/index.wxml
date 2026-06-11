@@ -1,0 +1,10 @@
+<view class="ua" style="width:{{size}};height:{{size}};font-size:{{size}};">
+  <image
+    wx:if="{{url && !failed}}"
+    class="ua__img"
+    src="{{url}}"
+    mode="aspectFill"
+    binderror="onError"
+  />
+  <text wx:else class="ua__txt">{{initial}}</text>
+</view>
