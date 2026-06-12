@@ -129,8 +129,9 @@
     >
       <view class="home__card-cover">
         <image wx:if="{{item.cover_image_url}}" class="home__card-img" src="{{item.cover_image_url}}" mode="aspectFill" />
-        <view class="home__card-heart" data-id="{{item.id}}" catchtap="onSuggestedFavoriteTap">
-          <image class="home__card-heart-icon" src="/assets/icons/heart.png" mode="aspectFit" />
+        <!-- “喜欢”即“收藏”：用与详情页一致的星标，按 favored 切换填充/描边，避免歧义 -->
+        <view class="home__card-heart {{item.favored ? 'home__card-heart--on' : ''}}" data-id="{{item.id}}" catchtap="onSuggestedFavoriteTap">
+          <image class="home__card-heart-icon" src="{{item.favored ? '/assets/icons/star-fill.svg' : '/assets/icons/star-line.svg'}}" mode="aspectFit" />
         </view>
       </view>
       <view class="home__card-title">{{item.title}}</view>
@@ -143,5 +144,5 @@
   <view class="home__spacer"></view>
 </view>
 
-<ai-fab />
+<ai-fab contextHint="首页" />
 <ai-sheet context="首页" />

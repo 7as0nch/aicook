@@ -330,9 +330,8 @@ func (r *KitchenOpsRepo) TouchRecipeShare(ctx context.Context, shareID int64) er
 	return r.db.WithContext(ctx).Model(&RecipeShare{}).
 		Where("id = ?", shareID).
 		Updates(map[string]any{
-			"access_count":      gorm.Expr("access_count + 1"),
-			"last_accessed_at":  &now,
-			"updated_at":        now,
+			"last_viewed_at": &now,
+			"updated_at":     now,
 		}).Error
 }
 

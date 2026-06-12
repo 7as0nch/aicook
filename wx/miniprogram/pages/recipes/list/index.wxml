@@ -73,7 +73,7 @@
   </view>
 </view>
 
-<ai-fab scene="chat" />
+<ai-fab scene="chat" contextHint="菜谱库" />
 <ai-sheet context="菜谱浏览" />
 
 <!-- 新建类目 -->

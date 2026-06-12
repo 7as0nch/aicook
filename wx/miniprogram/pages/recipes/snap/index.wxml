@@ -52,13 +52,8 @@
       <text>对准冰箱食材，点击下方拍照</text>
     </view>
 
-    <!-- 顶部：只保留返回 + 标题（去掉闪光/翻转两个无用按钮） -->
-    <view class="snap__topbar" style="top: {{statusBarHeight + 6}}px">
-      <view class="snap__top-btn" bindtap="onBack">
-        <image class="snap__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
-      </view>
-      <view class="snap__top-title">食材识别</view>
-    </view>
+    <!-- 顶部导航：统一 custom-navbar（叠加在取景画面上，白色标题） -->
+    <custom-navbar overlay title="食材识别" color="#FFFFFF" />
 
     <!-- 底部操作行：快门 + 旁边的"结果"小按钮（默认状态：未拍） -->
     <view wx:if="{{!captured}}" class="snap__bottom-row">

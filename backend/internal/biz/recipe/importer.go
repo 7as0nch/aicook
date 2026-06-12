@@ -84,7 +84,8 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 		})
 	}
 
-	// vision 直识别；运行时内部在多模态失败时会回退启发式草稿，返回 err 仅代表真异常。
+	// vision 直识别（图片由运行时拉取后 base64 内联给 MiMo，不传内网 URL）。
+	// 无 OCR 文本时多模态失败会直接返回 err（不再回退空壳启发式草稿），由调用方据 err 置 failed。
 	draft, draftSource, err := u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
 		TitleHint: req.TitleHint,
 		Images:    attachments,

@@ -253,31 +253,6 @@ Page({
     }
   },
 
-  onSuggestedTap(e: WechatMiniprogram.CustomEvent<{ recipe: Recipe }>) {
-    const recipe = e.detail?.recipe;
-    if (!recipe?.id) return;
-    wx.navigateTo({ url: `/pages/recipes/detail/index?id=${recipe.id}` });
-  },
-
-  async onSuggestedFavorite(e: WechatMiniprogram.CustomEvent<{ recipe: Recipe }>) {
-    const recipe = e.detail?.recipe;
-    if (!recipe?.id) return;
-    try {
-      if (recipe.favored) {
-        await recipeApi.removeFavorite(recipe.id);
-        recipe.favored = false;
-      } else {
-        await recipeApi.addFavorite(recipe.id);
-        recipe.favored = true;
-      }
-      // 触发更新
-      const suggested = this.data.suggested.map(r => r.id === recipe.id ? { ...r, favored: recipe.favored } : r);
-      this.setData({ suggested });
-    } catch {
-      wx.showToast({ title: '操作失败', icon: 'none' });
-    }
-  },
-
   onTodayRecipeView() {
     this.onTodayRecipeTap();
   },

@@ -5,18 +5,20 @@
     <view class="rd__hero-overlay"></view>
   </view>
 
-  <!-- 顶部悬浮操作（全部靠左，右上角留给微信胶囊；分享走胶囊 ··· 菜单或这里的按钮） -->
-  <view class="rd__topbar" style="top: {{capsuleTop}}px">
-    <view class="rd__top-btn" bindtap="onBack">
-      <image class="rd__top-icon" src="/assets/icons/back.svg" mode="aspectFit" />
+  <!-- 顶部导航：统一 custom-navbar（叠加在 hero 上）；左返回内置，右侧编辑/分享走右插槽（胶囊安全） -->
+  <custom-navbar overlay border="{{false}}">
+    <view slot="right" class="rd__nav-actions">
+      <view wx:if="{{canEdit}}" class="rd__nav-btn rd__nav-btn--edit" bindtap="onEditTap">
+        <text class="rd__nav-edit-text">编辑</text>
+      </view>
+      <!-- 圆圈与对齐用 view 控制（可靠）；原生转发用一个透明 button 盖在上面：
+           点按=转发给好友（open-type=share，不走接口）、长按=复制分享码 -->
+      <view class="rd__nav-btn rd__nav-btn--share">
+        <image class="rd__nav-icon" src="/assets/icons/share.svg" mode="aspectFit" />
+        <button class="rd__nav-share-hit" open-type="share" hover-class="none" bindlongpress="onCopyShareCode"></button>
+      </view>
     </view>
-    <view wx:if="{{canEdit}}" class="rd__top-btn rd__top-btn--edit" bindtap="onEditTap">
-      <text class="rd__top-edit-text">编辑</text>
-    </view>
-    <view class="rd__top-btn" bindtap="onShareTap">
-      <image class="rd__top-icon" src="/assets/icons/share.svg" mode="aspectFit" />
-    </view>
-  </view>
+  </custom-navbar>
 
   <!-- 内容卡 -->
   <view class="rd__sheet">

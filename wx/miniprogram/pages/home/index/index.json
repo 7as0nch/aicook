@@ -2,7 +2,6 @@
   "usingComponents": {
     "ai-fab": "/components/ai-fab/index",
     "ai-sheet": "/components/ai-sheet/index",
-    "recipe-card": "/components/recipe-card/index",
     "quick-entry": "/components/quick-entry/index",
     "ingredient-pill": "/components/ingredient-pill/index",
     "user-avatar": "/components/user-avatar/index"

@@ -44,6 +44,10 @@ logs/
 
 config.yaml
 
+# 含真实密钥的本地副本（请勿提交真实值；如本地部署用 k8s-deployment.local.yaml）
+*.local.yaml
+*.secret.yaml
+
 # Figma MCP 临时下载目录
 .figma-tmp/
 

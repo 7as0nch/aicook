@@ -18,6 +18,8 @@ Component({
     color: { type: String, value: '#1F1B16' },        // 文字色
     border: { type: Boolean, value: true },            // 是否显示底部分隔线
     fixed: { type: Boolean, value: false },            // 是否 fixed 定位
+    // 叠加模式：透明浮在 hero/取景大图之上、不占文档流（无占位块），按钮带半透明圆底
+    overlay: { type: Boolean, value: false },
   },
   data: {
     statusBarHeight: 44,

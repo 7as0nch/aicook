@@ -1,7 +1,6 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
-    "custom-navbar": "/components/custom-navbar/index",
     "input-dialog": "/components/input-dialog/index"
   }
 }

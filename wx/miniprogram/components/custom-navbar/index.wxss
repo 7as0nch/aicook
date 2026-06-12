@@ -17,6 +17,21 @@
   border-bottom: 1rpx solid #F4F2EE;
 }
 
+/* 叠加模式：透明固定浮在 hero/取景大图之上，不占文档流、滚动时常驻顶部 */
+.cnav--overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 100;
+}
+
+/* 叠加在图片上时，按钮加半透明白底 + 阴影，保证可读 */
+.cnav--overlay .cnav__back {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4rpx 12rpx rgba(31, 20, 8, 0.12);
+}
+
 .cnav__status {
   flex-shrink: 0;
 }

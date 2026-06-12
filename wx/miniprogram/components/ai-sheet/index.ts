@@ -92,7 +92,10 @@ Component({
     suggestions: SUGGESTIONS,
     recording: false,
     sending: false,
-    scrollToView: '',
+    // 流式追底：用 scroll-top 交替大值强制滚到底（scroll-into-view 同值不重滚）
+    scrollTop: 0,
+    // 展开全屏时顶部为微信胶囊让出的高度（px，胶囊下沿 + 间距）
+    capsulePadTop: 0,
     // ↓ 历史浮窗（仍是 sheet 内部交互状态，无需上抬到 store）
     historyVisible: false,
     historyList: [] as Array<{ id: string; title: string; sceneLabel: string; timeLabel: string }>,
@@ -120,9 +123,19 @@ Component({
           'sheetScene',
           'sheetRecipeId',
           'sheetQuoteContext',
+          'sheetContextLabel',
         ] as const,
         actions: [] as const,
       });
+      // 计算展开全屏时顶部要为微信胶囊让出的高度（胶囊下沿 + 8px）
+      try {
+        const sys = (wx as unknown as { getWindowInfo?: () => { statusBarHeight?: number } }).getWindowInfo?.() || wx.getSystemInfoSync();
+        const statusBarHeight = sys.statusBarHeight || 44;
+        let pad = statusBarHeight + 44;
+        const menu = wx.getMenuButtonBoundingClientRect?.();
+        if (menu && menu.height) pad = menu.top + menu.height + 8;
+        this.setData({ capsulePadTop: pad });
+      } catch (_) { /* 胶囊 API 不可用时用兜底值 */ }
       // 监听 sheet 打开（其它页面/组件改 chatStore.sheetVisible 后我们要做副作用：藏 tabbar、检查可恢复会话、滚到底）
       // 用 observe 不方便（mobx-miniprogram 没暴露），改用一个轻量 watcher：每次 setData 后检查
       // 简单做法：暴露一个 method 'syncSheetOpenSideEffect'，外部 openSheet 时调；但更通用的是用 setInterval 兜底
@@ -134,11 +147,17 @@ Component({
     },
   },
   observers: {
+    // 消息变化（含流式 delta）→ 自动追底（节流；用户上滑离底时不抢）
+    'messages': function () {
+      this.followBottom();
+    },
     // 监听 store 同步过来的 sheetVisible 变化，触发 tabbar 显隐 + 滚到底等副作用
     'sheetVisible': function (visible: boolean) {
       if (visible) {
         emit(EVENTS.TAB_BAR_HIDE);
         forceTabBar(true);
+        (this as unknown as { _autoFollow: boolean })._autoFollow = true;
+        this.measureBody();
         this.scrollToBottom();
         if (chatStore.messages.length === 0) {
           void this.checkResumable();
@@ -229,6 +248,7 @@ Component({
     // ====== 头部操作 ======
     onToggleExpand() {
       chatStore.toggleSheetExpanded();
+      this.measureBody(); // 视口高度随 mid/full 改变，重量以保证贴底判定准确
       if (chatStore.sheetExpanded) this.scrollToBottom();
     },
     onOpenHistory() {
@@ -422,11 +442,52 @@ Component({
       if (!seg || seg.answered) return;
       chatStore.sendApproval(ds.cid, ds.aid, [], false);
     },
+    // 工作流「参考来源」展开/收起（默认折叠，避免联网搜索结果铺满屏）
+    onSourcesToggle(e: WechatMiniprogram.BaseEvent) {
+      const cid = (e.currentTarget as unknown as { dataset: { cid?: string } }).dataset.cid;
+      if (cid) chatStore.toggleSourcesCollapsed(cid);
+    },
+
+    // 直接滚到底（显式跳转：开 sheet / 发送 / 展开 / 加载历史）。重置自动跟随。
     scrollToBottom() {
+      const self = this as unknown as { _scrollFlip?: boolean; _autoFollow: boolean };
+      self._autoFollow = true;
+      // scroll-top 同值不重滚 → 交替两个超大值，均被钳到底部
+      self._scrollFlip = !self._scrollFlip;
+      this.setData({ scrollTop: self._scrollFlip ? 1000000 : 999999 });
+    },
+
+    // 流式内容增长时的追底（节流，把一阵 delta 合并成一次滚动）；用户上滑离底时不抢
+    followBottom() {
+      const self = this as unknown as { _autoFollow: boolean; _followTimer?: number };
+      if (self._autoFollow === false) return;
+      if (self._followTimer) return;
+      self._followTimer = setTimeout(() => {
+        self._followTimer = undefined;
+        const flip = this as unknown as { _scrollFlip?: boolean };
+        flip._scrollFlip = !flip._scrollFlip;
+        this.setData({ scrollTop: flip._scrollFlip ? 1000000 : 999999 });
+      }, 80) as unknown as number;
+    },
+
+    // 用户滚动：离底超过阈值则停止自动跟随，贴回底部恢复
+    onBodyScroll(e: WechatMiniprogram.ScrollViewScroll) {
+      const self = this as unknown as { _bodyH?: number; _autoFollow: boolean };
+      const bodyH = self._bodyH || 0;
+      if (!bodyH) return; // 未量到视口高度时不改变跟随状态
+      const { scrollTop, scrollHeight } = e.detail;
+      self._autoFollow = scrollHeight - scrollTop - bodyH < 80;
+    },
+
+    // 量取消息滚动区视口高度（用于判定是否贴底）；mid/full 切换后需重量
+    measureBody() {
       setTimeout(() => {
-        const last = chatStore.messages[chatStore.messages.length - 1];
-        if (last) this.setData({ scrollToView: `m-${last.client_id}` });
-      }, 80);
+        this.createSelectorQuery().in(this).select('.ais__body').boundingClientRect((r) => {
+          if (r && (r as { height?: number }).height) {
+            (this as unknown as { _bodyH: number })._bodyH = (r as { height: number }).height;
+          }
+        }).exec();
+      }, 120);
     },
     async startVoice() {
       const rm = wx.getRecorderManager();

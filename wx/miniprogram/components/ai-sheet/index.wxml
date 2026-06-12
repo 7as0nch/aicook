@@ -1,7 +1,7 @@
 <view class="ais-mask {{sheetVisible ? 'ais-mask--visible' : 'ais-mask--no-anim'}}" bindtap="onMaskTap">
   <view
     class="ais {{sheetExpanded ? 'ais--expanded' : ''}} {{dragging ? 'ais--dragging' : ''}} {{!sheetVisible ? 'ais--no-anim' : ''}}"
-    style="{{sheetStyle}}"
+    style="{{sheetStyle}}{{sheetExpanded ? ';top:' + capsulePadTop + 'px' : ''}}"
     catchtap="onSheetTap"
   >
     <!-- 拖拽区：包含 handle + head 整个顶部，方便用户从任何位置拖动 -->
@@ -39,6 +39,12 @@
       </view>
     </view>
 
+    <!-- 当前页面上下文条：让用户看到助理知道「你在哪道菜/哪个页面」 -->
+    <view wx:if="{{sheetContextLabel}}" class="ais__context">
+      <text class="ais__context-pin">📍</text>
+      <text class="ais__context-text">{{sheetContextLabel}}</text>
+    </view>
+
     <!-- 历史浮窗（mini popover，相对 ais 容器） -->
     <view wx:if="{{historyVisible}}" class="ais__history-pop">
       <view class="ais__history-arrow"></view>
@@ -66,7 +72,7 @@
     </view>
     <view wx:if="{{historyVisible}}" class="ais__history-mask" catchtap="onCloseHistory"></view>
 
-    <scroll-view class="ais__body" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}" scroll-into-view="{{scrollToView}}">
+    <scroll-view class="ais__body" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}" scroll-top="{{scrollTop}}" scroll-with-animation="{{false}}" bindscroll="onBodyScroll">
       <!-- 上次会话恢复卡（24h 内有未关闭的会话时显示） -->
       <view wx:if="{{resumeCard && !messages.length}}" class="ais__resume">
         <view class="ais__resume-info">
@@ -199,17 +205,22 @@
                   <view wx:if="{{seg.answered}}" class="ais__msg-approval-answered">✓ 已选择{{seg.selected_label ? '：' + seg.selected_label : ''}}</view>
                 </view>
                 <view wx:elif="{{seg.kind === 'sources'}}" class="ais__msg-sources">
-                  <text class="ais__msg-sources-head">🔎 参考来源（{{seg.sources.length}}）</text>
-                  <view
-                    wx:for="{{seg.sources}}"
-                    wx:for-item="src"
-                    wx:key="title"
-                    class="ais__msg-source"
-                  >
-                    <text class="ais__msg-source-title">{{src.title}}</text>
-                    <text wx:if="{{src.snippet}}" class="ais__msg-source-snippet">{{src.snippet}}</text>
-                    <text wx:if="{{src.site_name}}" class="ais__msg-source-site">{{src.site_name}}</text>
+                  <view class="ais__msg-sources-head" data-cid="{{msg.client_id}}" catchtap="onSourcesToggle">
+                    <text class="ais__msg-sources-head-text">🔎 参考来源（{{seg.sources.length}}）</text>
+                    <text class="ais__msg-sources-chevron">{{msg.sources_collapsed ? '展开 ▸' : '收起 ▾'}}</text>
                   </view>
+                  <block wx:if="{{!msg.sources_collapsed}}">
+                    <view
+                      wx:for="{{seg.sources}}"
+                      wx:for-item="src"
+                      wx:key="title"
+                      class="ais__msg-source"
+                    >
+                      <text class="ais__msg-source-title">{{src.title}}</text>
+                      <text wx:if="{{src.snippet}}" class="ais__msg-source-snippet">{{src.snippet}}</text>
+                      <text wx:if="{{src.site_name}}" class="ais__msg-source-site">{{src.site_name}}</text>
+                    </view>
+                  </block>
                 </view>
                 <view wx:elif="{{seg.kind === 'error'}}" class="ais__msg-error">⚠ {{seg.message}}</view>
               </block>

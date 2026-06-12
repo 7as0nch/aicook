@@ -120,56 +120,6 @@
   background: #2DBE7A;
 }
 
-/* 顶部按钮：右侧留出微信胶囊（约 180rpx 宽 + 14rpx 间距）避免重叠 */
-.snap__topbar {
-  position: absolute;
-  left: 32rpx;
-  right: calc(32rpx + 194rpx);
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  z-index: 10;
-}
-
-.snap__top-btn {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
-  flex-shrink: 0;
-}
-
-.snap__top-icon {
-  width: 36rpx;
-  height: 36rpx;
-}
-
-.snap__top-emoji {
-  font-size: 32rpx;
-  color: #1F1B16;
-}
-
-/* 标题紧贴返回按钮，避开胶囊；不再 flex:1 居中（居中位置会被胶囊挡） */
-.snap__top-title {
-  color: #FFFFFF;
-  font-size: 30rpx;
-  font-weight: 600;
-  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4);
-  flex: 1;
-  text-align: left;
-  margin-left: 4rpx;
-}
-
-.snap__top-actions {
-  display: flex;
-  gap: 12rpx;
-  flex-shrink: 0;
-}
-
 /* 底部操作行：快门居中 + 左右两个 side slot 放辅助按钮 */
 .snap__bottom-row {
   position: absolute;

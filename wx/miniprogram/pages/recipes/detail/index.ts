@@ -17,9 +17,6 @@ Page({
   data: {
     id: '' as string,
     activeTab: 'steps' as DetailTab,
-    statusBarHeight: 20,
-    // 顶部悬浮操作栏的 top：与微信胶囊垂直对齐（取胶囊 top）
-    capsuleTop: 30,
     loading: true,
     recipe: null as Recipe | null,
     difficultyLabel: '',
@@ -30,14 +27,7 @@ Page({
   },
 
   onLoad(query: Record<string, string>) {
-    const info = wx.getWindowInfo?.() || wx.getSystemInfoSync();
-    const statusBarHeight = (info as any).statusBarHeight || 20;
-    let capsuleTop = statusBarHeight + 6;
-    try {
-      const menu = wx.getMenuButtonBoundingClientRect?.();
-      if (menu && menu.top) capsuleTop = menu.top;
-    } catch (_) { /* 胶囊 API 不可用时回退 */ }
-    this.setData({ statusBarHeight, capsuleTop, id: query.id || '' });
+    this.setData({ id: query.id || '' });
     void this.loadDetail();
   },
 
@@ -69,10 +59,6 @@ Page({
     } finally {
       this.setData({ loading: false });
     }
-  },
-
-  onBack() {
-    wx.navigateBack({ delta: 1 }).catch(() => wx.switchTab({ url: '/pages/home/index/index' }));
   },
 
   onTabSwitch(e: WechatMiniprogram.BaseEvent) {
@@ -108,31 +94,23 @@ Page({
     }
   },
 
-  async onShareTap() {
+  // 长按分享按钮：生成并复制分享码（点按则由 button[open-type=share] 走原生转发）
+  async onCopyShareCode() {
     if (!this.data.id) return;
-    // 触发微信原生分享菜单（小程序卡片 / 朋友圈 / 复制链接）
-    wx.showActionSheet({
-      itemList: ['转发给好友', '复制分享码'],
-      success: async (res) => {
-        if (res.tapIndex === 0) {
-          // 通过 button[open-type=share] 或 onShareAppMessage 触发
-          wx.showToast({ title: '请点击右上 ⋯ → 转发', icon: 'none', duration: 2200 });
-        } else if (res.tapIndex === 1) {
-          try {
-            const r = await kitchenApi.createRecipeShare(this.data.id);
-            const code = r.share?.share_code || '';
-            if (code) {
-              wx.setClipboardData({
-                data: code,
-                success: () => wx.showToast({ title: '分享码已复制', icon: 'success' }),
-              });
-            }
-          } catch {
-            wx.showToast({ title: '生成失败', icon: 'none' });
-          }
-        }
-      },
-    });
+    try {
+      const r = await kitchenApi.createRecipeShare(this.data.id);
+      const code = r.share?.share_code || '';
+      if (code) {
+        wx.setClipboardData({
+          data: code,
+          success: () => wx.showToast({ title: '分享码已复制，发给好友导入', icon: 'success' }),
+        });
+      } else {
+        wx.showToast({ title: '生成失败', icon: 'none' });
+      }
+    } catch {
+      wx.showToast({ title: '生成失败', icon: 'none' });
+    }
   },
 
   // 微信小程序原生「转发给好友」回调（点右上角 ⋯ → 转发触发）

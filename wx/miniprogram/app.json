@@ -53,6 +53,7 @@
   "sitemapLocation": "sitemap.json",
   "usingComponents": {
     "ai-sheet": "/components/ai-sheet/index",
-    "ai-fab": "/components/ai-fab/index"
+    "ai-fab": "/components/ai-fab/index",
+    "custom-navbar": "/components/custom-navbar/index"
   }
 }

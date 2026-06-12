@@ -28,7 +28,9 @@
   <scroll-view
     class="chat__body"
     scroll-y
-    scroll-into-view="{{scrollToView}}"
+    scroll-top="{{scrollTop}}"
+    scroll-with-animation="{{false}}"
+    bindscroll="onBodyScroll"
     enhanced="{{true}}"
     show-scrollbar="{{false}}"
   >
@@ -145,8 +147,11 @@
                 <view wx:if="{{seg.answered}}" class="chat__approval-answered">✓ 已选择{{seg.selected_label ? '：' + seg.selected_label : ''}}</view>
               </view>
               <view wx:elif="{{seg.kind === 'sources'}}" class="chat__sources">
-                <text class="chat__sources-head">🔎 参考来源（{{seg.sources.length}}）</text>
-                <scroll-view scroll-x class="chat__sources-scroll">
+                <view class="chat__sources-head" data-cid="{{msg.client_id}}" catchtap="onSourcesToggle">
+                  <text class="chat__sources-head-text">🔎 参考来源（{{seg.sources.length}}）</text>
+                  <text class="chat__sources-chevron">{{msg.sources_collapsed ? '展开 ▸' : '收起 ▾'}}</text>
+                </view>
+                <scroll-view wx:if="{{!msg.sources_collapsed}}" scroll-x class="chat__sources-scroll">
                   <view class="chat__sources-row">
                     <view
                       wx:for="{{seg.sources}}"

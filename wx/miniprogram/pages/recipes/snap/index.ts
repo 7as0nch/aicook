@@ -24,17 +24,11 @@ Page({
     recognized: false,
     chips: [] as IngredChip[],
     devicePosition: 'back' as 'back' | 'front',
-    statusBarHeight: 20,
     capturedPath: '',
     error: '',
     cameraBroken: false,         // 相机初始化失败/被占用：显示相册降级入口
     sheetOpen: false,            // 抽屉是否展开：默认收起
     addChipVisible: false,       // 添加食材弹层（input-dialog）
-  },
-
-  onLoad() {
-    const info = wx.getWindowInfo?.() || wx.getSystemInfoSync();
-    this.setData({ statusBarHeight: (info as any).statusBarHeight || 20 });
   },
 
   onReady() {
@@ -43,12 +37,6 @@ Page({
 
   onUnload() {
     if (this.pollTimer) clearTimeout(this.pollTimer);
-  },
-
-  onBack() {
-    wx.navigateBack({ delta: 1 }).catch(() => {
-      wx.switchTab({ url: '/pages/home/index/index' });
-    });
   },
 
   onToggleSheet() {

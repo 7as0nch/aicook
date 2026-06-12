@@ -353,14 +353,16 @@ type InventoryItem struct {
 // RecipeShare 单菜谱分享码，不影响现有厨房分享码。
 type RecipeShare struct {
 	BaseModel
-	HouseholdID      int64             `gorm:"type:bigint;not null;index" json:"household_id,string"`
-	RecipeID         int64             `gorm:"type:bigint;not null;index" json:"recipe_id,string"`
-	CreatedByUserID  int64             `gorm:"type:bigint;not null;index" json:"created_by_user_id,string"`
-	ShareCode        string            `gorm:"size:32;not null;uniqueIndex" json:"share_code"`
-	Status           string            `gorm:"size:20;not null;default:'active';index" json:"status"`
-	AccessCount      int               `gorm:"default:0" json:"access_count"`
-	LastAccessedAt   *time.Time        `json:"last_accessed_at,omitempty"`
-	MetadataJSON     datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
+	HouseholdID int64 `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	RecipeID    int64 `gorm:"type:bigint;not null;index" json:"recipe_id,string"`
+	// 列名以 deploy/sql/base.sql 为准：owner_user_id / last_viewed_at。
+	// 曾误写成 created_by_user_id / last_accessed_at + access_count，与建表 SQL 不一致：
+	// NOT NULL 的 owner_user_id 永远没被写入 → 分享接口 insert 直接报错。
+	CreatedByUserID int64             `gorm:"column:owner_user_id;type:bigint;not null;index" json:"created_by_user_id,string"`
+	ShareCode       string            `gorm:"size:32;not null;uniqueIndex" json:"share_code"`
+	Status          string            `gorm:"size:20;not null;default:'active';index" json:"status"`
+	LastAccessedAt  *time.Time        `gorm:"column:last_viewed_at" json:"last_accessed_at,omitempty"`
+	MetadataJSON    datatypes.JSONMap `gorm:"type:jsonb" json:"metadata_json"`
 }
 
 // CookingHistory 用户做过的菜历史记录，用于"最近做过"展示与推荐算法的历史信号。

@@ -9,7 +9,7 @@ server:
 
 data:
   pg_database:
-    host: sshjd.aihelper.chat
+    host: your-host.example.com
     port: 30532
     user: 
     password: 
@@ -18,15 +18,15 @@ data:
     schema: aicook
     auto_migrate: true
   redis:
-    addr: sshjd.aihelper.chat:30379
+    addr: your-host.example.com:30379
     read_timeout: 0.2s
     write_timeout: 0.2s
-    password: "rediscj123456"
+    password: "<your-redis-password>"
 
 oss:
   # endpoint 供后端直连 MinIO；public_endpoint 供前端访问预签名 URL 和对象资源。
-  endpoint: sshjd.aihelper.chat:30990
-  public_endpoint: http://sshjd.aihelper.chat:30990
+  endpoint: your-host.example.com:30990
+  public_endpoint: http://your-host.example.com:30990
   access_key: ""
   secret_key: ""
   use_ssl: false

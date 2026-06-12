@@ -123,5 +123,5 @@
   <view class="plan__spacer"></view>
 </view>
 
-<ai-fab />
+<ai-fab contextHint="用餐计划" />
 <ai-sheet context="计划" />

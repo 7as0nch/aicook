@@ -57,5 +57,5 @@
   <view class="today__spacer"></view>
 </view>
 
-<ai-fab />
+<ai-fab contextHint="今日推荐" />
 <ai-sheet context="今日推荐" />

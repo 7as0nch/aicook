@@ -22,21 +22,16 @@
   background: linear-gradient(180deg, rgba(31, 27, 22, 0.32) 0%, rgba(31, 27, 22, 0) 100%);
 }
 
-/* ========== 顶部按钮 ========== */
-.rd__topbar {
-  position: fixed;
-  left: 32rpx;
-  /* 右上角留给微信胶囊，操作按钮一律靠左排 */
+/* ========== 顶部导航右侧操作（custom-navbar slot="right"） ========== */
+.rd__nav-actions {
   display: flex;
-  justify-content: flex-start;
   align-items: center;
   gap: 16rpx;
-  z-index: 50;
 }
 
-.rd__top-btn {
-  width: 76rpx;
-  height: 76rpx;
+.rd__nav-btn {
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.92);
   display: flex;
@@ -45,22 +40,47 @@
   box-shadow: 0 4rpx 12rpx rgba(31, 20, 8, 0.12);
 }
 
-.rd__top-icon {
-  width: 40rpx;
-  height: 40rpx;
+.rd__nav-icon {
+  width: 34rpx;
+  height: 34rpx;
 }
 
 /* 编辑入口（仅本家庭菜谱显示）*/
-.rd__top-btn--edit {
+.rd__nav-btn--edit {
   width: auto;
-  padding: 0 28rpx;
-  border-radius: 38rpx;
+  padding: 0 24rpx;
+  border-radius: 32rpx;
 }
 
-.rd__top-edit-text {
+.rd__nav-edit-text {
   font-size: 26rpx;
   font-weight: 500;
   color: #FF7A00;
+}
+
+/* 分享按钮：橙色实心圆（share 图标是白色，放白底会“隐身”）。圆圈与对齐由 view 控制，
+   转发能力由内部透明 button(open-type=share) 提供，避开微信 button 的默认块级宽度/对齐问题 */
+.rd__nav-btn--share {
+  position: relative;
+  background: #FF7A00;
+  box-shadow: 0 4rpx 14rpx rgba(255, 122, 0, 0.4);
+}
+
+.rd__nav-share-hit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  opacity: 0;
+  background: transparent;
+}
+
+.rd__nav-share-hit::after {
+  border: none;
 }
 
 /* ========== 内容卡 ========== */
@@ -308,12 +328,6 @@
 .rd__fav-btn--on .rd__fav-text {
   color: #FF7A00;
   font-weight: 600;
-}
-
-/* 顶部星标：收藏后白圈带橙色光晕 */
-.rd__top-btn--fav {
-  background: #FFFFFF;
-  box-shadow: 0 4rpx 14rpx rgba(255, 122, 0, 0.35);
 }
 
 .rd__cook-btn {

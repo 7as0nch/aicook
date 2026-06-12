@@ -1,11 +1,5 @@
 <view class="si">
-  <view class="si__navbar">
-    <view class="si__nav-btn" bindtap="onBack">
-      <image class="si__nav-icon" src="/assets/icons/back.svg" mode="aspectFit" />
-    </view>
-    <view class="si__nav-title">分享菜谱</view>
-    <view class="si__nav-placeholder"></view>
-  </view>
+  <custom-navbar title="分享菜谱" />
 
   <view wx:if="{{loading}}" class="si__loading">加载中…</view>
 

@@ -45,7 +45,12 @@ func (r *Runtime) generateImageDraftWithModel(ctx context.Context, model *einoop
 	if model == nil {
 		return nil, fmt.Errorf("image draft model is not configured")
 	}
-	msg, err := r.generateMessage(ctx, model, buildImageDraftMessages(r.mode, input), einomodel.WithTemperature(0.2))
+	// 图片由后端拉取并 base64 内联（MiMo 云端拉不到内网 http MinIO URL → 400 Param Incorrect）
+	imageParts, err := r.resolveImageDraftParts(ctx, input.Images)
+	if err != nil {
+		return nil, err
+	}
+	msg, err := r.generateMessage(ctx, model, buildImageDraftMessages(r.mode, input, imageParts), einomodel.WithTemperature(0.2))
 	if err != nil {
 		return nil, err
 	}

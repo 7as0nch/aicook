@@ -36,6 +36,8 @@ export const chatStore = observable({
   sheetScene: '' as string,
   sheetRecipeId: undefined as string | undefined,
   sheetQuoteContext: null as Record<string, unknown> | null,
+  // 顶部上下文条文案（让用户一眼看到「助理知道我在哪个页面/哪道菜」）
+  sheetContextLabel: '' as string,
 
   openSheet: action(function (this: typeof chatStore, payload?: { scene?: string; recipe_id?: string | number; quote_context?: Record<string, unknown> }) {
     this.sheetVisible = true;
@@ -43,6 +45,7 @@ export const chatStore = observable({
     this.sheetScene = payload?.scene || '';
     this.sheetRecipeId = payload?.recipe_id !== undefined ? String(payload.recipe_id) : undefined;
     this.sheetQuoteContext = payload?.quote_context || null;
+    this.sheetContextLabel = buildContextLabel(this.sheetScene, this.sheetQuoteContext);
   }),
 
   closeSheet: action(function (this: typeof chatStore) {
@@ -261,9 +264,35 @@ export const chatStore = observable({
     this.messages[idx] = { ...msg, flow_collapsed: !msg.flow_collapsed };
     this.messages = [...this.messages];
   }),
+
+  toggleSourcesCollapsed: action(function (this: typeof chatStore, client_id: string) {
+    const idx = this.messages.findIndex((m) => m.client_id === client_id);
+    if (idx < 0) return;
+    const msg = this.messages[idx];
+    this.messages[idx] = { ...msg, sources_collapsed: !msg.sources_collapsed };
+    this.messages = [...this.messages];
+  }),
 });
 
 // ---- 内部辅助 ----
+
+// 由场景 + 引用上下文（页面一句话提示）生成 sheet 顶部的「当前位置」文案。
+// 让用户直观看到助理已知道自己在哪个页面/哪道菜；无 hint 时返回空（不显示上下文条）。
+function buildContextLabel(scene: string, quote: Record<string, unknown> | null): string {
+  const hint = String((quote && (quote as { surrounding_text?: unknown }).surrounding_text) || '').trim();
+  if (!hint) return '';
+  switch (scene) {
+    case 'recipe_detail':
+      return `正在看《${hint}》`;
+    case 'cooking_guide':
+      return `正在做《${hint}》`;
+    case 'recipe_workbench':
+    case 'recipe_editor':
+      return hint;
+    default:
+      return `当前：${hint}`;
+  }
+}
 
 // 历史消息 → 客户端渲染模型。
 // 富内容（思考过程/菜谱卡片/待选择项）持久化在 response_meta.metadata 里，
@@ -345,6 +374,7 @@ function toClientMessage(m: import('../types/api').AIMessage): ChatMessage {
     status: 'done',
     created_at_ms: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
     reasoning_collapsed: !!meta?.reasoning_content,
+    sources_collapsed: true,
   };
 }
 
@@ -530,6 +560,7 @@ function onSSEEvent(store: typeof chatStore, client_id: string, ev: SSEEvent): v
               })),
             },
           ];
+          next.sources_collapsed = true; // 默认折叠，避免参考来源铺满屏幕
         }
         // 终态整理：文本段转 markdown 节点 + 思考过程自动折叠
         return finalizeMessage(next);

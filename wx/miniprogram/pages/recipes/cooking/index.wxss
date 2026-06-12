@@ -209,6 +209,9 @@
 }
 
 .ck__timer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
   padding: 18rpx 40rpx;
   background: #FF7A00;
   color: #FFFFFF;
@@ -216,6 +219,8 @@
   font-size: 28rpx;
   font-weight: 600;
 }
+
+.ck__timer-btn-icon { width: 26rpx; height: 26rpx; }
 
 .ck__timer-btn--ghost {
   background: #FFFFFF;
@@ -284,9 +289,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12rpx;
   font-size: 30rpx;
   font-weight: 600;
 }
+
+.ck__bottom-btn-icon { width: 30rpx; height: 30rpx; }
 
 .ck__bottom-btn--ghost {
   background: #F4F5F7;

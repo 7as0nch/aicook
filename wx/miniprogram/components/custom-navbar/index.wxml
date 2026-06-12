@@ -1,6 +1,6 @@
 <view
-  class="cnav {{fixed ? 'cnav--fixed' : ''}} {{border ? 'cnav--border' : ''}}"
-  style="background: {{bg}}; height: {{totalHeight}}px;"
+  class="cnav {{fixed ? 'cnav--fixed' : ''}} {{border && !overlay ? 'cnav--border' : ''}} {{overlay ? 'cnav--overlay' : ''}}"
+  style="background: {{overlay ? 'transparent' : bg}}; height: {{totalHeight}}px;"
 >
   <view class="cnav__status" style="height: {{statusBarHeight}}px;"></view>
   <view class="cnav__bar" style="height: {{navBarHeight}}px; padding-right: {{capsuleInset}}px;">
@@ -20,4 +20,4 @@
     </view>
   </view>
 </view>
-<view wx:if="{{fixed}}" class="cnav__placeholder" style="height: {{totalHeight}}px;"></view>
+<view wx:if="{{fixed && !overlay}}" class="cnav__placeholder" style="height: {{totalHeight}}px;"></view>

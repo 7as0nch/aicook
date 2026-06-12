@@ -45,12 +45,11 @@
   transition: none !important;
 }
 
-/* 展开到全屏 */
+/* 展开态：容器顶部由 JS 按微信胶囊下沿动态注入 inline top（容器从胶囊下方开始，
+   不再 top:0 顶到屏幕最上沿盖住胶囊）；保留圆角，上方露出半透明遮罩 */
 .ais--expanded {
-  top: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  padding-top: calc(env(safe-area-inset-top) + 8rpx);
+  border-top-left-radius: 28rpx;
+  border-top-right-radius: 28rpx;
 }
 
 /* 拖拽中：禁用 transition 让 sheet 实时跟手 */
@@ -138,6 +137,28 @@
 
 /* 历史浮窗 */
 .ais__head { position: relative; }
+
+/* 当前页面上下文条：📍 正在看《X》/ 当前：今日推荐 */
+.ais__context {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin: 12rpx 0 4rpx;
+  padding: 10rpx 18rpx;
+  background: #FFF6EE;
+  border-radius: 9999rpx;
+  align-self: flex-start;
+  max-width: 100%;
+}
+.ais__context-pin { font-size: 22rpx; }
+.ais__context-text {
+  font-size: 23rpx;
+  color: #C2541A;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 .ais__history-mask {
   position: fixed;
@@ -657,7 +678,17 @@
   margin-top: 4rpx;
 }
 
-.ais__msg-sources-head { font-size: 22rpx; color: #9B978F; }
+/* 可点折叠头部：默认折叠，点开看来源（仿工具时间线） */
+.ais__msg-sources-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 16rpx;
+  background: #F4F2EE;
+  border-radius: 12rpx;
+}
+.ais__msg-sources-head-text { font-size: 22rpx; color: #6B6660; }
+.ais__msg-sources-chevron { font-size: 21rpx; color: #9B978F; }
 
 .ais__msg-source {
   background: #FFFFFF;

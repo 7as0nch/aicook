@@ -9,10 +9,12 @@ metadata:
   name: aicook-secrets
   namespace: aicook
 type: Opaque
+# 真实凭据请勿提交到仓库；部署时用 `kubectl create secret generic aicook-secrets ...`
+# 覆盖，或维护一份未跟踪的本地副本（见 .gitignore 的 *.local.yaml）。
 stringData:
-  pg-password: "pgcj123456"
-  minio-root-user: "7ns5yiCMFgN5rdZbkJnW"
-  minio-root-password: "4GV4kNFqonmgFNlTkLMfK6R7ChCP4a63TFMIqHIx"
+  pg-password: "<REPLACE_PG_PASSWORD>"
+  minio-root-user: "<REPLACE_MINIO_ROOT_USER>"
+  minio-root-password: "<REPLACE_MINIO_ROOT_PASSWORD>"
   openai-api-key: ""
 ---
 apiVersion: v1
@@ -32,15 +34,15 @@ data:
         host: sshjd.aihelper.chat
         port: 30532
         user: pgadmin
-        password: "pgcj123456"
+        password: "<REPLACE_PG_PASSWORD>"
         dbname: pgdb
         sslmode: disable
         schema: aicook
         auto_migrate: false
     oss:
       endpoint: minio.aicook.svc.cluster.local:9000
-      access_key: "7ns5yiCMFgN5rdZbkJnW"
-      secret_key: "4GV4kNFqonmgFNlTkLMfK6R7ChCP4a63TFMIqHIx"
+      access_key: "<REPLACE_MINIO_ROOT_USER>"
+      secret_key: "<REPLACE_MINIO_ROOT_PASSWORD>"
       use_ssl: false
       media_bucket: aicook-media
       knowledge_bucket: aicook-kb

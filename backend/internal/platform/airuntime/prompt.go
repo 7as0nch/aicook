@@ -89,13 +89,12 @@ func (r *Runtime) buildCurrentUserMessage(ctx context.Context, req ReplyRequest)
 		}
 		switch strings.ToLower(strings.TrimSpace(attachment.Type)) {
 		case "image":
-			url := attachment.URL
-			mediaParts = append(mediaParts, schema.MessageInputPart{
-				Type: schema.ChatMessagePartTypeImageURL,
-				Image: &schema.MessageInputImage{
-					MessagePartCommon: schema.MessagePartCommon{URL: &url, MIMEType: attachment.ContentType},
-				},
-			})
+			// base64 内联，不把内网 http MinIO URL 交给 MiMo 云端拉取（否则 400 Param Incorrect）
+			ip, err := r.buildImageInputPart(ctx, attachment)
+			if err != nil {
+				return nil, err
+			}
+			mediaParts = append(mediaParts, ip)
 		case "audio":
 			ap, err := r.buildAudioInputPart(ctx, attachment)
 			if err != nil {
@@ -197,9 +196,11 @@ func buildReplyPrompt(req ReplyRequest) string {
 	return builder.String()
 }
 
-func buildImageDraftMessages(mode Mode, input ImageRecipeDraftInput) []*schema.Message {
+// imageParts 由调用方预先解析为 base64 内联 part（见 Runtime.resolveImageDraftParts）；
+// 这里不再直接用 input.Images 的 URL，避免把内网 http 存储地址交给 MiMo 云端拉取。
+func buildImageDraftMessages(mode Mode, input ImageRecipeDraftInput, imageParts []schema.MessageInputPart) []*schema.Message {
 	prompt := buildImageDraftPrompt(mode, input)
-	if len(input.Images) == 0 {
+	if len(imageParts) == 0 {
 		return []*schema.Message{
 			{
 				Role:    schema.System,
@@ -218,21 +219,7 @@ func buildImageDraftMessages(mode Mode, input ImageRecipeDraftInput) []*schema.M
 			Text: prompt,
 		},
 	}
-	for _, attachment := range input.Images {
-		if strings.TrimSpace(attachment.URL) == "" {
-			continue
-		}
-		url := attachment.URL
-		parts = append(parts, schema.MessageInputPart{
-			Type: schema.ChatMessagePartTypeImageURL,
-			Image: &schema.MessageInputImage{
-				MessagePartCommon: schema.MessagePartCommon{
-					URL:      &url,
-					MIMEType: attachment.ContentType,
-				},
-			},
-		})
-	}
+	parts = append(parts, imageParts...)
 	return []*schema.Message{
 		{
 			Role:    schema.System,

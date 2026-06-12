@@ -4,39 +4,6 @@
   padding-bottom: 200rpx;
 }
 
-.si__navbar {
-  display: flex;
-  align-items: center;
-  height: 88rpx;
-  padding: 0 32rpx;
-  padding-top: env(safe-area-inset-top);
-  box-sizing: content-box;
-  background: #FFFFFF;
-  border-bottom: 1rpx solid #F4F2EE;
-  gap: 16rpx;
-}
-
-.si__nav-btn {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: #FFF6EE;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.si__nav-icon { width: 36rpx; height: 36rpx; }
-
-.si__nav-title {
-  flex: 1;
-  text-align: center;
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #1F1B16;
-  margin-right: 72rpx;
-}
-
 .si__loading,
 .si__error {
   margin-top: 200rpx;

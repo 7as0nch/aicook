@@ -54,7 +54,10 @@
       </view>
       <text class="ck__timer-status">{{timerRunning ? '计时中，注意火候～' : '点"开始计时"启动倒计时'}}</text>
       <view class="ck__timer-actions">
-        <view class="ck__timer-btn" bindtap="onPlayPause">{{timerRunning ? '⏸ 暂停' : '▶ 开始计时'}}</view>
+        <view class="ck__timer-btn" bindtap="onPlayPause">
+          <image class="ck__timer-btn-icon" src="{{timerRunning ? '/assets/icons/pause.svg' : '/assets/icons/play.svg'}}" mode="aspectFit" />
+          <text>{{timerRunning ? '暂停' : '开始计时'}}</text>
+        </view>
         <view class="ck__timer-btn ck__timer-btn--ghost" bindtap="onExtendMinute">＋ 延长1分钟</view>
       </view>
     </view>
@@ -84,7 +87,8 @@
       <text>上一步</text>
     </view>
     <view class="ck__bottom-btn ck__bottom-btn--primary" bindtap="onNext">
-      <text>{{stepIndex >= totalSteps - 1 ? '完成 ✓' : '下一步 →'}}</text>
+      <text>{{stepIndex >= totalSteps - 1 ? '完成' : '下一步'}}</text>
+      <image class="ck__bottom-btn-icon" src="{{stepIndex >= totalSteps - 1 ? '/assets/icons/check.svg' : '/assets/icons/arrow-right.svg'}}" mode="aspectFit" />
     </view>
   </view>
 </view>

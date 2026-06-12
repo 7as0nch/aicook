@@ -19,17 +19,17 @@
 ## 现有配置
 ```yaml
   pg_database:
-    host: sshjd.aihelper.chat
+    host: <your-host>
     port: 30532
     user: pgadmin
-    password: "pgcj123456"
+    password: "<your-pg-password>"
     dbname: pgdb # schema: aicook
     sslmode: disable
   redis:
-    addr: sshjd.aihelper.chat:30379
+    addr: <your-host>:30379
     read_timeout: 0.2s
     write_timeout: 0.2s
-    password: "rediscj123456"
+    password: "<your-redis-password>"
 
 log:
   maxAge: 30
@@ -48,8 +48,8 @@ auth:
 
 # TODO minio 配置
 oss:
-  access_key: "7ns5yiCMFgN5rdZbkJnW"
-  secret_key: "4GV4kNFqonmgFNlTkLMfK6R7ChCP4a63TFMIqHIx"
+  access_key: "<your-minio-access-key>"
+  secret_key: "<your-minio-secret-key>"
 ```
 
 2. frontend:

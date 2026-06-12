@@ -1,6 +1,7 @@
 // AI 全屏聊天页（设计稿 05 全屏变体）
 // 复用 chatStore 的 SSE 流；展示用户/助理消息、reasoning 段、tool_call、recipe_card
 import { createStoreBindings } from 'mobx-miniprogram-bindings';
+import { reaction } from 'mobx-miniprogram';
 import { chatStore } from '../../../store/chat.store';
 import { aiApi } from '../../../services/ai.api';
 import { voiceApi } from '../../../services/voice.api';
@@ -39,7 +40,8 @@ Page({
     reasoningEnabled: false,
     webSearchEnabled: false,
     imageRecipeEnabled: false,
-    scrollToView: '',
+    // 流式追底用 scroll-top 交替大值（scroll-into-view 同值不重滚）
+    scrollTop: 0,
     recording: false,
     recordSeconds: 0,
     quickActions: QUICK_ACTIONS,
@@ -48,7 +50,7 @@ Page({
 
   async onLoad(query: Record<string, string>) {
     this.setData({ sessionId: query.session_id || '' });
-    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
+    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void }; _reactionDispose?: () => void };
     self.storeBindings = createStoreBindings(this, {
       store: chatStore,
       fields: ['messages', 'streaming', 'reasoningEnabled', 'webSearchEnabled', 'imageRecipeEnabled'] as const,
@@ -70,12 +72,17 @@ Page({
       }
     }
     this.initRecorder();
+    (this as unknown as { _autoFollow: boolean })._autoFollow = true;
+    this.measureBody();
     this.scrollToBottom();
+    // 消息变化（含流式 delta）→ 自动追底；Page 无 observers，用 mobx reaction 订阅数组替换
+    self._reactionDispose = reaction(() => chatStore.messages, () => this.followBottom());
   },
 
   onUnload() {
-    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void } };
+    const self = this as unknown as { storeBindings?: { destroyStoreBindings: () => void }; _reactionDispose?: () => void };
     self.storeBindings?.destroyStoreBindings();
+    self._reactionDispose?.();
     if (this.data.recording) {
       wx.getRecorderManager().stop();
     }
@@ -86,11 +93,49 @@ Page({
     this.setData({ text: e.detail.value });
   },
 
+  // 直接滚到底（显式跳转）。重置自动跟随。
   scrollToBottom() {
+    const self = this as unknown as { _scrollFlip?: boolean; _autoFollow: boolean };
+    self._autoFollow = true;
+    self._scrollFlip = !self._scrollFlip;
+    this.setData({ scrollTop: self._scrollFlip ? 1000000 : 999999 });
+  },
+
+  // 流式追底（节流，合并一阵 delta）；用户上滑离底时不抢
+  followBottom() {
+    const self = this as unknown as { _autoFollow: boolean; _followTimer?: number; _scrollFlip?: boolean };
+    if (self._autoFollow === false) return;
+    if (self._followTimer) return;
+    self._followTimer = setTimeout(() => {
+      self._followTimer = undefined;
+      self._scrollFlip = !self._scrollFlip;
+      this.setData({ scrollTop: self._scrollFlip ? 1000000 : 999999 });
+    }, 80) as unknown as number;
+  },
+
+  // 用户滚动：离底超阈值停止跟随，贴回底部恢复
+  onBodyScroll(e: WechatMiniprogram.ScrollViewScroll) {
+    const self = this as unknown as { _bodyH?: number; _autoFollow: boolean };
+    const bodyH = self._bodyH || 0;
+    if (!bodyH) return;
+    const { scrollTop, scrollHeight } = e.detail;
+    self._autoFollow = scrollHeight - scrollTop - bodyH < 80;
+  },
+
+  measureBody() {
     setTimeout(() => {
-      const last = this.data.messages[this.data.messages.length - 1];
-      if (last) this.setData({ scrollToView: `m-${last.client_id}` });
-    }, 80);
+      this.createSelectorQuery().select('.chat__body').boundingClientRect((r) => {
+        if (r && (r as { height?: number }).height) {
+          (this as unknown as { _bodyH: number })._bodyH = (r as { height: number }).height;
+        }
+      }).exec();
+    }, 120);
+  },
+
+  // 参考来源展开/收起（默认折叠）
+  onSourcesToggle(e: WechatMiniprogram.BaseEvent) {
+    const cid = (e.currentTarget as unknown as { dataset: { cid?: string } }).dataset.cid;
+    if (cid) chatStore.toggleSourcesCollapsed(cid);
   },
 
   async ensureSession() {

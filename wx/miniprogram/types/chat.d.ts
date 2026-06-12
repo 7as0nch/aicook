@@ -19,6 +19,8 @@ export interface ChatMessage {
   flow_count?: number;
   // 折叠时展示的最新一条工作流文案（流式中给用户实时进度感）
   flow_live?: string;
+  // 联网搜索「参考来源」段的折叠态（默认折叠，与工具时间线一致，避免铺屏）
+  sources_collapsed?: boolean;
 }
 
 export type ChatSegment =

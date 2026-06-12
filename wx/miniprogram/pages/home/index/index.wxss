@@ -334,11 +334,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(31, 27, 22, 0.12);
+}
+
+/* 已收藏：橙底，与详情页“已收藏”态一致 */
+.home__card-heart--on {
+  background: #FFEAD9;
 }
 
 .home__card-heart-icon {
-  width: 28rpx;
-  height: 28rpx;
+  width: 30rpx;
+  height: 30rpx;
 }
 
 .home__card-title {
