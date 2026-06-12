@@ -57,7 +57,7 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	voiceUsecase := ai.NewVoiceUsecase(mediaRepo, objectStorage, asrClient)
 	voiceService := service.NewVoiceService(voiceUsecase)
 	importRepo := data.NewImportRepo(db)
-	importUsecase := recipe.NewImportUsecase(importRepo, mediaRepo, recipeRepo, objectStorage, runtime)
+	importUsecase := recipe.NewImportUsecase(importRepo, mediaRepo, mediaUsecase, recipeRepo, objectStorage, runtime)
 	importService := service.NewImportService(importUsecase)
 	knowledgeRepo := data.NewKnowledgeRepo(db)
 	embeddingsClient := data.NewEmbeddingClient(cfg)

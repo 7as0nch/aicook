@@ -36,8 +36,7 @@
       class="inv__item"
     >
       <view class="inv__item-icon">
-        <image wx:if="{{item.icon_emoji}}" class="inv__item-img" src="{{item.icon_emoji}}" mode="aspectFit" />
-        <text wx:else class="inv__item-emoji">🥗</text>
+        <text class="inv__item-emoji">{{item.emoji || '🥗'}}</text>
       </view>
       <view class="inv__item-body">
         <text class="inv__item-name">{{item.name}}</text>

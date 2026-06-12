@@ -44,14 +44,7 @@ Component({
       });
 
       // 2) 按当前页 route 推断 tab 索引（覆盖深链直开 + 重新 attached 两种入口）
-      try {
-        const pages = getCurrentPages();
-        const route = pages[pages.length - 1]?.route || '';
-        const idx = TAB_LIST.findIndex(t => t.pagePath.replace(/^\//, '') === route);
-        if (idx >= 0) uiStore.setTabSelected(idx);
-      } catch (_) {
-        // 安全兜底
-      }
+      this.syncSelectedByRoute();
 
       // 3) tab-bar 显隐事件总线
       self.__unbindHide = on(EVENTS.TAB_BAR_HIDE, () => this.setData({ hidden: true }));
@@ -65,6 +58,18 @@ Component({
     },
   },
   methods: {
+    // 按当前页面 route 推断并设置选中的 tab 索引（深链直开 / 首次 attached 用；
+    // 代码 wx.switchTab 的同步由各 tab 页 onShow 调 uiStore.setTabSelected 兜底，更可靠）
+    syncSelectedByRoute() {
+      try {
+        const pages = getCurrentPages();
+        const route = pages[pages.length - 1]?.route || '';
+        const idx = TAB_LIST.findIndex(t => t.pagePath.replace(/^\//, '') === route);
+        if (idx >= 0) uiStore.setTabSelected(idx);
+      } catch (_) {
+        // 安全兜底
+      }
+    },
     switchTab(e: WechatMiniprogram.BaseEvent) {
       const data = (e.currentTarget as unknown as { dataset: { path: string; index: string } }).dataset;
       const url = data.path;

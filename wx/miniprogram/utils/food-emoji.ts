@@ -33,3 +33,22 @@ export function emojiFor(name: string, fallback = '🥗'): string {
   }
   return fallback;
 }
+
+// 冰箱分类（与库存页 tab key 对齐）
+export type InvCategory = 'vegetable' | 'meat' | 'condiment' | 'other';
+
+// 复用 emojiFor 的有序匹配：先拿到 emoji 再归类，避免再维护一套易错的关键词顺序。
+const EMOJI_CATEGORY: Record<string, InvCategory> = {
+  '🥩': 'meat', '🍗': 'meat', '🐟': 'meat', '🦐': 'meat', '🥚': 'meat',
+  '🍅': 'vegetable', '🥔': 'vegetable', '🌶️': 'vegetable', '🌽': 'vegetable',
+  '🥬': 'vegetable', '🥕': 'vegetable', '🍄': 'vegetable', '🍆': 'vegetable',
+  '🥒': 'vegetable', '🎃': 'vegetable', '🧅': 'vegetable',
+  '🧄': 'condiment', '🫚': 'condiment', '🌿': 'condiment',
+  '🍚': 'other', '🍜': 'other', '🌾': 'other', '🍱': 'other',
+};
+
+// 按食材名归入冰箱分类；未命中归「其它」。
+export function categoryFor(name: string): InvCategory {
+  const e = emojiFor(name, '');
+  return EMOJI_CATEGORY[e] || 'other';
+}

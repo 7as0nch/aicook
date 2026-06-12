@@ -5,6 +5,7 @@ import { authStore } from '../../../store/auth.store';
 import { householdStore } from '../../../store/household.store';
 import { recipeApi } from '../../../services/recipe.api';
 import { chatStore } from '../../../store/chat.store';
+import { uiStore } from '../../../store/ui.store';
 import { hasToken } from '../../../utils/auth-guard';
 import { on, EVENTS } from '../../../utils/eventbus';
 import { recipeMetaLabel } from '../../../utils/format';
@@ -77,7 +78,8 @@ Page({
   },
 
   onShow() {
-    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    // 每个 tab 页 onShow 主动同步底部高亮：代码 wx.switchTab（如首页点类目）不经过 tab-bar 自身点击
+    uiStore.setTabSelected(0);
     // 未登录早退：app.ts 已经在 onLaunch reLaunch 到登录页；
     // 这里再加一道防线，避免任何来路把首页带起来时还发请求。
     if (!hasToken()) return;

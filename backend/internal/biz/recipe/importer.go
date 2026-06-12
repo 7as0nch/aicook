@@ -31,15 +31,17 @@ type CreateImageRecipeRequest struct {
 type ImportUsecase struct {
 	repo          ImportRepo
 	mediaRepo     user.MediaRepo
+	mediaUsecase  *user.MediaUsecase
 	recipeRepo    RecipeRepo
 	objectStorage storage.ObjectStorage
 	aiRuntime     *airuntime.Runtime
 }
 
-func NewImportUsecase(repo *data.ImportRepo, mediaRepo *data.MediaRepo, recipeRepo *data.RecipeRepo, objectStorage storage.ObjectStorage, aiRuntime *airuntime.Runtime) *ImportUsecase {
+func NewImportUsecase(repo *data.ImportRepo, mediaRepo *data.MediaRepo, mediaUsecase *user.MediaUsecase, recipeRepo *data.RecipeRepo, objectStorage storage.ObjectStorage, aiRuntime *airuntime.Runtime) *ImportUsecase {
 	usecase := &ImportUsecase{
 		repo:          repo,
 		mediaRepo:     mediaRepo,
+		mediaUsecase:  mediaUsecase,
 		recipeRepo:    recipeRepo,
 		objectStorage: objectStorage,
 		aiRuntime:     aiRuntime,
@@ -74,21 +76,32 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 	}
 
 	// 仅取图片附件交给多模态视觉模型（vision_model 直接识图，已不再走 OCR）。
+	// attachments 存原始 StorageURL（封面入库用，读时再签名）；visionImages 用签名 URL
+	// 给后端拉取——StorageURL 未签名，后端 imageinput 直接 GET 会 403。
 	attachments := make([]airuntime.Attachment, 0, len(assets))
+	visionImages := make([]airuntime.Attachment, 0, len(assets))
 	for _, asset := range assets {
-		attachments = append(attachments, airuntime.Attachment{
+		raw := airuntime.Attachment{
 			Type:        "image",
 			URL:         asset.StorageURL,
 			ContentType: asset.ContentType,
 			Name:        asset.FileName,
-		})
+		}
+		attachments = append(attachments, raw)
+		vi := raw
+		if u.mediaUsecase != nil {
+			if signed, err := u.mediaUsecase.SignMediaURL(ctx, asset.StorageURL); err == nil && signed != "" {
+				vi.URL = signed
+			}
+		}
+		visionImages = append(visionImages, vi)
 	}
 
 	// vision 直识别（图片由运行时拉取后 base64 内联给 MiMo，不传内网 URL）。
 	// 无 OCR 文本时多模态失败会直接返回 err（不再回退空壳启发式草稿），由调用方据 err 置 failed。
 	draft, draftSource, err := u.aiRuntime.GenerateImageRecipeDraft(ctx, airuntime.ImageRecipeDraftInput{
 		TitleHint: req.TitleHint,
-		Images:    attachments,
+		Images:    visionImages,
 	})
 	if err != nil {
 		log.Errorf("image recipe import failed: job_id=%d stage=ai_draft draft_source=%s err=%v", job.ID, draftSource, err)

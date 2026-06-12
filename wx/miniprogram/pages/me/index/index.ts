@@ -2,6 +2,7 @@
 // 头像 + ID + 3 列数据 + 温馨小厨房卡 + 家庭口味区 + 菜单
 import { createStoreBindings } from 'mobx-miniprogram-bindings';
 import { authStore } from '../../../store/auth.store';
+import { uiStore } from '../../../store/ui.store';
 import { recipeApi } from '../../../services/recipe.api';
 import { kitchenApi } from '../../../services/kitchen.api';
 import { householdApi } from '../../../services/household.api';
@@ -46,7 +47,7 @@ Page({
   },
 
   onShow() {
-    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    uiStore.setTabSelected(3);
     if (!hasToken()) return;
     // 若 store 已有 user，但 wxml 渲染需要从 setData 触发，主动 refresh
     if (!authStore.user) {

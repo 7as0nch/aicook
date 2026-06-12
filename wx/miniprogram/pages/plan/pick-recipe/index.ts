@@ -28,7 +28,7 @@ Page({
   async search(keyword: string) {
     this.setData({ loading: true });
     try {
-      const res = await recipeApi.list({ limit: 50, keyword: keyword || undefined, exclude_draft: true });
+      const res = await recipeApi.list({ limit: 50, keyword: keyword || undefined });
       this.setData({ recipes: res.recipes || [], loaded: true });
     } catch {
       this.setData({ recipes: [], loaded: true });

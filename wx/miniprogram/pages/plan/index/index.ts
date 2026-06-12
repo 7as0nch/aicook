@@ -1,6 +1,7 @@
 // 计划页（设计稿 06）
 // 周日历 + 三餐卡片 + 采购清单进度
 import { planStore } from '../../../store/plan.store';
+import { uiStore } from '../../../store/ui.store';
 import { createStoreBindings } from 'mobx-miniprogram-bindings';
 import { hasToken } from '../../../utils/auth-guard';
 import { on, EVENTS } from '../../../utils/eventbus';
@@ -101,7 +102,7 @@ Page({
   },
 
   onShow() {
-    // V10: tab-bar 自己通过 uiStore 同步状态，页面不再手动 setData({selected})
+    uiStore.setTabSelected(2);
     if (!hasToken()) return;
     const now = Date.now();
     const last = (this as unknown as { _lastLoadAt?: number })._lastLoadAt || 0;

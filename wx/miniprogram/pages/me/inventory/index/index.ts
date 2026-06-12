@@ -3,6 +3,7 @@
 import { inventoryStore } from '../../../../store/inventory.store';
 import { kitchenApi } from '../../../../services/kitchen.api';
 import { on, EVENTS } from '../../../../utils/eventbus';
+import { emojiFor, categoryFor } from '../../../../utils/food-emoji';
 import type { InventoryItem, InventoryRecommendation, Recipe } from '../../../../types/api';
 
 const CATEGORY_TABS = [
@@ -13,12 +14,18 @@ const CATEGORY_TABS = [
   { key: 'other', label: '其它' },
 ];
 
+// 展示用：补 emoji（后端无 icon_emoji），分类按食材名推断（后端 category 为中文 group_name 不可靠）
+type InvDisplay = InventoryItem & { emoji: string };
+function withEmoji(items: InventoryItem[]): InvDisplay[] {
+  return items.map(it => ({ ...it, emoji: emojiFor(it.name) }));
+}
+
 Page({
   data: {
     tabs: CATEGORY_TABS,
     activeTab: 'all',
-    items: [] as InventoryItem[],
-    filtered: [] as InventoryItem[],
+    items: [] as InvDisplay[],
+    filtered: [] as InvDisplay[],
     recommendations: [] as Array<{ recipe: Recipe; match_count: number; ingredient_total: number; match_percent: number }>,
     keyword: '',
     // 添加食材弹层状态（wx.showModal 的 editable 已弃用，改自定义弹层）
@@ -53,7 +60,7 @@ Page({
   async refresh() {
     try {
       await inventoryStore.load();
-      this.setData({ items: inventoryStore.items as InventoryItem[] });
+      this.setData({ items: withEmoji(inventoryStore.items as InventoryItem[]) });
       this.applyFilter();
     } catch (e) {
       console.error(e);
@@ -64,7 +71,8 @@ Page({
     const { items, activeTab, keyword } = this.data;
     let filtered = items.slice();
     if (activeTab !== 'all') {
-      filtered = filtered.filter(it => (it.category || '').toLowerCase() === activeTab);
+      // 按食材名归类（后端 category 是中文 group_name，与 tab key 对不上）
+      filtered = filtered.filter(it => categoryFor(it.name) === activeTab);
     }
     if (keyword) {
       const k = keyword.toLowerCase();
@@ -110,7 +118,7 @@ Page({
     this.setData({ addSaving: true });
     try {
       await inventoryStore.upsert([{ name, kind: 'manual', quantity_text: this.data.addQty.trim() }]);
-      this.setData({ items: inventoryStore.items as InventoryItem[], addVisible: false });
+      this.setData({ items: withEmoji(inventoryStore.items as InventoryItem[]), addVisible: false });
       this.applyFilter();
       wx.showToast({ title: '已添加', icon: 'success' });
     } catch {

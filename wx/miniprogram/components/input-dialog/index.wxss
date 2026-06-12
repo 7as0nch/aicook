@@ -1,8 +1,9 @@
+/* z-index 高于自定义 tabBar（.tab-bar 100 / .tab-fab 101），否则底部按钮被摄像头浮按盖住 */
 .idlg__mask {
   position: fixed;
   inset: 0;
   background: rgba(31, 27, 22, 0.45);
-  z-index: 100;
+  z-index: 1000;
 }
 
 .idlg {
@@ -13,7 +14,7 @@
   background: #FFFFFF;
   border-radius: 36rpx 36rpx 0 0;
   padding: 40rpx 48rpx 24rpx;
-  z-index: 101;
+  z-index: 1001;
 }
 
 .idlg__title {

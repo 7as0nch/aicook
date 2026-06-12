@@ -80,7 +80,7 @@ Page({
     this.hideMatchUI();
     this.setData({ loading: true });
     try {
-      const res = await recipeApi.list({ limit: 30, keyword, exclude_draft: true });
+      const res = await recipeApi.list({ limit: 30, keyword });
       const recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 0, __meta: buildMeta(r) }));
       this.setData({ recipes });
     } finally {
@@ -106,7 +106,7 @@ Page({
     this.hideMatchUI();
     this.setData({ loading: true });
     try {
-      const res = await recipeApi.list({ limit: 50, exclude_draft: true });
+      const res = await recipeApi.list({ limit: 50 });
       let recipes: DisplayRecipe[] = (res.recipes || []).map(r => ({ ...r, __match: 0, __meta: buildMeta(r) }));
       if (filter.maxMinutes !== undefined) {
         const max = filter.maxMinutes;
@@ -124,7 +124,7 @@ Page({
     this.setData({ loading: true });
     try {
       const keyword = names.join(' ');
-      const res = await recipeApi.list({ limit: 20, keyword, exclude_draft: true });
+      const res = await recipeApi.list({ limit: 20, keyword });
       // 客户端按命中关键词数量估算匹配度
       const recipes: DisplayRecipe[] = (res.recipes || []).map(r => {
         const hay = `${r.title || ''} ${(r.scenario_tags || []).join(' ')} ${(r.flavor_tags || []).join(' ')}`.toLowerCase();

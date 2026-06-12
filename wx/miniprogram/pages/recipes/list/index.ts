@@ -2,6 +2,7 @@
 // 顶部：搜索 + （类目即左栏）；右列每道菜支持编辑/删除；类目支持新建/长按删除
 import { recipeApi } from '../../../services/recipe.api';
 import { householdStore } from '../../../store/household.store';
+import { uiStore } from '../../../store/ui.store';
 import { hasToken } from '../../../utils/auth-guard';
 import { on, EVENTS } from '../../../utils/eventbus';
 import { recipeMetaLabel } from '../../../utils/format';
@@ -41,6 +42,7 @@ Page({
   },
 
   onShow() {
+    uiStore.setTabSelected(1); // 同步底部 tab 高亮（代码 switchTab 不经过 tab-bar 点击）
     if (!hasToken()) return;
     // 首页"按类型浏览"点选的类目（switchTab 不能带参，用 store 暂存）
     const pending = householdStore.pendingCategory;
@@ -95,9 +97,9 @@ Page({
   async loadRecipes(categoryName: string, keyword?: string) {
     this.setData({ loading: true });
     try {
+      // 不排除 draft：本 App 仅在显式保存时落库，家庭里的菜谱都应展示（与首页一致）
       const res = await recipeApi.list({
         limit: 50,
-        exclude_draft: true,
         kitchen_tag: categoryName || undefined,
         keyword: keyword || undefined,
       });
