@@ -1,10 +1,7 @@
 {
   "usingComponents": {
     "ai-fab": "/components/ai-fab/index",
-    "ai-sheet": "/components/ai-sheet/index",
-    "week-strip": "/components/week-strip/index",
-    "meal-card": "/components/meal-card/index",
-    "progress-bar": "/components/progress-bar/index"
+    "ai-sheet": "/components/ai-sheet/index"
   },
   "navigationBarTitleText": "用餐计划",
   "enablePullDownRefresh": true

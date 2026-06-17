@@ -1,6 +1,0 @@
-<view class="pb">
-  <view
-    class="pb__fill"
-    style="width: {{percent}}%; {{color ? 'background: ' + color : ''}}"
-  ></view>
-</view>

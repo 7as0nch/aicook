@@ -14,9 +14,6 @@ importers:
       mobx-miniprogram-bindings:
         specifier: ^6.0.0
         version: 6.0.0(miniprogram-api-typings@5.2.0)(mobx-miniprogram@6.12.3)
-      tdesign-miniprogram:
-        specifier: ^1.7.0
-        version: 1.14.0
     devDependencies:
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.21.0
@@ -4820,9 +4817,6 @@ packages:
   tar-stream@2.2.0:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
     engines: {node: '>=6'}
-
-  tdesign-miniprogram@1.14.0:
-    resolution: {integrity: sha512-uWzUKebTGjRyQem1rFhD6V/OQ+IpD0S3clFUqeN5IrFxFM59XfNZ/ifTZoVHFhDOG769iI5Gvwfu+BX7kW9vrQ==}
 
   terminal-kit@2.11.7:
     resolution: {integrity: sha512-Obe3T8rYOVEI+3uJM1jAK74GkyJsLqRNsA78LcVQrJJ0XfxkhNEVJZ3+pdYD2qcXt9MOx3e/fCMZK/J0lg7KUA==}
@@ -10902,8 +10896,6 @@ snapshots:
       fs-constants: 1.0.0
       inherits: 2.0.4
       readable-stream: 3.6.2
-
-  tdesign-miniprogram@1.14.0: {}
 
   terminal-kit@2.11.7:
     dependencies:

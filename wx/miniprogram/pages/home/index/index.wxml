@@ -23,9 +23,8 @@
     </view>
   </view>
 
-  <!-- 今日推荐 hero 卡：左侧 6px 橘色竖条 + 内容 + 右侧菜照占位 -->
+  <!-- 今日推荐 hero 卡：内容 + 右侧菜照 -->
   <view wx:if="{{todayRecipe}}" class="home__hero" bindtap="onTodayRecipeTap">
-    <view class="home__hero-stripe"></view>
     <view class="home__hero-body">
       <view class="home__hero-tag">今日推荐</view>
       <view class="home__hero-title">{{todayRecipe.title}}</view>
@@ -34,9 +33,9 @@
         <text wx:if="{{todayRecipe.category && todayRecipe.total_minutes}}"> · </text>
         <text wx:if="{{todayRecipe.total_minutes}}">{{todayRecipe.total_minutes}}分钟</text>
       </view>
-      <view wx:if="{{todayMatch || todayReason}}" class="home__hero-match">
+      <view wx:if="{{todayReason}}" class="home__hero-match">
         <view class="home__hero-dot"></view>
-        <text>{{todayMatch ? todayMatch + '% 匹配' : ''}}{{todayMatch && todayReason ? ' · ' : ''}}{{todayReason}}</text>
+        <text>{{todayReason}}</text>
       </view>
       <view class="home__hero-cta">
         <text>去查看</text>
@@ -147,5 +146,6 @@
   <view class="home__spacer"></view>
 </view>
 
+<cooking-fab />
 <ai-fab contextHint="首页" />
 <ai-sheet context="首页" />

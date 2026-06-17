@@ -96,5 +96,6 @@
   <view class="me__spacer"></view>
 </view>
 
+<cooking-fab />
 <ai-fab contextHint="我的" />
 <ai-sheet context="我的" />

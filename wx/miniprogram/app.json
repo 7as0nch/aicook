@@ -51,9 +51,11 @@
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
   "usingComponents": {
     "ai-sheet": "/components/ai-sheet/index",
     "ai-fab": "/components/ai-fab/index",
+    "cooking-fab": "/components/cooking-fab/index",
     "custom-navbar": "/components/custom-navbar/index"
   }
 }

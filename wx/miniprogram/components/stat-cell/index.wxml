@@ -1,4 +1,0 @@
-<view class="sc" bindtap="onTap">
-  <view class="sc__value">{{value}}</view>
-  <view class="sc__label">{{label}}</view>
-</view>

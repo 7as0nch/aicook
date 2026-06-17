@@ -30,6 +30,7 @@
 }
 
 .plan__cart-btn {
+  position: relative;
   width: 68rpx;
   height: 68rpx;
   border-radius: 50%;
@@ -42,6 +43,23 @@
 .plan__cart-icon {
   width: 40rpx;
   height: 40rpx;
+}
+
+/* 采购清单数量徽标（采购卡已移除，入口只剩这个右上角购物车） */
+.plan__cart-badge {
+  position: absolute;
+  top: -6rpx;
+  right: -6rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  border-radius: 9999rpx;
+  background: #FF7A00;
+  color: #FFFFFF;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .plan__week-card {
@@ -180,57 +198,37 @@
   margin: 20rpx -28rpx 20rpx;
 }
 
-.plan__dish-row {
+/* 菜品流式展示：默认收起只显一行，多了点「展开全部」铺开 */
+.plan__dishes {
   display: flex;
-  align-items: center;
-  gap: 18rpx;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
 }
 
-.plan__dish-divider {
-  height: 2rpx;
-  background: #F4F2EE;
-  margin: 16rpx 0 16rpx 102rpx;
-}
-
-.plan__dish-img {
-  width: 84rpx;
-  height: 84rpx;
-  border-radius: 24rpx;
-  background: linear-gradient(180deg, #FFEAD2 0%, #FFD6AA 100%);
+.plan__dishes--collapsed {
+  max-height: 60rpx; /* 一行 chip 高度，第二行被裁掉 */
   overflow: hidden;
-  flex-shrink: 0;
 }
 
-.plan__dish-img-i { width: 100%; height: 100%; }
-
-.plan__dish-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-  min-width: 0;
-}
-
-.plan__dish-name {
-  font-size: 27rpx;
-  font-weight: 500;
-  color: #1F1B16;
-  line-height: 1.2;
-}
-
-.plan__dish-meta {
-  font-size: 22rpx;
-  color: #9B978F;
-}
-
-.plan__dish-cal {
+.plan__chip {
+  max-width: 100%;
+  padding: 12rpx 26rpx;
   background: #FFF6EE;
-  color: #EF6E00;
-  font-size: 22rpx;
-  font-weight: 500;
-  padding: 8rpx 18rpx;
-  border-radius: 20rpx;
-  flex-shrink: 0;
+  color: #5C3A12;
+  border-radius: 9999rpx;
+  font-size: 26rpx;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plan__dish-toggle {
+  margin-top: 14rpx;
+  text-align: center;
+  font-size: 23rpx;
+  color: #FF7A00;
 }
 
 .plan__empty-tip {
@@ -238,65 +236,6 @@
   color: #9B978F;
   font-size: 23rpx;
   padding: 18rpx 0 4rpx;
-}
-
-.plan__shopping-card {
-  background: #FFFFFF;
-  border: 2rpx solid #EFEDE8;
-  border-radius: 36rpx;
-  padding: 24rpx 28rpx;
-  margin-bottom: 28rpx;
-  box-shadow: 0 16rpx 40rpx rgba(31, 20, 8, 0.05);
-}
-
-.plan__shopping-head {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 18rpx;
-}
-
-.plan__shopping-cart {
-  width: 36rpx;
-  height: 36rpx;
-}
-
-.plan__shopping-title {
-  flex: 1;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1F1B16;
-}
-
-.plan__shopping-count {
-  font-size: 23rpx;
-  color: #9B978F;
-  margin-right: 8rpx;
-}
-
-.plan__shopping-arrow {
-  width: 28rpx;
-  height: 28rpx;
-}
-
-.plan__shopping-progress {
-  height: 14rpx;
-  background: #F4F5F7;
-  border-radius: 8rpx;
-  overflow: hidden;
-  margin-bottom: 14rpx;
-}
-
-.plan__shopping-progress-fill {
-  height: 100%;
-  background: #FF7A00;
-  border-radius: 8rpx;
-  transition: width 0.3s ease;
-}
-
-.plan__shopping-preview {
-  font-size: 22rpx;
-  color: #9B978F;
 }
 
 .plan__ai-btn {

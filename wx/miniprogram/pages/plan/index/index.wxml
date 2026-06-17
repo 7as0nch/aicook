@@ -6,6 +6,7 @@
     </view>
     <view class="plan__cart-btn" bindtap="onShoppingTap">
       <image class="plan__cart-icon" src="/assets/icons/cart.svg" mode="aspectFit" />
+      <view wx:if="{{shoppingTotal}}" class="plan__cart-badge">{{shoppingTotal}}</view>
     </view>
   </view>
 
@@ -40,16 +41,19 @@
       </view>
     </view>
     <view wx:if="{{breakfast.length}}" class="plan__meal-divider"></view>
-    <block wx:for="{{breakfast}}" wx:key="key" wx:for-item="dish">
-      <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
-      <view class="plan__dish-row" data-id="{{dish.recipeId}}" bindtap="onDishTap">
-        <view class="plan__dish-img"></view>
-        <view class="plan__dish-body">
-          <text class="plan__dish-name">{{dish.title}}</text>
-          <text wx:if="{{dish.note}}" class="plan__dish-meta">{{dish.note}}</text>
-        </view>
-      </view>
-    </block>
+    <view wx:if="{{breakfast.length}}" class="plan__dishes {{breakfastExpanded ? '' : 'plan__dishes--collapsed'}}">
+      <view
+        wx:for="{{breakfast}}"
+        wx:key="key"
+        wx:for-item="dish"
+        class="plan__chip"
+        data-id="{{dish.recipeId}}"
+        bindtap="onDishTap"
+      >{{dish.title}}</view>
+    </view>
+    <view wx:if="{{breakfast.length > 3}}" class="plan__dish-toggle" data-type="breakfast" bindtap="onToggleMeal">
+      {{breakfastExpanded ? '收起' : '展开全部 ' + breakfast.length + ' 道'}}
+    </view>
     <view wx:if="{{!breakfast.length}}" class="plan__empty-tip">暂无早餐，点击右上 + 添加</view>
   </view>
 
@@ -65,16 +69,19 @@
       </view>
     </view>
     <view wx:if="{{lunch.length}}" class="plan__meal-divider"></view>
-    <block wx:for="{{lunch}}" wx:key="key" wx:for-item="dish">
-      <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
-      <view class="plan__dish-row" data-id="{{dish.recipeId}}" bindtap="onDishTap">
-        <view class="plan__dish-img"></view>
-        <view class="plan__dish-body">
-          <text class="plan__dish-name">{{dish.title}}</text>
-          <text wx:if="{{dish.note}}" class="plan__dish-meta">{{dish.note}}</text>
-        </view>
-      </view>
-    </block>
+    <view wx:if="{{lunch.length}}" class="plan__dishes {{lunchExpanded ? '' : 'plan__dishes--collapsed'}}">
+      <view
+        wx:for="{{lunch}}"
+        wx:key="key"
+        wx:for-item="dish"
+        class="plan__chip"
+        data-id="{{dish.recipeId}}"
+        bindtap="onDishTap"
+      >{{dish.title}}</view>
+    </view>
+    <view wx:if="{{lunch.length > 3}}" class="plan__dish-toggle" data-type="lunch" bindtap="onToggleMeal">
+      {{lunchExpanded ? '收起' : '展开全部 ' + lunch.length + ' 道'}}
+    </view>
     <view wx:if="{{!lunch.length}}" class="plan__empty-tip">暂无午餐，点击右上 + 添加</view>
   </view>
 
@@ -90,30 +97,20 @@
       </view>
     </view>
     <view wx:if="{{dinner.length}}" class="plan__meal-divider"></view>
-    <block wx:for="{{dinner}}" wx:key="key" wx:for-item="dish">
-      <view wx:if="{{index > 0}}" class="plan__dish-divider"></view>
-      <view class="plan__dish-row" data-id="{{dish.recipeId}}" bindtap="onDishTap">
-        <view class="plan__dish-img"></view>
-        <view class="plan__dish-body">
-          <text class="plan__dish-name">{{dish.title}}</text>
-          <text wx:if="{{dish.note}}" class="plan__dish-meta">{{dish.note}}</text>
-        </view>
-      </view>
-    </block>
+    <view wx:if="{{dinner.length}}" class="plan__dishes {{dinnerExpanded ? '' : 'plan__dishes--collapsed'}}">
+      <view
+        wx:for="{{dinner}}"
+        wx:key="key"
+        wx:for-item="dish"
+        class="plan__chip"
+        data-id="{{dish.recipeId}}"
+        bindtap="onDishTap"
+      >{{dish.title}}</view>
+    </view>
+    <view wx:if="{{dinner.length > 3}}" class="plan__dish-toggle" data-type="dinner" bindtap="onToggleMeal">
+      {{dinnerExpanded ? '收起' : '展开全部 ' + dinner.length + ' 道'}}
+    </view>
     <view wx:if="{{!dinner.length}}" class="plan__empty-tip">暂无晚餐，点击右上 + 添加</view>
-  </view>
-
-  <view class="plan__shopping-card" bindtap="onShoppingTap">
-    <view class="plan__shopping-head">
-      <image class="plan__shopping-cart" src="/assets/icons/cart.svg" mode="aspectFit" />
-      <text class="plan__shopping-title">本周采购清单</text>
-      <text class="plan__shopping-count">已采购 {{shoppingCheckedCount}} / {{shoppingTotal}}</text>
-      <image class="plan__shopping-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
-    </view>
-    <view class="plan__shopping-progress">
-      <view class="plan__shopping-progress-fill" style="width: {{shoppingProgressPct}}%"></view>
-    </view>
-    <text class="plan__shopping-preview">{{shoppingPreviewText || '暂无采购项'}}</text>
   </view>
 
   <view class="plan__ai-btn" bindtap="onGeneratePlan">
@@ -123,5 +120,6 @@
   <view class="plan__spacer"></view>
 </view>
 
+<cooking-fab />
 <ai-fab contextHint="用餐计划" />
 <ai-sheet context="计划" />

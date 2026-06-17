@@ -83,18 +83,11 @@
   background: #FFF6EE;
   border-radius: 40rpx;
   overflow: hidden;
-  height: 288rpx;
+  /* 用 min-height：内容（含理由行）超出时卡片自适应增高，避免「去查看」被裁/挤出 */
+  min-height: 288rpx;
   display: flex;
+  align-items: stretch;
   margin-bottom: 40rpx;
-}
-
-.home__hero-stripe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 12rpx;
-  background: #FF7A00;
 }
 
 .home__hero-body {
@@ -295,19 +288,21 @@
 }
 
 /* ========== 双列网格 ========== */
+/* 用 CSS grid 而非 flex+calc(50%-12rpx)：后者两卡+gap 正好凑满 100%，
+   iOS 上亚像素取整会溢出一丢丢 → 第二张被挤到下一行、右侧空着。grid 的 1fr 不会有此问题。 */
 .home__grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 24rpx;
 }
 
 .home__card {
-  width: calc(50% - 12rpx);
   background: #FFFFFF;
   border: 2rpx solid #EFEDE8;
   border-radius: 32rpx;
   overflow: hidden;
   box-shadow: 0 16rpx 40rpx rgba(31, 20, 8, 0.05);
+  min-width: 0;
 }
 
 .home__card-cover {

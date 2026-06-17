@@ -1,0 +1,57 @@
+<wxs src="../../utils/media.wxs" module="media" />
+<!-- 有正在做的菜才渲染整个组件（浮球 + 抽屉）；没有则什么都不显示 -->
+<view wx:if="{{items.length}}">
+  <!-- 浮球：默认靠右、可拖拽吸附左右边缘；点击打开抽屉 -->
+  <view
+    class="ck-fab {{fabDragging ? 'ck-fab--dragging' : ''}}"
+    style="{{fabPositioned ? 'left:' + fabX + 'px;top:' + fabY + 'px;right:auto;bottom:auto;' : 'right:32rpx;bottom:' + bottom + ';'}}"
+    catchtouchstart="onFabTouchStart"
+    catchtouchmove="onFabTouchMove"
+    catchtouchend="onFabTouchEnd"
+    catchtouchcancel="onFabTouchEnd"
+  >
+    <image class="ck-fab__icon" src="/assets/icons/pot.png" mode="aspectFit" />
+    <view class="ck-fab__badge">{{items.length}}</view>
+  </view>
+
+  <!-- 抽屉蒙层：catchtouchmove 锁住背后页面滚动 -->
+  <view wx:if="{{drawerOpen}}" class="ck-mask" bindtap="onCloseDrawer" catchtouchmove="noop"></view>
+
+  <!-- 底部抽屉：catchtouchmove 拦住冒泡，避免行内拖拽/滑动带动背后页面（内部 scroll-view 仍可纵向滚动） -->
+  <view class="ck-sheet {{drawerOpen ? 'ck-sheet--open' : ''}}" catchtouchmove="noop">
+    <view class="ck-sheet__handle" bindtap="onCloseDrawer"></view>
+    <view class="ck-sheet__head">
+      <text class="ck-sheet__title">正在做的菜</text>
+      <text class="ck-sheet__count">{{items.length}} 道</text>
+      <text class="ck-sheet__hint">点进步骤 · 左滑删除</text>
+    </view>
+    <scroll-view scroll-y class="ck-sheet__list" show-scrollbar="{{false}}">
+      <view wx:for="{{items}}" wx:key="key" class="ck-row">
+        <!-- 左滑露出的删除按钮（在内容层下方） -->
+        <view class="ck-row__del" data-id="{{item.recipe_id}}" catchtap="onDelete">删除</view>
+        <!-- 可横向滑动的内容层 -->
+        <view
+          class="ck-row__main {{item.key === dragKey ? 'ck-row__main--drag' : ''}}"
+          style="transform: translateX({{item.key === dragKey ? dragX + 'rpx' : (item.key === openKey ? '-140rpx' : '0')}});"
+          data-key="{{item.key}}"
+          data-id="{{item.recipe_id}}"
+          bindtouchstart="onRowTouchStart"
+          bindtouchmove="onRowTouchMove"
+          bindtouchend="onRowTouchEnd"
+          bindtouchcancel="onRowTouchEnd"
+        >
+          <view class="ck-row__cover">
+            <video wx:if="{{item.cover && media.isVideo(item.cover)}}" class="ck-row__cover-i" src="{{item.cover}}" object-fit="cover" autoplay muted loop controls="{{false}}" show-center-play-btn="{{false}}" enable-progress-gesture="{{false}}"></video>
+            <image wx:elif="{{item.cover}}" class="ck-row__cover-i" src="{{item.cover}}" mode="aspectFill" />
+          </view>
+          <view class="ck-row__body">
+            <text class="ck-row__title">{{item.title}}</text>
+            <text class="ck-row__step">{{item.stepLabel}}</text>
+          </view>
+          <view class="ck-row__go">继续 ›</view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="ck-sheet__safe"></view>
+  </view>
+</view>

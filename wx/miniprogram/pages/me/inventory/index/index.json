@@ -1,6 +1,4 @@
 {
   "navigationStyle": "custom",
-  "usingComponents": {
-    "ingredient-pill": "/components/ingredient-pill/index"
-  }
+  "usingComponents": {}
 }

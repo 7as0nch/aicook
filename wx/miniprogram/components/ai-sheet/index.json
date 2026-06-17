@@ -2,8 +2,6 @@
   "component": true,
   "usingComponents": {
     "mascot-bubble": "/components/mascot-bubble/index",
-    "mode-chip": "/components/mode-chip/index",
-    "quick-entry": "/components/quick-entry/index",
-    "ingredient-pill": "/components/ingredient-pill/index"
+    "mode-chip": "/components/mode-chip/index"
   }
 }

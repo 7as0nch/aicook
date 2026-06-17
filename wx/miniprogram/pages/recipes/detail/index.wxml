@@ -80,7 +80,7 @@
           <view class="rd__ing-grp-name">{{grp.groupName}}</view>
           <view wx:for="{{grp.items}}" wx:key="name" wx:for-item="ing" class="rd__ing-row">
             <text class="rd__ing-name">{{ing.name}}</text>
-            <text class="rd__ing-amt">{{ing.amount}} {{ing.unit}}</text>
+            <text wx:if="{{ing.amount_text}}" class="rd__ing-amt">{{ing.amount_text}}</text>
           </view>
         </view>
       </block>
@@ -95,9 +95,21 @@
         <view class="rd__step-body">
           <view class="rd__step-title">{{step.title || ('步骤 ' + (step.step_no || index + 1))}}</view>
           <view class="rd__step-desc">{{step.description}}</view>
-        </view>
-        <view class="rd__step-img">
-          <image wx:if="{{step.cover_image_url}}" class="rd__step-img-i" src="{{step.cover_image_url}}" mode="aspectFill" />
+          <!-- 步骤配图：多图横向缩略图条，点击全屏预览；无图则不渲染（不再显示空占位） -->
+          <scroll-view wx:if="{{step.images.length}}" scroll-x class="rd__step-imgs" show-scrollbar="{{false}}">
+            <image
+              wx:for="{{step.images}}"
+              wx:for-item="img"
+              wx:for-index="j"
+              wx:key="*this"
+              class="rd__step-img"
+              src="{{img}}"
+              mode="aspectFill"
+              data-idx="{{index}}"
+              data-j="{{j}}"
+              catchtap="onStepImgTap"
+            />
+          </scroll-view>
         </view>
       </view>
       <view wx:if="{{!steps.length}}" class="rd__empty">暂无步骤</view>
@@ -125,5 +137,6 @@
 </view>
 
 <!-- 全局 AI 浮球：携带本页菜谱上下文（让助手知道你在看哪道菜） -->
+<cooking-fab bottom="380rpx" />
 <ai-fab scene="recipe_detail" recipeId="{{id}}" contextHint="{{recipe.title}}" bottom="240rpx" />
 <ai-sheet context="{{recipe.title || '菜谱详情'}}" />

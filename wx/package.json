@@ -15,8 +15,7 @@
   },
   "dependencies": {
     "mobx-miniprogram": "^6.12.3",
-    "mobx-miniprogram-bindings": "^6.0.0",
-    "tdesign-miniprogram": "^1.7.0"
+    "mobx-miniprogram-bindings": "^6.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.21.0",

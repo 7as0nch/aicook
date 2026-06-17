@@ -1,7 +1,5 @@
 {
   "usingComponents": {
-    "ingredient-pill": "/components/ingredient-pill/index",
-    "sort-tabs": "/components/sort-tabs/index",
     "ai-fab": "/components/ai-fab/index",
     "ai-sheet": "/components/ai-sheet/index"
   },

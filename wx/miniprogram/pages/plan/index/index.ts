@@ -52,11 +52,12 @@ Page({
     breakfast: [] as DishItem[],
     lunch: [] as DishItem[],
     dinner: [] as DishItem[],
-    shoppingCheckedCount: 0,
+    // 每餐菜品默认收起（最多一行），多了点「展开全部」
+    breakfastExpanded: false,
+    lunchExpanded: false,
+    dinnerExpanded: false,
+    // 采购清单只保留右上角入口的计数徽标
     shoppingTotal: 0,
-    shoppingPreviewNames: [] as string[],
-    shoppingPreviewText: '',
-    shoppingProgressPct: 0,
     loading: false,
   },
 
@@ -163,24 +164,24 @@ Page({
       breakfast: toDishes(day?.breakfast),
       lunch: toDishes(day?.lunch),
       dinner: toDishes(day?.dinner),
+      // 切日/重建时收起，避免上一天的展开态串到当天
+      breakfastExpanded: false,
+      lunchExpanded: false,
+      dinnerExpanded: false,
     });
   },
 
+  // 采购清单卡片已移除，仅保留右上角购物车的数量徽标
   rebuildShopping() {
     const items = planStore.shoppingItems || [];
-    const checked = items.filter(it => it.checked).length;
-    const names = items.slice(0, 5).map(it => it.ingredient_name);
-    const previewText = items.length
-      ? `${names.join(' · ')}${items.length > 5 ? ` · 还有 ${items.length - 5} 项` : ''}`
-      : '';
-    const pct = items.length ? Math.round((checked / items.length) * 100) : 0;
-    this.setData({
-      shoppingCheckedCount: checked,
-      shoppingTotal: items.length,
-      shoppingPreviewNames: names,
-      shoppingPreviewText: previewText,
-      shoppingProgressPct: pct,
-    });
+    this.setData({ shoppingTotal: items.length });
+  },
+
+  onToggleMeal(e: WechatMiniprogram.BaseEvent) {
+    const slot = (e.currentTarget as unknown as { dataset: { type?: string } }).dataset.type as MealSlotKey | undefined;
+    if (!slot || !MEAL_SLOTS.includes(slot)) return;
+    const key = `${slot}Expanded` as 'breakfastExpanded' | 'lunchExpanded' | 'dinnerExpanded';
+    this.setData({ [key]: !this.data[key] });
   },
 
   onDayTap(e: WechatMiniprogram.BaseEvent) {

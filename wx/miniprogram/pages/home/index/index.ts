@@ -9,6 +9,7 @@ import { uiStore } from '../../../store/ui.store';
 import { hasToken } from '../../../utils/auth-guard';
 import { on, EVENTS } from '../../../utils/eventbus';
 import { recipeMetaLabel } from '../../../utils/format';
+import { stableMediaURL } from '../../../utils/media-cache';
 import type { Recipe, TodayRecipe } from '../../../types/api';
 
 // 灵感推荐卡片的展示模型（__meta 只拼真实字段，不造假数据）
@@ -31,7 +32,6 @@ Page({
   data: {
     greeting: '',
     todayRecipe: null as Recipe | null,
-    todayMatch: 0,
     todayReason: '',
     quickEntries: [
       { id: 'snap', emoji: '📷', iconSrc: '', text: '拍照识别', theme: 'orange', url: '/pages/recipes/snap/index' },
@@ -106,19 +106,21 @@ Page({
     if (!hasToken()) return;
     this.setData({ loading: true });
     try {
-      // 并行拉取今日推荐 + 灵感推荐 + chip 标签
-      const [todayRes, listRes] = await Promise.all([
-        recipeApi.listToday(1).catch(() => ({ items: [] as TodayRecipe[] })),
-        // 首页只显示已发布菜谱（草稿仅在菜谱页可见）
-        recipeApi.list({ limit: 6, recipe_status: 'published' }).catch(() => ({ recipes: [] as Recipe[] })),
-      ]);
-      const todayItem = todayRes.items?.[0];
+      // 今日推荐 + 灵感推荐同源于个性化排序 ListToday（偏好/计划/最近做过加权）：
+      // 第 1 道作头条「今日推荐」，其余作「为你推荐」网格；ListToday 已签名封面并注入收藏态。
+      const todayRes = await recipeApi.listToday(7).catch(() => ({ items: [] as TodayRecipe[] }));
+      const items = todayRes.items || [];
+      const todayItem = items[0];
+      const today = todayItem?.recipe || null;
+      const gridRecipes = items.slice(1).map(i => i.recipe).filter(Boolean) as Recipe[];
       this.setData({
-        todayRecipe: todayItem?.recipe || null,
-        todayMatch: todayItem?.score ? Math.round(todayItem.score * 100) : 0,
-        // 推荐理由用后端返回的第一条 reason（不再写死「冰箱食材命中高」）
+        // 封面过签名缓存，避免每次进首页重下
+        todayRecipe: today ? { ...today, cover_image_url: stableMediaURL(today.cover_image_url || '') } : null,
+        // 不再展示「匹配百分比」：后端 score 是内部排序分而非匹配度，按「不展示虚构数据」约定只显示真实理由
         todayReason: todayItem?.reasons?.[0]?.label || '',
-        suggested: (listRes.recipes || []).map(r => ({ ...r, __meta: recipeMetaLabel(r) })),
+        // 重载即回到「为你推荐」个性化态，避免网格与高亮 chip 不一致
+        activeChip: '为你推荐',
+        suggested: gridRecipes.map(r => ({ ...r, cover_image_url: stableMediaURL(r.cover_image_url || ''), __meta: recipeMetaLabel(r) })),
       });
       // 标签 chip：尝试用 householdStore 的 tags
       try {
@@ -217,14 +219,21 @@ Page({
     if (!name || name === this.data.activeChip) return;
     this.setData({ activeChip: name, loading: true });
     try {
-      // chip 来源是厨房标签，选中后按 kitchen_tag 重新拉取灵感推荐；「为你推荐」不带标签
-      const res = await recipeApi.list({
-        limit: 6,
-        kitchen_tag: name === '为你推荐' ? undefined : name,
-        recipe_status: 'published',
-      });
+      let recipes: Recipe[];
+      if (name === '为你推荐') {
+        // 个性化：与今日推荐同源（ListToday），取排序靠前的几道，去掉已在头条的那道
+        const res = await recipeApi.listToday(7);
+        const heroId = String(this.data.todayRecipe?.id || '');
+        recipes = ((res.items || []).map(i => i.recipe).filter(Boolean) as Recipe[])
+          .filter(r => String(r.id) !== heroId)
+          .slice(0, 6);
+      } else {
+        // 具体类目：按 kitchen_tag 取该类目下的已发布菜谱
+        const res = await recipeApi.list({ limit: 6, kitchen_tag: name, recipe_status: 'published' });
+        recipes = res.recipes || [];
+      }
       this.setData({
-        suggested: (res.recipes || []).map(r => ({ ...r, __meta: recipeMetaLabel(r) })),
+        suggested: recipes.map(r => ({ ...r, cover_image_url: stableMediaURL(r.cover_image_url || ''), __meta: recipeMetaLabel(r) })),
       });
     } catch {
       // http.ts 已统一 toast，保持当前列表

@@ -4,6 +4,7 @@ import { recipeApi } from '../../../services/recipe.api';
 import { kitchenApi } from '../../../services/kitchen.api';
 import { chatStore } from '../../../store/chat.store';
 import { authStore } from '../../../store/auth.store';
+import { stableMediaURL, stableMediaURLs } from '../../../utils/media-cache';
 import type { Recipe, RecipeIngredient, RecipeStep } from '../../../types/api';
 
 type DetailTab = 'ingredients' | 'steps' | 'nutrition';
@@ -11,6 +12,15 @@ type DetailTab = 'ingredients' | 'steps' | 'nutrition';
 interface IngredGroup {
   groupName: string;
   items: RecipeIngredient[];
+}
+
+// 步骤视图模型：在 RecipeStep 上补一个已归一(过缓存)的图片数组，wxml 直接遍历多图。
+type StepVM = RecipeStep & { images: string[] };
+
+// 取某步骤的图片列表：优先多图 media_urls，回退单图 media_url，无图返回 []。
+function stepImages(s: RecipeStep): string[] {
+  const raw = s.media_urls && s.media_urls.length ? s.media_urls : s.media_url ? [s.media_url] : [];
+  return stableMediaURLs(raw.filter(Boolean));
 }
 
 Page({
@@ -21,7 +31,7 @@ Page({
     recipe: null as Recipe | null,
     difficultyLabel: '',
     ingredientGroups: [] as IngredGroup[],
-    steps: [] as RecipeStep[],
+    steps: [] as StepVM[],
     favored: false,
     canEdit: false,
     // 顶部轮播媒体（封面图集，可含 ≤10s 短视频）；长视频单独走 longVideoUrl
@@ -50,20 +60,22 @@ Page({
       const diffLabel = diff ? (typeof diff === 'string' ? diff : ['', '入门', '简单', '中等', '挑战', '大师'][Number(diff)] || '中等') : '';
       // 只允许编辑本家庭的菜谱（分享导入的副本 household_id 也是本家庭，可编辑）
       const canEdit = String(detail.recipe.household_id || '') === String(authStore.currentHousehold?.id || '');
-      // 轮播媒体：优先图集，回退单封面
+      // 轮播媒体：优先图集，回退单封面；统一过签名 URL 缓存，避免每次进页重下
       const gallery = ((detail.recipe.gallery_image_urls as string[] | undefined) || []).filter(Boolean);
       const mediaList = gallery.length
         ? gallery
         : (detail.recipe.cover_image_url ? [detail.recipe.cover_image_url] : []);
+      // 步骤：预计算多图列表（过缓存），wxml 直接遍历 step.images
+      const steps: StepVM[] = (detail.steps || []).map((s) => ({ ...s, images: stepImages(s) }));
       this.setData({
         recipe: detail.recipe,
         difficultyLabel: diffLabel,
         favored: !!detail.recipe.favored,
         ingredientGroups: grouped,
-        steps: detail.steps || [],
+        steps,
         canEdit,
-        mediaList,
-        longVideoUrl: detail.recipe.video_url || '',
+        mediaList: stableMediaURLs(mediaList),
+        longVideoUrl: stableMediaURL(detail.recipe.video_url || ''),
         isDraft: detail.recipe.status === 'draft' && canEdit,
       });
     } catch (e) {
@@ -156,6 +168,14 @@ Page({
       title: recipe ? `${recipe.title} - 萝卜爱做饭 AI 菜谱` : '萝卜爱做饭',
       imageUrl: recipe?.cover_image_url,
     };
+  },
+
+  // 点步骤缩略图：全屏预览该步全部图片，从点中的那张开始
+  onStepImgTap(e: WechatMiniprogram.BaseEvent) {
+    const ds = (e.currentTarget as unknown as { dataset: { idx: string; j: string } }).dataset;
+    const step = this.data.steps?.[Number(ds.idx)];
+    if (!step || !step.images?.length) return;
+    wx.previewImage({ current: step.images[Number(ds.j)] || step.images[0], urls: step.images });
   },
 
   onStepLongpress(e: WechatMiniprogram.BaseEvent) {
