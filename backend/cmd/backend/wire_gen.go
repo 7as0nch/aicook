@@ -44,7 +44,13 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	householdUsecase := user.NewHouseholdUsecase(householdRepo)
 	householdService := service.NewHouseholdService(householdUsecase, mediaUsecase)
 	recipeRepo := data.NewRecipeRepo(db)
-	runtime := data.NewAIRuntime(cfg)
+	redisClient, cleanup3, err := data.NewRedis(cfg)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	runtime := data.NewAIRuntime(cfg, redisClient)
 	recipeUsecase := recipe.NewRecipeUsecase(recipeRepo, runtime)
 	kitchenOpsRepo := data.NewKitchenOpsRepo(db)
 	cookingHistoryRepo := data.NewCookingHistoryRepo(db)
@@ -63,12 +69,6 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	embeddingsClient := data.NewEmbeddingClient(cfg)
 	knowledgeUsecase := ai.NewKnowledgeUsecase(knowledgeRepo, mediaRepo, recipeRepo, objectStorage, cfg, runtime, embeddingsClient)
 	aiRepo := data.NewAIRepo(db)
-	redisClient, cleanup3, err := data.NewRedis(cfg)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
 	cookingProgressStore := data.NewCookingProgressStore(redisClient)
 	cookingProgressUsecase := kitchen.NewCookingProgressUsecase(recipeRepo, cookingProgressStore)
 	aiUsecase := ai.NewAIUsecase(aiRepo, runtime, cookingProgressUsecase, knowledgeUsecase)

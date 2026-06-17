@@ -30,7 +30,7 @@
 [CmdletBinding()]
 param(
   [string]$DockerUser        = '7as0nch',
-  [string]$Version           = 'v0.1.2',
+  [string]$Version           = 'v0.1.3',
   [string]$ImageTag          = 'latest',
   [string]$Platform          = 'linux/amd64',
   [string]$RemoteHost        = 'root@sshjd.aihelper.chat',

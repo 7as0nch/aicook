@@ -8,6 +8,7 @@ import (
 
 	einoopenai "github.com/cloudwego/eino-ext/components/model/openai"
 	einoadk "github.com/cloudwego/eino/adk"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime/audioinput"
@@ -32,11 +33,19 @@ type Runtime struct {
 
 	deepRootAgent       einoadk.ResumableAgent
 	deepRunner          *einoadk.Runner
-	deepCheckpointStore *aircheckpoint.MemoryStore
+	deepCheckpointStore aircheckpoint.Store
 	adkErr              error
 }
 
-func New(cfg *conf.AI, oss *conf.OSS) *Runtime {
+// newCheckpointStore 选 checkpoint 存储：有 Redis 用 Redis（多副本/发版后续跑不丢），否则退回内存（本地/无 Redis）。
+func newCheckpointStore(rdb *redis.Client) aircheckpoint.Store {
+	if rdb != nil {
+		return aircheckpoint.NewRedisStore(rdb)
+	}
+	return aircheckpoint.NewMemoryStore()
+}
+
+func New(cfg *conf.AI, oss *conf.OSS, rdb *redis.Client) *Runtime {
 	mode := ModeADK
 	if cfg != nil {
 		mode = Mode(strings.ToLower(strings.TrimSpace(cfg.GetMode())))
@@ -46,9 +55,10 @@ func New(cfg *conf.AI, oss *conf.OSS) *Runtime {
 	}
 
 	runtime := &Runtime{
-		mode:               mode,
-		provider:           cfg,
-		mediaHostAllowlist: audioinput.MediaHostAllowlist(oss),
+		mode:                mode,
+		provider:            cfg,
+		mediaHostAllowlist:  audioinput.MediaHostAllowlist(oss),
+		deepCheckpointStore: newCheckpointStore(rdb),
 	}
 	if cfg == nil {
 		runtime.initADK()

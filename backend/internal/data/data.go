@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/chengjiang/aicook/backend/internal/auth"
@@ -90,8 +91,8 @@ func NewASRClient(cfg *conf.Bootstrap) *asr.Client {
 	return asr.NewClient(cfg.GetAi())
 }
 
-func NewAIRuntime(cfg *conf.Bootstrap) *airuntime.Runtime {
-	return airuntime.New(cfg.GetAi(), cfg.GetOss())
+func NewAIRuntime(cfg *conf.Bootstrap, rdb *redis.Client) *airuntime.Runtime {
+	return airuntime.New(cfg.GetAi(), cfg.GetOss(), rdb)
 }
 
 func NewEmbeddingClient(cfg *conf.Bootstrap) *embeddings.Client {

@@ -16,6 +16,10 @@ import (
 	airtool "github.com/chengjiang/aicook/backend/internal/platform/airuntime/tool"
 )
 
+// 编译期保证 checkpoint store 满足 Eino 的 CheckPointStore（接口若漂移会在此处先报错，
+// 而不是等到 NewRunner 赋值才暴露）。
+var _ einoadk.CheckPointStore = (aircheckpoint.Store)(nil)
+
 const (
 	adkRootAgentName       = "aicook_deep_root"
 	adkMultimodalAgentName = "aicook_multimodal_agent"
@@ -87,7 +91,10 @@ func (r *Runtime) initADK() {
 	}
 
 	r.deepRootAgent = rootAgent
-	r.deepCheckpointStore = aircheckpoint.NewMemoryStore()
+	if r.deepCheckpointStore == nil {
+		// 兜底：正常路径下 New() 已按是否有 Redis 选好 store（Redis/内存）。
+		r.deepCheckpointStore = aircheckpoint.NewMemoryStore()
+	}
 	r.deepRunner = einoadk.NewRunner(ctx, einoadk.RunnerConfig{
 		Agent:           rootAgent,
 		EnableStreaming: true,
