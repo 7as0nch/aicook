@@ -6,7 +6,7 @@
 // 微信小程序通过 wx.request({enableChunked: true}) + onChunkReceived 接收流。
 // 本模块负责：拼装请求、读 chunk、按 \n\n 切帧、按 event/data 解析为对象，回调上层。
 
-import { prepareRaw, handleAuthFailure } from './http';
+import { prepareRaw, handleAuthFailure, CHAT_STREAM_TIMEOUT_MS } from './http';
 import type { ChatSSEEvent, ChatSSEEventType } from '../types/sse-events';
 
 // SSE 事件类型定义统一在 types/sse-events.d.ts（与后端 chat_http.go 的 writeSSE 调用点对齐）
@@ -197,6 +197,7 @@ export function chatStream(req: ChatSendRequest, handlers: SSEHandlers): SSETask
     data: req as unknown as WechatMiniprogram.IAnyObject,
     enableChunked: true,
     responseType: 'arraybuffer',
+    timeout: CHAT_STREAM_TIMEOUT_MS, // 不设的话走 wx 默认 60s，长回答会被掐断成 "context canceled"
     success: (res) => {
       if (aborted) return;
       const status = (res as { statusCode?: number }).statusCode;

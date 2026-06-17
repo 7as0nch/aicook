@@ -436,7 +436,9 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_document_id ON knowledge_chunks(
 CREATE INDEX IF NOT EXISTS idx_household_ai_memories_household_id ON household_ai_memories(household_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_graph_edges_household_id ON knowledge_graph_edges(household_id);
 CREATE INDEX IF NOT EXISTS idx_ai_sessions_household_id ON ai_sessions(household_id);
-CREATE INDEX IF NOT EXISTS idx_ai_messages_session_id ON ai_messages(ai_session_id);
+-- 复合索引同时服务 WHERE ai_session_id=? 与 ORDER BY created_at DESC（ListRecentMessages）；
+-- 比单列 (ai_session_id) 更优，长会话也不必额外排序。
+CREATE INDEX IF NOT EXISTS idx_ai_messages_session_created ON ai_messages(ai_session_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_meal_plans_household_week ON meal_plans(household_id, week_start_date);
 CREATE INDEX IF NOT EXISTS idx_meal_plan_items_plan_slot_sort ON meal_plan_items(meal_plan_id, plan_date, meal_slot, sort_order);
 CREATE INDEX IF NOT EXISTS idx_shopping_lists_household_week ON shopping_lists(household_id, week_start_date);

@@ -23,6 +23,9 @@ export type QueryValue = string | number | boolean | undefined | null;
 // 大文件直传（OSS PUT）单独放宽到 120s（见 upload.ts）。
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const UPLOAD_TIMEOUT_MS = 120_000;
+// /chat/send 是 SSE 流式：推理模型长回答可能数分钟，必须放宽，否则 wx 默认 60s 会把流掐断
+// （后端表现为 "context canceled"）。后端 http.timeout/ingress 都是 1000s，这里给 5 分钟足够覆盖。
+export const CHAT_STREAM_TIMEOUT_MS = 300_000;
 
 export interface RequestOptions<TData = unknown> {
   url: string;                                          // 形如 /api/v1/recipes 或 /chat/send (SSE)
