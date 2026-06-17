@@ -1,0 +1,24 @@
+// 媒体类型判定（供 wxml 内联使用）：按 URL 后缀识别视频。
+// 封面/图集既可能是图片也可能是 ≤10s 短视频，渲染时据此切换 <image>/<video>。
+// WXS 语法受限：只用 var/function/for，字符串方法 indexOf/substring/lastIndexOf/toLowerCase。
+var VIDEO_EXTS = ['mp4', 'mov', 'm4v', 'webm', 'quicktime'];
+
+function isVideo(url) {
+  if (!url) return false;
+  var u = url + '';
+  var q = u.indexOf('?');
+  if (q >= 0) u = u.substring(0, q);
+  var h = u.indexOf('#');
+  if (h >= 0) u = u.substring(0, h);
+  var dot = u.lastIndexOf('.');
+  if (dot < 0) return false;
+  var ext = u.substring(dot + 1).toLowerCase();
+  for (var i = 0; i < VIDEO_EXTS.length; i++) {
+    if (VIDEO_EXTS[i] === ext) return true;
+  }
+  return false;
+}
+
+module.exports = {
+  isVideo: isVideo,
+};

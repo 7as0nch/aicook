@@ -192,6 +192,47 @@
   margin-top: 2rpx;
 }
 
+/* 相册入口（与结果 pill 同款圆形，常驻左下角） */
+.snap__album-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.18);
+}
+.snap__album-icon { width: 40rpx; height: 40rpx; }
+.snap__album-label { font-size: 18rpx; color: #5C544A; margin-top: 2rpx; }
+
+/* 推荐菜谱列表（snap 抽屉第二阶段） */
+.snap__reco-list { max-height: 44vh; }
+.snap__reco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 28rpx;
+  margin-bottom: 16rpx;
+  background: #FFF6EE;
+  border-radius: 20rpx;
+}
+.snap__reco-main { flex: 1; min-width: 0; }
+.snap__reco-title { font-size: 30rpx; font-weight: 600; color: #1F1B16; }
+.snap__reco-reason { display: block; margin-top: 6rpx; font-size: 24rpx; color: #9B978F; }
+.snap__reco-badge {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 9999rpx;
+  font-size: 20rpx;
+  color: #FF7A00;
+  background: #FFE6D2;
+}
+.snap__reco-badge--lib { color: #2BA471; background: #DBF3E8; }
+.snap__reco-back { font-size: 26rpx; color: #FF7A00; }
+
 /* 识别完成后底部：重拍 mini + 查看结果 CTA */
 .snap__retake {
   padding: 22rpx 56rpx;
@@ -303,6 +344,15 @@
   color: #9B978F;
 }
 
+/* 「⋯」拓展菜单按钮（识别结果右上角） */
+.snap__more-btn {
+  padding: 0 6rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  line-height: 1;
+  color: #5C544A;
+}
+
 /* chip 网格 */
 .snap__chips {
   display: flex;
@@ -380,6 +430,45 @@
 
 .snap__cta-icon {
   font-size: 32rpx;
+}
+
+/* 数量徽（chip 内，可点编辑） */
+.snap__chip-qty {
+  margin-left: 10rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 9999rpx;
+  font-size: 22rpx;
+  color: #EF6E00;
+  background: #FFE6D2;
+}
+.snap__chip-qty--empty {
+  color: #B0A99E;
+  background: #F4F2EE;
+}
+
+/* 底部操作行：⋯ + 生成推荐菜谱 */
+.snap__cta-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.snap__cta-row .snap__cta {
+  flex: 1;
+  min-width: 0;
+}
+.snap__cta-more {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: #FFF6EE;
+  color: #5C544A;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .snap__hint {

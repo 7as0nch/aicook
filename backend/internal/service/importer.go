@@ -25,6 +25,8 @@ func (s *ImportService) CreateImageRecipe(ctx context.Context, req *v1.CreateIma
 		UserID:        actor.UserID,
 		MediaAssetIDs: req.GetMediaAssetIds(),
 		TitleHint:     req.GetTitleHint(),
+		// 拍照/工作台识别：预览模式，不落库，前端确认后再保存
+		Preview: true,
 	})
 	if err != nil {
 		return nil, err

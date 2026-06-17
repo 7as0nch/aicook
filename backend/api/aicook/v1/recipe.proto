@@ -51,6 +51,24 @@ service RecipeService {
     };
   }
 
+  // PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+  // 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+  rpc PublishRecipe(PublishRecipeRequest) returns (PublishRecipeReply) {
+    option (google.api.http) = {
+      post: "/api/v1/recipes/{recipe_id}/publish"
+      body: "*"
+    };
+  }
+
+  // RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+  // 固定路径，必须排在 /{id} 通配之前。
+  rpc RecommendDishes(RecommendDishesRequest) returns (RecommendDishesReply) {
+    option (google.api.http) = {
+      post: "/api/v1/recipes/recommend-dishes"
+      body: "*"
+    };
+  }
+
   rpc GetRecipeDetail(GetRecipeDetailRequest) returns (GetRecipeDetailReply) {
     option (google.api.http) = {
       get: "/api/v1/recipes/{id}"
@@ -78,6 +96,8 @@ message ListRecipesRequest {
   bool exclude_draft = 4;
   // Optional: "draft" | "published". When set, filters by status; takes precedence over exclude_draft.
   string recipe_status = 5;
+  // 游标分页：传上一页最后一项 id，只返回 id < before_id 的记录（按 id 倒序）。
+  int64 before_id = 6;
 }
 
 message ListRecipesReply {
@@ -164,6 +184,32 @@ message DeleteRecipeRequest {
 
 message DeleteRecipeReply {
   bool ok = 1;
+}
+
+message PublishRecipeRequest {
+  int64 recipe_id = 1;
+}
+
+message PublishRecipeReply {
+  Recipe recipe = 1;
+}
+
+message RecommendDishesRequest {
+  repeated string ingredients = 1;
+  int32 limit = 2;
+}
+
+// DishSuggestion 一道推荐菜：source 为 "library"(库内已有，带 recipe_id) 或 "ai"(即兴新菜)。
+message DishSuggestion {
+  string title = 1;
+  string reason = 2;
+  string source = 3;
+  optional int64 recipe_id = 4;
+  string cover_image_url = 5;
+}
+
+message RecommendDishesReply {
+  repeated DishSuggestion dishes = 1;
 }
 
 // --- Today recipes (首页推荐) ---

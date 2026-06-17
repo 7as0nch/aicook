@@ -97,6 +97,24 @@ func (s *KitchenService) GenerateShoppingList(ctx context.Context, req *v1.Gener
 	}, nil
 }
 
+func (s *KitchenService) AddShoppingItems(ctx context.Context, req *v1.AddShoppingItemsRequest) (*v1.AddShoppingItemsReply, error) {
+	if _, err := requireKitchenActor(ctx); err != nil {
+		return nil, err
+	}
+	inputs := make([]kitchen.ShoppingItemAddInput, 0, len(req.GetItems()))
+	for _, it := range req.GetItems() {
+		inputs = append(inputs, kitchen.ShoppingItemAddInput{Name: it.GetName(), QuantityText: it.GetQuantityText()})
+	}
+	list, items, err := s.usecase.AddShoppingItems(ctx, common.ActorFromContext(ctx), req.GetWeekStart(), inputs)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.AddShoppingItemsReply{
+		List:  toProtoShoppingListSummary(list),
+		Items: toProtoShoppingListItems(items),
+	}, nil
+}
+
 func (s *KitchenService) PatchShoppingListItem(ctx context.Context, req *v1.PatchShoppingListItemRequest) (*v1.PatchShoppingListItemReply, error) {
 	if _, err := requireKitchenActor(ctx); err != nil {
 		return nil, err

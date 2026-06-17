@@ -6,6 +6,7 @@ import { voiceApi } from '../../../services/voice.api';
 import { pickMedia, uploadFile } from '../../../services/upload';
 import { autorun, IReactionDisposer } from 'mobx-miniprogram';
 import type { ChatMessage } from '../../../types/chat';
+import type { ImportJob } from '../../../types/api';
 
 interface UploadedImage { url: string; asset_id: string; }
 
@@ -164,7 +165,7 @@ Page({
   async onSnapImport() {
     // 直接调 importApi 异步识别
     try {
-      const res = await pickMedia({ mediaKind: 'image', count: 1, sourceType: ['camera'] });
+      const res = await pickMedia({ mediaKind: 'image', count: 1, sourceType: ['album', 'camera'] });
       const f = res.tempFiles?.[0];
       if (!f) return;
       const asset = await uploadFile({
@@ -177,10 +178,25 @@ Page({
       const jobRes = await importApi.createImageRecipe([String(asset.id)], this.data.text || '');
       const final = await pollJob(String(jobRes.job.id));
       wx.hideLoading();
-      if (final.recipe_id) {
-        wx.redirectTo({ url: `/pages/recipes/detail/index?id=${final.recipe_id}` });
-      } else if (final.status === 'failed') {
-        wx.showToast({ title: final.error_message || '识别失败', icon: 'none' });
+      if (isImportJobFailed(final.status)) {
+        // 非菜谱或失败：弹窗清晰透出后端给出的「不能创建」原因
+        wx.showModal({
+          title: '无法生成菜谱',
+          content: final.error_message || '图片中未识别到可制作的菜谱，请上传菜谱或菜品图片。',
+          showCancel: false,
+          confirmText: '我知道了',
+        });
+        return;
+      }
+      // 预览：把识别草稿（含图片）跳编辑页预填，用户确认/编辑后手动点「保存」才存为草稿
+      const draft = buildEditorDraftFromJob(final);
+      if (draft) {
+        wx.redirectTo({ url: `/pages/recipes/editor/index?draft=${encodeURIComponent(JSON.stringify(draft))}` });
+      } else if (final.recipe_id) {
+        // 兜底：非预览模式（理论上 HTTP 端已 Preview=true 不会走到）
+        wx.redirectTo({ url: `/pages/recipes/editor/index?recipe_id=${final.recipe_id}` });
+      } else {
+        wx.showToast({ title: '未获取到识别结果，请重试', icon: 'none' });
       }
     } catch (e) {
       wx.hideLoading();
@@ -270,20 +286,30 @@ Page({
   },
 });
 
-async function pollJob(jobId: string, interval = 1500, timeout = 60000): Promise<{ status: string; recipe_id?: string; error_message?: string }> {
+async function pollJob(jobId: string, interval = 1500, timeout = 60000): Promise<ImportJob> {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const res = await importApi.getImportJob(jobId);
     const job = res.job;
-    // 注意：后端成功时状态是 review_required（草稿待确认），不是 success
-    if (isImportJobDone(job.status) || isImportJobFailed(job.status)) {
-      return {
-        status: isImportJobFailed(job.status) ? 'failed' : 'success',
-        recipe_id: job.recipe_id ? String(job.recipe_id) : undefined,
-        error_message: job.error_message,
-      };
-    }
+    // 注意：后端成功时状态是 review_required（预览/草稿待确认），不是 success
+    if (isImportJobDone(job.status) || isImportJobFailed(job.status)) return job;
     await new Promise(r => setTimeout(r, interval));
   }
-  return { status: 'timeout' };
+  throw new Error('识别超时，请重试');
+}
+
+// 把识别 job 的 normalized_payload 转成编辑页预填用的 draft（含已上传图片 URL）。
+// 预览模式后端不落库，draft 在 normalized_payload.draft（snake_case，已含用量/时长/完成条件）。
+function buildEditorDraftFromJob(job: ImportJob): Record<string, unknown> | null {
+  const np = (job as unknown as { normalized_payload?: Record<string, unknown> }).normalized_payload;
+  if (!np || typeof np !== 'object') return null;
+  const draft = np.draft as Record<string, unknown> | undefined;
+  if (!draft || typeof draft !== 'object') return null;
+  const cover = typeof np.cover_image_url === 'string' ? np.cover_image_url : '';
+  const gallery = Array.isArray(np.gallery_image_urls) ? (np.gallery_image_urls as string[]) : [];
+  return {
+    ...draft,
+    cover_image_url: cover || (draft.cover_image_url as string) || undefined,
+    gallery_image_urls: gallery.length ? gallery : undefined,
+  };
 }

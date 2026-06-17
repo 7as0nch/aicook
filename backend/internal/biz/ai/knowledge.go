@@ -1627,7 +1627,7 @@ func (u *KnowledgeUsecase) linkRecipesForDishKeywords(ctx context.Context, house
 		if kw == "" {
 			continue
 		}
-		recipes, err := u.recipeRepo.ListLatest(ctx, householdID, 5, kw, "", true, "published")
+		recipes, err := u.recipeRepo.ListLatest(ctx, householdID, 5, kw, "", true, "published", 0)
 		if err != nil {
 			return err
 		}

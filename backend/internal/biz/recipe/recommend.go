@@ -3,12 +3,15 @@ package recipe
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
+	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/platform/airuntime"
 )
 
 // RecommendUsecase 实现首页"今日推荐"逻辑。
@@ -17,10 +20,12 @@ import (
 // search_history_match 与 collaborative_filter_score 在 Phase B 数据积累后再加入，
 // 接口层 (`ListTodayRecipes`) 不会因此变化，前端可无感升级。
 type RecommendUsecase struct {
-	recipes      *data.RecipeRepo
-	households   *data.HouseholdRepo
-	kitchenOps   *data.KitchenOpsRepo
-	cookHistory  *data.CookingHistoryRepo
+	recipes     *data.RecipeRepo
+	households  *data.HouseholdRepo
+	kitchenOps  *data.KitchenOpsRepo
+	cookHistory *data.CookingHistoryRepo
+	householdUC *user.HouseholdUsecase
+	aiRuntime   *airuntime.Runtime
 }
 
 func NewRecommendUsecase(
@@ -28,12 +33,16 @@ func NewRecommendUsecase(
 	households *data.HouseholdRepo,
 	kitchenOps *data.KitchenOpsRepo,
 	cookHistory *data.CookingHistoryRepo,
+	householdUC *user.HouseholdUsecase,
+	aiRuntime *airuntime.Runtime,
 ) *RecommendUsecase {
 	return &RecommendUsecase{
 		recipes:     recipes,
 		households:  households,
 		kitchenOps:  kitchenOps,
 		cookHistory: cookHistory,
+		householdUC: householdUC,
+		aiRuntime:   aiRuntime,
 	}
 }
 
@@ -72,7 +81,7 @@ func (u *RecommendUsecase) ListToday(ctx context.Context, actor common.Actor, li
 	}
 
 	// 候选池：拉取该 household 的已发布菜谱，按更新时间倒序，避免遍历整个表。
-	candidates, err := u.recipes.ListLatest(ctx, actor.HouseholdID, recommendCandidatePoolSize, "", "", true, "published")
+	candidates, err := u.recipes.ListLatest(ctx, actor.HouseholdID, recommendCandidatePoolSize, "", "", true, "published", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +192,181 @@ func (u *RecommendUsecase) ListToday(ctx context.Context, actor common.Actor, li
 		scored = scored[:limit]
 	}
 	return scored, nil
+}
+
+// DishSuggestionResult 推荐给前端的一道菜（库内已有 or AI 即兴推荐）。
+type DishSuggestionResult struct {
+	Title         string
+	Reason        string
+	Source        string // "library" | "ai"
+	RecipeID      int64  // 0 表示 AI 新菜（库内无）
+	CoverImageURL string
+}
+
+// RecommendDishes 按现有食材 + 家庭/成员口味推荐若干菜：先匹配菜谱库已有的，不足再让 AI 补新菜。
+func (u *RecommendUsecase) RecommendDishes(ctx context.Context, actor common.Actor, ingredients []string, limit int) ([]*DishSuggestionResult, error) {
+	if limit <= 0 {
+		limit = 6
+	}
+	if limit > 12 {
+		limit = 12
+	}
+	flavors, restrictions, tasteNote := u.loadTastes(ctx, actor)
+
+	out := u.matchLibraryByIngredients(ctx, actor, ingredients, restrictions, limit)
+	used := make(map[string]struct{}, limit)
+	for _, m := range out {
+		used[strings.ToLower(m.Title)] = struct{}{}
+	}
+
+	// 库内不足 → 让 AI 按食材+口味补新菜（解析失败时只返回库内结果）。
+	if len(out) < limit && u.aiRuntime != nil {
+		need := limit - len(out)
+		exclude := make([]string, 0, len(out))
+		for _, m := range out {
+			exclude = append(exclude, m.Title)
+		}
+		if suggestions, err := u.aiRuntime.SuggestDishes(ctx, ingredients, buildTasteSummary(flavors, restrictions, tasteNote), need, exclude); err == nil {
+			for _, s := range suggestions {
+				key := strings.ToLower(strings.TrimSpace(s.Title))
+				if key == "" {
+					continue
+				}
+				if _, dup := used[key]; dup {
+					continue
+				}
+				used[key] = struct{}{}
+				out = append(out, &DishSuggestionResult{Title: s.Title, Reason: s.Reason, Source: "ai"})
+				if len(out) >= limit {
+					break
+				}
+			}
+		}
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+// loadTastes 汇总家庭级 + 各成员的口味偏好/忌口（满足"读成员喜好"）。
+func (u *RecommendUsecase) loadTastes(ctx context.Context, actor common.Actor) (flavors []string, restrictions map[string]struct{}, tasteNote string) {
+	restrictions = map[string]struct{}{}
+	if u.householdUC == nil {
+		return nil, restrictions, ""
+	}
+	rawFlavors := make([]string, 0, 8)
+	if prefs, err := u.householdUC.GetPreferences(ctx, actor); err == nil && prefs != nil {
+		rawFlavors = append(rawFlavors, prefs.Flavor...)
+		for _, r := range prefs.Restrictions {
+			if t := strings.ToLower(strings.TrimSpace(r)); t != "" {
+				restrictions[t] = struct{}{}
+			}
+		}
+		tasteNote = strings.TrimSpace(prefs.TasteNote)
+	}
+	if members, err := u.householdUC.ListMembers(ctx, actor, actor.HouseholdID); err == nil {
+		for _, m := range members {
+			if m == nil {
+				continue
+			}
+			rawFlavors = append(rawFlavors, m.FlavorTags...)
+		}
+	}
+	return uniqueLowerStrings(rawFlavors), restrictions, tasteNote
+}
+
+// matchLibraryByIngredients 在已发布菜谱里按"命中传入食材数"打分排序（剔除忌口菜），取前 limit。
+func (u *RecommendUsecase) matchLibraryByIngredients(ctx context.Context, actor common.Actor, ingredients []string, restrictions map[string]struct{}, limit int) []*DishSuggestionResult {
+	wants := make([]string, 0, len(ingredients))
+	for _, n := range ingredients {
+		if t := strings.ToLower(strings.TrimSpace(n)); t != "" {
+			wants = append(wants, t)
+		}
+	}
+	if len(wants) == 0 {
+		return nil
+	}
+	recipes, err := u.recipes.ListLatest(ctx, actor.HouseholdID, 40, "", "", true, "published", 0)
+	if err != nil || len(recipes) == 0 {
+		return nil
+	}
+	type scored struct {
+		rec   *data.Recipe
+		score int
+	}
+	list := make([]scored, 0, len(recipes))
+	for _, rec := range recipes {
+		if rec == nil {
+			continue
+		}
+		if len(restrictions) > 0 && recipeHasRestriction(rec, restrictions) {
+			continue
+		}
+		detail, derr := u.recipes.GetDetail(ctx, actor.HouseholdID, rec.ID)
+		if derr != nil || detail == nil {
+			continue
+		}
+		score := 0
+		for _, ing := range detail.Ingredients {
+			if ing == nil {
+				continue
+			}
+			name := strings.ToLower(strings.TrimSpace(ing.Name))
+			if name == "" {
+				continue
+			}
+			for _, w := range wants {
+				if strings.Contains(name, w) || strings.Contains(w, name) {
+					score++
+					break
+				}
+			}
+		}
+		if score > 0 {
+			list = append(list, scored{rec: rec, score: score})
+		}
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		if list[i].score == list[j].score {
+			return list[i].rec.UpdatedAt.After(list[j].rec.UpdatedAt)
+		}
+		return list[i].score > list[j].score
+	})
+	out := make([]*DishSuggestionResult, 0, limit)
+	for _, s := range list {
+		if len(out) >= limit {
+			break
+		}
+		out = append(out, &DishSuggestionResult{
+			Title:         s.rec.Title,
+			Reason:        fmt.Sprintf("用到你现有的 %d 种食材", s.score),
+			Source:        "library",
+			RecipeID:      s.rec.ID,
+			CoverImageURL: strings.TrimSpace(s.rec.CoverImageURL),
+		})
+	}
+	return out
+}
+
+// buildTasteSummary 把口味/忌口/备注拼成一行中文，喂给 AI 推荐 prompt。
+func buildTasteSummary(flavors []string, restrictions map[string]struct{}, tasteNote string) string {
+	parts := make([]string, 0, 3)
+	if len(flavors) > 0 {
+		parts = append(parts, "口味偏好："+strings.Join(flavors, "、"))
+	}
+	if len(restrictions) > 0 {
+		rs := make([]string, 0, len(restrictions))
+		for r := range restrictions {
+			rs = append(rs, r)
+		}
+		sort.Strings(rs)
+		parts = append(parts, "忌口："+strings.Join(rs, "、"))
+	}
+	if strings.TrimSpace(tasteNote) != "" {
+		parts = append(parts, "备注："+tasteNote)
+	}
+	return strings.Join(parts, "；")
 }
 
 // todayPlannedRecipeIDs 取本周计划里"今天"的 recipe_id 列表，读不到时返回 nil（容错降级）。

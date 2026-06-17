@@ -25,6 +25,8 @@ const (
 	RecipeService_CreateRecipeDraft_FullMethodName    = "/aicook.v1.RecipeService/CreateRecipeDraft"
 	RecipeService_AddRecipeFavorite_FullMethodName    = "/aicook.v1.RecipeService/AddRecipeFavorite"
 	RecipeService_RemoveRecipeFavorite_FullMethodName = "/aicook.v1.RecipeService/RemoveRecipeFavorite"
+	RecipeService_PublishRecipe_FullMethodName        = "/aicook.v1.RecipeService/PublishRecipe"
+	RecipeService_RecommendDishes_FullMethodName      = "/aicook.v1.RecipeService/RecommendDishes"
 	RecipeService_GetRecipeDetail_FullMethodName      = "/aicook.v1.RecipeService/GetRecipeDetail"
 	RecipeService_UpdateRecipe_FullMethodName         = "/aicook.v1.RecipeService/UpdateRecipe"
 	RecipeService_DeleteRecipe_FullMethodName         = "/aicook.v1.RecipeService/DeleteRecipe"
@@ -45,6 +47,12 @@ type RecipeServiceClient interface {
 	CreateRecipeDraft(ctx context.Context, in *CreateRecipeDraftRequest, opts ...grpc.CallOption) (*CreateRecipeDraftReply, error)
 	AddRecipeFavorite(ctx context.Context, in *AddRecipeFavoriteRequest, opts ...grpc.CallOption) (*AddRecipeFavoriteReply, error)
 	RemoveRecipeFavorite(ctx context.Context, in *RemoveRecipeFavoriteRequest, opts ...grpc.CallOption) (*RemoveRecipeFavoriteReply, error)
+	// PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+	// 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+	PublishRecipe(ctx context.Context, in *PublishRecipeRequest, opts ...grpc.CallOption) (*PublishRecipeReply, error)
+	// RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+	// 固定路径，必须排在 /{id} 通配之前。
+	RecommendDishes(ctx context.Context, in *RecommendDishesRequest, opts ...grpc.CallOption) (*RecommendDishesReply, error)
 	GetRecipeDetail(ctx context.Context, in *GetRecipeDetailRequest, opts ...grpc.CallOption) (*GetRecipeDetailReply, error)
 	UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeReply, error)
 	DeleteRecipe(ctx context.Context, in *DeleteRecipeRequest, opts ...grpc.CallOption) (*DeleteRecipeReply, error)
@@ -118,6 +126,26 @@ func (c *recipeServiceClient) RemoveRecipeFavorite(ctx context.Context, in *Remo
 	return out, nil
 }
 
+func (c *recipeServiceClient) PublishRecipe(ctx context.Context, in *PublishRecipeRequest, opts ...grpc.CallOption) (*PublishRecipeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PublishRecipeReply)
+	err := c.cc.Invoke(ctx, RecipeService_PublishRecipe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recipeServiceClient) RecommendDishes(ctx context.Context, in *RecommendDishesRequest, opts ...grpc.CallOption) (*RecommendDishesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecommendDishesReply)
+	err := c.cc.Invoke(ctx, RecipeService_RecommendDishes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *recipeServiceClient) GetRecipeDetail(ctx context.Context, in *GetRecipeDetailRequest, opts ...grpc.CallOption) (*GetRecipeDetailReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRecipeDetailReply)
@@ -163,6 +191,12 @@ type RecipeServiceServer interface {
 	CreateRecipeDraft(context.Context, *CreateRecipeDraftRequest) (*CreateRecipeDraftReply, error)
 	AddRecipeFavorite(context.Context, *AddRecipeFavoriteRequest) (*AddRecipeFavoriteReply, error)
 	RemoveRecipeFavorite(context.Context, *RemoveRecipeFavoriteRequest) (*RemoveRecipeFavoriteReply, error)
+	// PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+	// 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+	PublishRecipe(context.Context, *PublishRecipeRequest) (*PublishRecipeReply, error)
+	// RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+	// 固定路径，必须排在 /{id} 通配之前。
+	RecommendDishes(context.Context, *RecommendDishesRequest) (*RecommendDishesReply, error)
 	GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error)
 	DeleteRecipe(context.Context, *DeleteRecipeRequest) (*DeleteRecipeReply, error)
@@ -192,6 +226,12 @@ func (UnimplementedRecipeServiceServer) AddRecipeFavorite(context.Context, *AddR
 }
 func (UnimplementedRecipeServiceServer) RemoveRecipeFavorite(context.Context, *RemoveRecipeFavoriteRequest) (*RemoveRecipeFavoriteReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveRecipeFavorite not implemented")
+}
+func (UnimplementedRecipeServiceServer) PublishRecipe(context.Context, *PublishRecipeRequest) (*PublishRecipeReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method PublishRecipe not implemented")
+}
+func (UnimplementedRecipeServiceServer) RecommendDishes(context.Context, *RecommendDishesRequest) (*RecommendDishesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecommendDishes not implemented")
 }
 func (UnimplementedRecipeServiceServer) GetRecipeDetail(context.Context, *GetRecipeDetailRequest) (*GetRecipeDetailReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRecipeDetail not implemented")
@@ -330,6 +370,42 @@ func _RecipeService_RemoveRecipeFavorite_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecipeService_PublishRecipe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishRecipeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).PublishRecipe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_PublishRecipe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).PublishRecipe(ctx, req.(*PublishRecipeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecipeService_RecommendDishes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecommendDishesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).RecommendDishes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_RecommendDishes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).RecommendDishes(ctx, req.(*RecommendDishesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RecipeService_GetRecipeDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRecipeDetailRequest)
 	if err := dec(in); err != nil {
@@ -414,6 +490,14 @@ var RecipeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveRecipeFavorite",
 			Handler:    _RecipeService_RemoveRecipeFavorite_Handler,
+		},
+		{
+			MethodName: "PublishRecipe",
+			Handler:    _RecipeService_PublishRecipe_Handler,
+		},
+		{
+			MethodName: "RecommendDishes",
+			Handler:    _RecipeService_RecommendDishes_Handler,
 		},
 		{
 			MethodName: "GetRecipeDetail",

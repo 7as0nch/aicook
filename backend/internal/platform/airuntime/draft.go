@@ -102,6 +102,8 @@ func fromRecipeImageDraft(item *airrecipe.ImageDraft) *ImageRecipeDraft {
 		})
 	}
 	return &ImageRecipeDraft{
+		IsRecipe:     item.IsRecipe,
+		RejectReason: item.RejectReason,
 		Title:        item.Title,
 		Summary:      item.Summary,
 		Category:     item.Category,

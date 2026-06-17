@@ -2,7 +2,8 @@
   "usingComponents": {
     "ingredient-pill": "/components/ingredient-pill/index",
     "mascot-bubble": "/components/mascot-bubble/index",
-    "input-dialog": "/components/input-dialog/index"
+    "input-dialog": "/components/input-dialog/index",
+    "ai-sheet": "/components/ai-sheet/index"
   },
   "navigationBarTitleText": "食材识别",
   "navigationStyle": "custom",

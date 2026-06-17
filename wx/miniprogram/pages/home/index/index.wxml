@@ -1,3 +1,4 @@
+<wxs src="../../../utils/media.wxs" module="media" />
 <view class="home">
   <!-- 顶部：搜索栏 + 用户头像（同一行） -->
   <view class="home__top">
@@ -43,7 +44,8 @@
       </view>
     </view>
     <view class="home__hero-cover">
-      <image wx:if="{{todayRecipe.cover_image_url}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" mode="aspectFill" />
+      <video wx:if="{{todayRecipe.cover_image_url && media.isVideo(todayRecipe.cover_image_url)}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" object-fit="cover" autoplay muted loop controls="{{false}}" show-center-play-btn="{{false}}" enable-progress-gesture="{{false}}"></video>
+      <image wx:elif="{{todayRecipe.cover_image_url}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" mode="aspectFill" />
     </view>
   </view>
 
@@ -128,7 +130,8 @@
       bindtap="onSuggestedCardTap"
     >
       <view class="home__card-cover">
-        <image wx:if="{{item.cover_image_url}}" class="home__card-img" src="{{item.cover_image_url}}" mode="aspectFill" />
+        <video wx:if="{{item.cover_image_url && media.isVideo(item.cover_image_url)}}" class="home__card-img" src="{{item.cover_image_url}}" object-fit="cover" autoplay muted loop controls="{{false}}" show-center-play-btn="{{false}}" enable-progress-gesture="{{false}}"></video>
+        <image wx:elif="{{item.cover_image_url}}" class="home__card-img" src="{{item.cover_image_url}}" mode="aspectFill" />
         <!-- “喜欢”即“收藏”：用与详情页一致的星标，按 favored 切换填充/描边，避免歧义 -->
         <view class="home__card-heart {{item.favored ? 'home__card-heart--on' : ''}}" data-id="{{item.id}}" catchtap="onSuggestedFavoriteTap">
           <image class="home__card-heart-icon" src="{{item.favored ? '/assets/icons/star-fill.svg' : '/assets/icons/star-line.svg'}}" mode="aspectFit" />

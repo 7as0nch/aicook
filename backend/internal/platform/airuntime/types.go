@@ -259,6 +259,9 @@ type ImageRecipeDraftInput struct {
 }
 
 type ImageRecipeDraft struct {
+	// IsRecipe=false 表示图片非菜谱（见 RejectReason）；默认 true（从宽）。
+	IsRecipe     bool              `json:"is_recipe"`
+	RejectReason string            `json:"reject_reason,omitempty"`
 	Title        string            `json:"title"`
 	Summary      string            `json:"summary"`
 	Category     string            `json:"category"`

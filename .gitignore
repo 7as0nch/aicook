@@ -47,6 +47,9 @@ config.yaml
 # 含真实密钥的本地副本（请勿提交真实值；如本地部署用 k8s-deployment.local.yaml）
 *.local.yaml
 *.secret.yaml
+# 发版脚本 -SecretsFile / SECRETS_FILE 读取的密钥文件（含真实密钥，勿提交）
+secrets.env
+*.secrets.env
 
 # Figma MCP 临时下载目录
 .figma-tmp/

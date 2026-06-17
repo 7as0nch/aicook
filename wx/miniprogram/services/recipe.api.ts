@@ -8,6 +8,16 @@ export interface ListRecipesQuery {
   kitchen_tag?: string;
   exclude_draft?: boolean;
   recipe_status?: 'draft' | 'published';
+  before_id?: Int64Like;   // 游标分页：上一页最后一项 id
+}
+
+// 按食材+口味推荐的一道菜：source=library(库内已有,带 recipe_id) | ai(即兴新菜)
+export interface DishSuggestion {
+  title: string;
+  reason?: string;
+  source?: 'library' | 'ai' | string;
+  recipe_id?: Int64Like;
+  cover_image_url?: string;
 }
 
 export interface CreateDraftIngredient {
@@ -97,11 +107,33 @@ export const recipeApi = {
     });
   },
 
+  // 草稿一键发布为正式菜谱（仅翻 status，不重传食材/步骤）
+  publish(id: Int64Like) {
+    return request<{ recipe: Recipe }>({
+      url: `/api/v1/recipes/${id}/publish`,
+      method: 'POST',
+      data: { recipe_id: id },
+      loading: '发布中',
+    });
+  },
+
   listToday(limit?: number) {
     return request<{ items: TodayRecipe[] }>({
       url: '/api/v1/recipes/today',
       method: 'GET',
       query: { limit },
+    });
+  },
+
+  // 按食材+家庭/成员口味推荐几道菜（先匹配库内已有，不足 AI 补）
+  // 涉及 AI 补全，放宽超时到 50s（默认 30s 不够；后端 AI 40s 截断后会降级返回库内结果）
+  recommendDishes(ingredients: string[], limit = 6) {
+    return request<{ dishes: DishSuggestion[] }>({
+      url: '/api/v1/recipes/recommend-dishes',
+      method: 'POST',
+      data: { ingredients, limit },
+      loading: '推荐中',
+      timeout: 50_000,
     });
   },
 

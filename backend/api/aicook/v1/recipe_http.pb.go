@@ -26,6 +26,8 @@ const OperationRecipeServiceGetRecipeDetail = "/aicook.v1.RecipeService/GetRecip
 const OperationRecipeServiceListMyFavorites = "/aicook.v1.RecipeService/ListMyFavorites"
 const OperationRecipeServiceListRecipes = "/aicook.v1.RecipeService/ListRecipes"
 const OperationRecipeServiceListTodayRecipes = "/aicook.v1.RecipeService/ListTodayRecipes"
+const OperationRecipeServicePublishRecipe = "/aicook.v1.RecipeService/PublishRecipe"
+const OperationRecipeServiceRecommendDishes = "/aicook.v1.RecipeService/RecommendDishes"
 const OperationRecipeServiceRemoveRecipeFavorite = "/aicook.v1.RecipeService/RemoveRecipeFavorite"
 const OperationRecipeServiceUpdateRecipe = "/aicook.v1.RecipeService/UpdateRecipe"
 
@@ -38,6 +40,12 @@ type RecipeServiceHTTPServer interface {
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesReply, error)
 	// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
 	ListTodayRecipes(context.Context, *ListTodayRecipesRequest) (*ListTodayRecipesReply, error)
+	// PublishRecipe PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+	// 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+	PublishRecipe(context.Context, *PublishRecipeRequest) (*PublishRecipeReply, error)
+	// RecommendDishes RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+	// 固定路径，必须排在 /{id} 通配之前。
+	RecommendDishes(context.Context, *RecommendDishesRequest) (*RecommendDishesReply, error)
 	RemoveRecipeFavorite(context.Context, *RemoveRecipeFavoriteRequest) (*RemoveRecipeFavoriteReply, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeReply, error)
 }
@@ -50,6 +58,8 @@ func RegisterRecipeServiceHTTPServer(s *http.Server, srv RecipeServiceHTTPServer
 	r.POST("/api/v1/recipes:draft", _RecipeService_CreateRecipeDraft0_HTTP_Handler(srv))
 	r.POST("/api/v1/recipes/{recipe_id}/favorite", _RecipeService_AddRecipeFavorite0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/recipes/{recipe_id}/favorite", _RecipeService_RemoveRecipeFavorite0_HTTP_Handler(srv))
+	r.POST("/api/v1/recipes/{recipe_id}/publish", _RecipeService_PublishRecipe0_HTTP_Handler(srv))
+	r.POST("/api/v1/recipes/recommend-dishes", _RecipeService_RecommendDishes0_HTTP_Handler(srv))
 	r.GET("/api/v1/recipes/{id}", _RecipeService_GetRecipeDetail0_HTTP_Handler(srv))
 	r.PUT("/api/v1/recipes/{id}", _RecipeService_UpdateRecipe0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/recipes/{id}", _RecipeService_DeleteRecipe0_HTTP_Handler(srv))
@@ -181,6 +191,53 @@ func _RecipeService_RemoveRecipeFavorite0_HTTP_Handler(srv RecipeServiceHTTPServ
 	}
 }
 
+func _RecipeService_PublishRecipe0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in PublishRecipeRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServicePublishRecipe)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.PublishRecipe(ctx, req.(*PublishRecipeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*PublishRecipeReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _RecipeService_RecommendDishes0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RecommendDishesRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationRecipeServiceRecommendDishes)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RecommendDishes(ctx, req.(*RecommendDishesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RecommendDishesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _RecipeService_GetRecipeDetail0_HTTP_Handler(srv RecipeServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetRecipeDetailRequest
@@ -259,6 +316,12 @@ type RecipeServiceHTTPClient interface {
 	ListRecipes(ctx context.Context, req *ListRecipesRequest, opts ...http.CallOption) (rsp *ListRecipesReply, err error)
 	// ListTodayRecipes ListTodayRecipes 返回小程序首页"今日推荐"列表，按偏好/计划/历史等信号综合排序。
 	ListTodayRecipes(ctx context.Context, req *ListTodayRecipesRequest, opts ...http.CallOption) (rsp *ListTodayRecipesReply, err error)
+	// PublishRecipe PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+	// 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+	PublishRecipe(ctx context.Context, req *PublishRecipeRequest, opts ...http.CallOption) (rsp *PublishRecipeReply, err error)
+	// RecommendDishes RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+	// 固定路径，必须排在 /{id} 通配之前。
+	RecommendDishes(ctx context.Context, req *RecommendDishesRequest, opts ...http.CallOption) (rsp *RecommendDishesReply, err error)
 	RemoveRecipeFavorite(ctx context.Context, req *RemoveRecipeFavoriteRequest, opts ...http.CallOption) (rsp *RemoveRecipeFavoriteReply, err error)
 	UpdateRecipe(ctx context.Context, req *UpdateRecipeRequest, opts ...http.CallOption) (rsp *UpdateRecipeReply, err error)
 }
@@ -357,6 +420,36 @@ func (c *RecipeServiceHTTPClientImpl) ListTodayRecipes(ctx context.Context, in *
 	opts = append(opts, http.Operation(OperationRecipeServiceListTodayRecipes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// PublishRecipe PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+// 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+func (c *RecipeServiceHTTPClientImpl) PublishRecipe(ctx context.Context, in *PublishRecipeRequest, opts ...http.CallOption) (*PublishRecipeReply, error) {
+	var out PublishRecipeReply
+	pattern := "/api/v1/recipes/{recipe_id}/publish"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationRecipeServicePublishRecipe))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RecommendDishes RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+// 固定路径，必须排在 /{id} 通配之前。
+func (c *RecipeServiceHTTPClientImpl) RecommendDishes(ctx context.Context, in *RecommendDishesRequest, opts ...http.CallOption) (*RecommendDishesReply, error) {
+	var out RecommendDishesReply
+	pattern := "/api/v1/recipes/recommend-dishes"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationRecipeServiceRecommendDishes))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

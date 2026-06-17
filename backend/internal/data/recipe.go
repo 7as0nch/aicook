@@ -57,7 +57,8 @@ func (r *RecipeRepo) CreateDraft(ctx context.Context, recipe *Recipe, ingredient
 	})
 }
 
-func (r *RecipeRepo) ListLatest(ctx context.Context, householdID int64, limit int, keyword, kitchenTag string, excludeDraft bool, recipeStatus string) ([]*Recipe, error) {
+// ListLatest 列家庭菜谱。beforeID>0 时只返回 id < beforeID 的记录（游标分页，按 id 倒序，雪花 ID 即时间序）。
+func (r *RecipeRepo) ListLatest(ctx context.Context, householdID int64, limit int, keyword, kitchenTag string, excludeDraft bool, recipeStatus string, beforeID int64) ([]*Recipe, error) {
 	var recipes []*Recipe
 	query := r.db.WithContext(ctx).Model(&Recipe{}).Where("household_id = ?", householdID)
 
@@ -96,8 +97,11 @@ func (r *RecipeRepo) ListLatest(ctx context.Context, householdID int64, limit in
 			jsonTagArray(kitchenTag),
 		)
 	}
+	if beforeID > 0 {
+		query = query.Where("recipes.id < ?", beforeID)
+	}
 
-	err := query.Order("created_at DESC").Limit(limit).Find(&recipes).Error
+	err := query.Order("recipes.id DESC").Limit(limit).Find(&recipes).Error
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +129,24 @@ func (r *RecipeRepo) GetDetail(ctx context.Context, householdID, recipeID int64)
 		Ingredients: ingredients,
 		Steps:       steps,
 	}, nil
+}
+
+// SetStatus 仅更新菜谱状态（household scoped），不触碰食材/步骤；用于草稿一键发布。
+func (r *RecipeRepo) SetStatus(ctx context.Context, householdID, recipeID int64, status string) (*Recipe, error) {
+	res := r.db.WithContext(ctx).Model(&Recipe{}).
+		Where("id = ? AND household_id = ?", recipeID, householdID).
+		Updates(map[string]any{"status": status, "updated_at": time.Now()})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	var recipe Recipe
+	if err := r.db.WithContext(ctx).First(&recipe, "id = ? AND household_id = ?", recipeID, householdID).Error; err != nil {
+		return nil, err
+	}
+	return &recipe, nil
 }
 
 // UpdateRecipe replaces ingredients and steps and updates recipe fields (household scoped).

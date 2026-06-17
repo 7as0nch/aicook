@@ -28,7 +28,8 @@ Page({
   async search(keyword: string) {
     this.setData({ loading: true });
     try {
-      const res = await recipeApi.list({ limit: 50, keyword: keyword || undefined });
+      // 计划选菜只从已发布菜谱中选（草稿仅在菜谱页可见）
+      const res = await recipeApi.list({ limit: 50, keyword: keyword || undefined, recipe_status: 'published' });
       this.setData({ recipes: res.recipes || [], loaded: true });
     } catch {
       this.setData({ recipes: [], loaded: true });

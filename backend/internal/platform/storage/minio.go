@@ -63,14 +63,15 @@ func NewMinio(cfg *conf.OSS) (*MinioStorage, error) {
 }
 
 func (s *MinioStorage) EnsureBucket(ctx context.Context, bucket string) error {
-	exists, err := s.client.BucketExists(ctx, bucket)
-	if err != nil {
+	// 不要用 BucketExists（HEAD）：CDN（Cloudflare）后 HEAD 的 SigV4 头部签名可能被改写而间歇 403，
+	// 会导致启动期偶发失败。改用 GetBucketLocation（GET）探测，不存在再创建。
+	if _, err := s.client.GetBucketLocation(ctx, bucket); err != nil {
+		if minio.ToErrorResponse(err).Code == "NoSuchBucket" {
+			return s.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+		}
 		return err
 	}
-	if exists {
-		return nil
-	}
-	return s.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+	return nil
 }
 
 func (s *MinioStorage) PutObject(ctx context.Context, bucket, objectKey, contentType string, data []byte) (string, error) {
@@ -115,14 +116,26 @@ func (s *MinioStorage) PresignGetObject(ctx context.Context, bucket, objectKey s
 }
 
 func (s *MinioStorage) StatObject(ctx context.Context, bucket, objectKey string) (*ObjectInfo, error) {
-	info, err := s.client.StatObject(ctx, bucket, objectKey, minio.StatObjectOptions{})
-	if err != nil {
-		return nil, err
+	// 注意：不要用 client.StatObject（HEAD）。当 MinIO 位于 Cloudflare 等 CDN 之后时，
+	// HEAD 上的 SigV4 头部签名会被代理改写导致 403（而 GET / 预签名 URL 正常）。
+	// 这里改用 List(GET) 精确前缀匹配来判断对象是否存在，避免 HEAD。
+	for obj := range s.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{
+		Prefix:    objectKey,
+		Recursive: true,
+		MaxKeys:   1,
+	}) {
+		if obj.Err != nil {
+			return nil, obj.Err
+		}
+		if obj.Key == objectKey {
+			return &ObjectInfo{
+				Size:        obj.Size,
+				ContentType: obj.ContentType,
+			}, nil
+		}
+		break
 	}
-	return &ObjectInfo{
-		Size:        info.Size,
-		ContentType: info.ContentType,
-	}, nil
+	return nil, fmt.Errorf("object not found: %s/%s", bucket, objectKey)
 }
 
 func RewritePresignedHost(rawURL, publicEndpoint string) (string, error) {

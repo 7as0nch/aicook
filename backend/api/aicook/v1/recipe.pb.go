@@ -30,7 +30,9 @@ type ListRecipesRequest struct {
 	KitchenTag   string                 `protobuf:"bytes,3,opt,name=kitchen_tag,json=kitchenTag,proto3" json:"kitchen_tag,omitempty"`
 	ExcludeDraft bool                   `protobuf:"varint,4,opt,name=exclude_draft,json=excludeDraft,proto3" json:"exclude_draft,omitempty"`
 	// Optional: "draft" | "published". When set, filters by status; takes precedence over exclude_draft.
-	RecipeStatus  string `protobuf:"bytes,5,opt,name=recipe_status,json=recipeStatus,proto3" json:"recipe_status,omitempty"`
+	RecipeStatus string `protobuf:"bytes,5,opt,name=recipe_status,json=recipeStatus,proto3" json:"recipe_status,omitempty"`
+	// 游标分页：传上一页最后一项 id，只返回 id < before_id 的记录（按 id 倒序）。
+	BeforeId      int64 `protobuf:"varint,6,opt,name=before_id,json=beforeId,proto3" json:"before_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -98,6 +100,13 @@ func (x *ListRecipesRequest) GetRecipeStatus() string {
 		return x.RecipeStatus
 	}
 	return ""
+}
+
+func (x *ListRecipesRequest) GetBeforeId() int64 {
+	if x != nil {
+		return x.BeforeId
+	}
+	return 0
 }
 
 type ListRecipesReply struct {
@@ -920,6 +929,267 @@ func (x *DeleteRecipeReply) GetOk() bool {
 	return false
 }
 
+type PublishRecipeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RecipeId      int64                  `protobuf:"varint,1,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublishRecipeRequest) Reset() {
+	*x = PublishRecipeRequest{}
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublishRecipeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublishRecipeRequest) ProtoMessage() {}
+
+func (x *PublishRecipeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublishRecipeRequest.ProtoReflect.Descriptor instead.
+func (*PublishRecipeRequest) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PublishRecipeRequest) GetRecipeId() int64 {
+	if x != nil {
+		return x.RecipeId
+	}
+	return 0
+}
+
+type PublishRecipeReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Recipe        *Recipe                `protobuf:"bytes,1,opt,name=recipe,proto3" json:"recipe,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublishRecipeReply) Reset() {
+	*x = PublishRecipeReply{}
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublishRecipeReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublishRecipeReply) ProtoMessage() {}
+
+func (x *PublishRecipeReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublishRecipeReply.ProtoReflect.Descriptor instead.
+func (*PublishRecipeReply) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *PublishRecipeReply) GetRecipe() *Recipe {
+	if x != nil {
+		return x.Recipe
+	}
+	return nil
+}
+
+type RecommendDishesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ingredients   []string               `protobuf:"bytes,1,rep,name=ingredients,proto3" json:"ingredients,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecommendDishesRequest) Reset() {
+	*x = RecommendDishesRequest{}
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecommendDishesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecommendDishesRequest) ProtoMessage() {}
+
+func (x *RecommendDishesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecommendDishesRequest.ProtoReflect.Descriptor instead.
+func (*RecommendDishesRequest) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RecommendDishesRequest) GetIngredients() []string {
+	if x != nil {
+		return x.Ingredients
+	}
+	return nil
+}
+
+func (x *RecommendDishesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// DishSuggestion 一道推荐菜：source 为 "library"(库内已有，带 recipe_id) 或 "ai"(即兴新菜)。
+type DishSuggestion struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	RecipeId      *int64                 `protobuf:"varint,4,opt,name=recipe_id,json=recipeId,proto3,oneof" json:"recipe_id,omitempty"`
+	CoverImageUrl string                 `protobuf:"bytes,5,opt,name=cover_image_url,json=coverImageUrl,proto3" json:"cover_image_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DishSuggestion) Reset() {
+	*x = DishSuggestion{}
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DishSuggestion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DishSuggestion) ProtoMessage() {}
+
+func (x *DishSuggestion) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DishSuggestion.ProtoReflect.Descriptor instead.
+func (*DishSuggestion) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *DishSuggestion) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *DishSuggestion) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *DishSuggestion) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *DishSuggestion) GetRecipeId() int64 {
+	if x != nil && x.RecipeId != nil {
+		return *x.RecipeId
+	}
+	return 0
+}
+
+func (x *DishSuggestion) GetCoverImageUrl() string {
+	if x != nil {
+		return x.CoverImageUrl
+	}
+	return ""
+}
+
+type RecommendDishesReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dishes        []*DishSuggestion      `protobuf:"bytes,1,rep,name=dishes,proto3" json:"dishes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecommendDishesReply) Reset() {
+	*x = RecommendDishesReply{}
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecommendDishesReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecommendDishesReply) ProtoMessage() {}
+
+func (x *RecommendDishesReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecommendDishesReply.ProtoReflect.Descriptor instead.
+func (*RecommendDishesReply) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *RecommendDishesReply) GetDishes() []*DishSuggestion {
+	if x != nil {
+		return x.Dishes
+	}
+	return nil
+}
+
 type TodayRecipeReason struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// kind 例如 "meal_plan" / "preference" / "popular" / "recently_cooked"，前端可用于展示徽章。
@@ -931,7 +1201,7 @@ type TodayRecipeReason struct {
 
 func (x *TodayRecipeReason) Reset() {
 	*x = TodayRecipeReason{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[12]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -943,7 +1213,7 @@ func (x *TodayRecipeReason) String() string {
 func (*TodayRecipeReason) ProtoMessage() {}
 
 func (x *TodayRecipeReason) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[12]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -956,7 +1226,7 @@ func (x *TodayRecipeReason) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TodayRecipeReason.ProtoReflect.Descriptor instead.
 func (*TodayRecipeReason) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{12}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *TodayRecipeReason) GetKind() string {
@@ -985,7 +1255,7 @@ type TodayRecipe struct {
 
 func (x *TodayRecipe) Reset() {
 	*x = TodayRecipe{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[13]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -997,7 +1267,7 @@ func (x *TodayRecipe) String() string {
 func (*TodayRecipe) ProtoMessage() {}
 
 func (x *TodayRecipe) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[13]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1010,7 +1280,7 @@ func (x *TodayRecipe) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TodayRecipe.ProtoReflect.Descriptor instead.
 func (*TodayRecipe) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{13}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TodayRecipe) GetRecipe() *Recipe {
@@ -1043,7 +1313,7 @@ type ListTodayRecipesRequest struct {
 
 func (x *ListTodayRecipesRequest) Reset() {
 	*x = ListTodayRecipesRequest{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[14]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1055,7 +1325,7 @@ func (x *ListTodayRecipesRequest) String() string {
 func (*ListTodayRecipesRequest) ProtoMessage() {}
 
 func (x *ListTodayRecipesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[14]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1068,7 +1338,7 @@ func (x *ListTodayRecipesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTodayRecipesRequest.ProtoReflect.Descriptor instead.
 func (*ListTodayRecipesRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{14}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListTodayRecipesRequest) GetLimit() int32 {
@@ -1087,7 +1357,7 @@ type ListTodayRecipesReply struct {
 
 func (x *ListTodayRecipesReply) Reset() {
 	*x = ListTodayRecipesReply{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[15]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1099,7 +1369,7 @@ func (x *ListTodayRecipesReply) String() string {
 func (*ListTodayRecipesReply) ProtoMessage() {}
 
 func (x *ListTodayRecipesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[15]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1112,7 +1382,7 @@ func (x *ListTodayRecipesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTodayRecipesReply.ProtoReflect.Descriptor instead.
 func (*ListTodayRecipesReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{15}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListTodayRecipesReply) GetItems() []*TodayRecipe {
@@ -1131,7 +1401,7 @@ type AddRecipeFavoriteRequest struct {
 
 func (x *AddRecipeFavoriteRequest) Reset() {
 	*x = AddRecipeFavoriteRequest{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[16]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1143,7 +1413,7 @@ func (x *AddRecipeFavoriteRequest) String() string {
 func (*AddRecipeFavoriteRequest) ProtoMessage() {}
 
 func (x *AddRecipeFavoriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[16]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1156,7 +1426,7 @@ func (x *AddRecipeFavoriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddRecipeFavoriteRequest.ProtoReflect.Descriptor instead.
 func (*AddRecipeFavoriteRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{16}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AddRecipeFavoriteRequest) GetRecipeId() int64 {
@@ -1176,7 +1446,7 @@ type AddRecipeFavoriteReply struct {
 
 func (x *AddRecipeFavoriteReply) Reset() {
 	*x = AddRecipeFavoriteReply{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[17]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1458,7 @@ func (x *AddRecipeFavoriteReply) String() string {
 func (*AddRecipeFavoriteReply) ProtoMessage() {}
 
 func (x *AddRecipeFavoriteReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[17]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1471,7 @@ func (x *AddRecipeFavoriteReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddRecipeFavoriteReply.ProtoReflect.Descriptor instead.
 func (*AddRecipeFavoriteReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{17}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AddRecipeFavoriteReply) GetRecipe() *Recipe {
@@ -1227,7 +1497,7 @@ type RemoveRecipeFavoriteRequest struct {
 
 func (x *RemoveRecipeFavoriteRequest) Reset() {
 	*x = RemoveRecipeFavoriteRequest{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[18]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1239,7 +1509,7 @@ func (x *RemoveRecipeFavoriteRequest) String() string {
 func (*RemoveRecipeFavoriteRequest) ProtoMessage() {}
 
 func (x *RemoveRecipeFavoriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[18]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1252,7 +1522,7 @@ func (x *RemoveRecipeFavoriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRecipeFavoriteRequest.ProtoReflect.Descriptor instead.
 func (*RemoveRecipeFavoriteRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{18}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RemoveRecipeFavoriteRequest) GetRecipeId() int64 {
@@ -1271,7 +1541,7 @@ type RemoveRecipeFavoriteReply struct {
 
 func (x *RemoveRecipeFavoriteReply) Reset() {
 	*x = RemoveRecipeFavoriteReply{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[19]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1283,7 +1553,7 @@ func (x *RemoveRecipeFavoriteReply) String() string {
 func (*RemoveRecipeFavoriteReply) ProtoMessage() {}
 
 func (x *RemoveRecipeFavoriteReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[19]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1296,7 +1566,7 @@ func (x *RemoveRecipeFavoriteReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRecipeFavoriteReply.ProtoReflect.Descriptor instead.
 func (*RemoveRecipeFavoriteReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{19}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RemoveRecipeFavoriteReply) GetOk() bool {
@@ -1317,7 +1587,7 @@ type ListMyFavoritesRequest struct {
 
 func (x *ListMyFavoritesRequest) Reset() {
 	*x = ListMyFavoritesRequest{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[20]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1329,7 +1599,7 @@ func (x *ListMyFavoritesRequest) String() string {
 func (*ListMyFavoritesRequest) ProtoMessage() {}
 
 func (x *ListMyFavoritesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[20]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1342,7 +1612,7 @@ func (x *ListMyFavoritesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMyFavoritesRequest.ProtoReflect.Descriptor instead.
 func (*ListMyFavoritesRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{20}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListMyFavoritesRequest) GetLimit() int32 {
@@ -1369,7 +1639,7 @@ type ListMyFavoritesReply struct {
 
 func (x *ListMyFavoritesReply) Reset() {
 	*x = ListMyFavoritesReply{}
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[21]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1381,7 +1651,7 @@ func (x *ListMyFavoritesReply) String() string {
 func (*ListMyFavoritesReply) ProtoMessage() {}
 
 func (x *ListMyFavoritesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_recipe_proto_msgTypes[21]
+	mi := &file_api_aicook_v1_recipe_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1394,7 +1664,7 @@ func (x *ListMyFavoritesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMyFavoritesReply.ProtoReflect.Descriptor instead.
 func (*ListMyFavoritesReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{21}
+	return file_api_aicook_v1_recipe_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListMyFavoritesReply) GetRecipes() []*Recipe {
@@ -1415,14 +1685,15 @@ var File_api_aicook_v1_recipe_proto protoreflect.FileDescriptor
 
 const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	"\n" +
-	"\x1aapi/aicook/v1/recipe.proto\x12\taicook.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1aapi/aicook/v1/common.proto\"\xaf\x01\n" +
+	"\x1aapi/aicook/v1/recipe.proto\x12\taicook.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1aapi/aicook/v1/common.proto\"\xcc\x01\n" +
 	"\x12ListRecipesRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x18\n" +
 	"\akeyword\x18\x02 \x01(\tR\akeyword\x12\x1f\n" +
 	"\vkitchen_tag\x18\x03 \x01(\tR\n" +
 	"kitchenTag\x12#\n" +
 	"\rexclude_draft\x18\x04 \x01(\bR\fexcludeDraft\x12#\n" +
-	"\rrecipe_status\x18\x05 \x01(\tR\frecipeStatus\"?\n" +
+	"\rrecipe_status\x18\x05 \x01(\tR\frecipeStatus\x12\x1b\n" +
+	"\tbefore_id\x18\x06 \x01(\x03R\bbeforeId\"?\n" +
 	"\x10ListRecipesReply\x12+\n" +
 	"\arecipes\x18\x01 \x03(\v2\x11.aicook.v1.RecipeR\arecipes\"(\n" +
 	"\x16GetRecipeDetailRequest\x12\x0e\n" +
@@ -1501,7 +1772,24 @@ const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	"\x13DeleteRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"#\n" +
 	"\x11DeleteRecipeReply\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"=\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"3\n" +
+	"\x14PublishRecipeRequest\x12\x1b\n" +
+	"\trecipe_id\x18\x01 \x01(\x03R\brecipeId\"?\n" +
+	"\x12PublishRecipeReply\x12)\n" +
+	"\x06recipe\x18\x01 \x01(\v2\x11.aicook.v1.RecipeR\x06recipe\"P\n" +
+	"\x16RecommendDishesRequest\x12 \n" +
+	"\vingredients\x18\x01 \x03(\tR\vingredients\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\xae\x01\n" +
+	"\x0eDishSuggestion\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\x12 \n" +
+	"\trecipe_id\x18\x04 \x01(\x03H\x00R\brecipeId\x88\x01\x01\x12&\n" +
+	"\x0fcover_image_url\x18\x05 \x01(\tR\rcoverImageUrlB\f\n" +
+	"\n" +
+	"_recipe_id\"I\n" +
+	"\x14RecommendDishesReply\x121\n" +
+	"\x06dishes\x18\x01 \x03(\v2\x19.aicook.v1.DishSuggestionR\x06dishes\"=\n" +
 	"\x11TodayRecipeReason\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\"\x86\x01\n" +
@@ -1527,14 +1815,17 @@ const file_api_aicook_v1_recipe_proto_rawDesc = "" +
 	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\"Y\n" +
 	"\x14ListMyFavoritesReply\x12+\n" +
 	"\arecipes\x18\x01 \x03(\v2\x11.aicook.v1.RecipeR\arecipes\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x03R\x05total2\xd9\b\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total2\xdf\n" +
+	"\n" +
 	"\rRecipeService\x12b\n" +
 	"\vListRecipes\x12\x1d.aicook.v1.ListRecipesRequest\x1a\x1b.aicook.v1.ListRecipesReply\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/api/v1/recipes\x12w\n" +
 	"\x10ListTodayRecipes\x12\".aicook.v1.ListTodayRecipesRequest\x1a .aicook.v1.ListTodayRecipesReply\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v1/recipes/today\x12x\n" +
 	"\x0fListMyFavorites\x12!.aicook.v1.ListMyFavoritesRequest\x1a\x1f.aicook.v1.ListMyFavoritesReply\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/v1/recipes/favorites\x12}\n" +
 	"\x11CreateRecipeDraft\x12#.aicook.v1.CreateRecipeDraftRequest\x1a!.aicook.v1.CreateRecipeDraftReply\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/recipes:draft\x12\x8c\x01\n" +
 	"\x11AddRecipeFavorite\x12#.aicook.v1.AddRecipeFavoriteRequest\x1a!.aicook.v1.AddRecipeFavoriteReply\"/\x82\xd3\xe4\x93\x02):\x01*\"$/api/v1/recipes/{recipe_id}/favorite\x12\x92\x01\n" +
-	"\x14RemoveRecipeFavorite\x12&.aicook.v1.RemoveRecipeFavoriteRequest\x1a$.aicook.v1.RemoveRecipeFavoriteReply\",\x82\xd3\xe4\x93\x02&*$/api/v1/recipes/{recipe_id}/favorite\x12s\n" +
+	"\x14RemoveRecipeFavorite\x12&.aicook.v1.RemoveRecipeFavoriteRequest\x1a$.aicook.v1.RemoveRecipeFavoriteReply\",\x82\xd3\xe4\x93\x02&*$/api/v1/recipes/{recipe_id}/favorite\x12\x7f\n" +
+	"\rPublishRecipe\x12\x1f.aicook.v1.PublishRecipeRequest\x1a\x1d.aicook.v1.PublishRecipeReply\".\x82\xd3\xe4\x93\x02(:\x01*\"#/api/v1/recipes/{recipe_id}/publish\x12\x82\x01\n" +
+	"\x0fRecommendDishes\x12!.aicook.v1.RecommendDishesRequest\x1a\x1f.aicook.v1.RecommendDishesReply\"+\x82\xd3\xe4\x93\x02%:\x01*\" /api/v1/recipes/recommend-dishes\x12s\n" +
 	"\x0fGetRecipeDetail\x12!.aicook.v1.GetRecipeDetailRequest\x1a\x1f.aicook.v1.GetRecipeDetailReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/v1/recipes/{id}\x12m\n" +
 	"\fUpdateRecipe\x12\x1e.aicook.v1.UpdateRecipeRequest\x1a\x1c.aicook.v1.UpdateRecipeReply\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\x1a\x14/api/v1/recipes/{id}\x12j\n" +
 	"\fDeleteRecipe\x12\x1e.aicook.v1.DeleteRecipeRequest\x1a\x1c.aicook.v1.DeleteRecipeReply\"\x1c\x82\xd3\xe4\x93\x02\x16*\x14/api/v1/recipes/{id}B7Z5github.com/chengjiang/aicook/backend/api/aicook/v1;v1b\x06proto3"
@@ -1551,7 +1842,7 @@ func file_api_aicook_v1_recipe_proto_rawDescGZIP() []byte {
 	return file_api_aicook_v1_recipe_proto_rawDescData
 }
 
-var file_api_aicook_v1_recipe_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_api_aicook_v1_recipe_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_api_aicook_v1_recipe_proto_goTypes = []any{
 	(*ListRecipesRequest)(nil),          // 0: aicook.v1.ListRecipesRequest
 	(*ListRecipesReply)(nil),            // 1: aicook.v1.ListRecipesReply
@@ -1565,58 +1856,69 @@ var file_api_aicook_v1_recipe_proto_goTypes = []any{
 	(*UpdateRecipeReply)(nil),           // 9: aicook.v1.UpdateRecipeReply
 	(*DeleteRecipeRequest)(nil),         // 10: aicook.v1.DeleteRecipeRequest
 	(*DeleteRecipeReply)(nil),           // 11: aicook.v1.DeleteRecipeReply
-	(*TodayRecipeReason)(nil),           // 12: aicook.v1.TodayRecipeReason
-	(*TodayRecipe)(nil),                 // 13: aicook.v1.TodayRecipe
-	(*ListTodayRecipesRequest)(nil),     // 14: aicook.v1.ListTodayRecipesRequest
-	(*ListTodayRecipesReply)(nil),       // 15: aicook.v1.ListTodayRecipesReply
-	(*AddRecipeFavoriteRequest)(nil),    // 16: aicook.v1.AddRecipeFavoriteRequest
-	(*AddRecipeFavoriteReply)(nil),      // 17: aicook.v1.AddRecipeFavoriteReply
-	(*RemoveRecipeFavoriteRequest)(nil), // 18: aicook.v1.RemoveRecipeFavoriteRequest
-	(*RemoveRecipeFavoriteReply)(nil),   // 19: aicook.v1.RemoveRecipeFavoriteReply
-	(*ListMyFavoritesRequest)(nil),      // 20: aicook.v1.ListMyFavoritesRequest
-	(*ListMyFavoritesReply)(nil),        // 21: aicook.v1.ListMyFavoritesReply
-	(*Recipe)(nil),                      // 22: aicook.v1.Recipe
-	(*RecipeDetail)(nil),                // 23: aicook.v1.RecipeDetail
-	(*structpb.Struct)(nil),             // 24: google.protobuf.Struct
+	(*PublishRecipeRequest)(nil),        // 12: aicook.v1.PublishRecipeRequest
+	(*PublishRecipeReply)(nil),          // 13: aicook.v1.PublishRecipeReply
+	(*RecommendDishesRequest)(nil),      // 14: aicook.v1.RecommendDishesRequest
+	(*DishSuggestion)(nil),              // 15: aicook.v1.DishSuggestion
+	(*RecommendDishesReply)(nil),        // 16: aicook.v1.RecommendDishesReply
+	(*TodayRecipeReason)(nil),           // 17: aicook.v1.TodayRecipeReason
+	(*TodayRecipe)(nil),                 // 18: aicook.v1.TodayRecipe
+	(*ListTodayRecipesRequest)(nil),     // 19: aicook.v1.ListTodayRecipesRequest
+	(*ListTodayRecipesReply)(nil),       // 20: aicook.v1.ListTodayRecipesReply
+	(*AddRecipeFavoriteRequest)(nil),    // 21: aicook.v1.AddRecipeFavoriteRequest
+	(*AddRecipeFavoriteReply)(nil),      // 22: aicook.v1.AddRecipeFavoriteReply
+	(*RemoveRecipeFavoriteRequest)(nil), // 23: aicook.v1.RemoveRecipeFavoriteRequest
+	(*RemoveRecipeFavoriteReply)(nil),   // 24: aicook.v1.RemoveRecipeFavoriteReply
+	(*ListMyFavoritesRequest)(nil),      // 25: aicook.v1.ListMyFavoritesRequest
+	(*ListMyFavoritesReply)(nil),        // 26: aicook.v1.ListMyFavoritesReply
+	(*Recipe)(nil),                      // 27: aicook.v1.Recipe
+	(*RecipeDetail)(nil),                // 28: aicook.v1.RecipeDetail
+	(*structpb.Struct)(nil),             // 29: google.protobuf.Struct
 }
 var file_api_aicook_v1_recipe_proto_depIdxs = []int32{
-	22, // 0: aicook.v1.ListRecipesReply.recipes:type_name -> aicook.v1.Recipe
-	23, // 1: aicook.v1.GetRecipeDetailReply.detail:type_name -> aicook.v1.RecipeDetail
+	27, // 0: aicook.v1.ListRecipesReply.recipes:type_name -> aicook.v1.Recipe
+	28, // 1: aicook.v1.GetRecipeDetailReply.detail:type_name -> aicook.v1.RecipeDetail
 	4,  // 2: aicook.v1.CreateRecipeDraftRequest.ingredients:type_name -> aicook.v1.CreateRecipeDraftIngredient
 	5,  // 3: aicook.v1.CreateRecipeDraftRequest.steps:type_name -> aicook.v1.CreateRecipeDraftStep
-	23, // 4: aicook.v1.CreateRecipeDraftReply.detail:type_name -> aicook.v1.RecipeDetail
-	24, // 5: aicook.v1.UpdateRecipeRequest.metadata:type_name -> google.protobuf.Struct
+	28, // 4: aicook.v1.CreateRecipeDraftReply.detail:type_name -> aicook.v1.RecipeDetail
+	29, // 5: aicook.v1.UpdateRecipeRequest.metadata:type_name -> google.protobuf.Struct
 	4,  // 6: aicook.v1.UpdateRecipeRequest.ingredients:type_name -> aicook.v1.CreateRecipeDraftIngredient
 	5,  // 7: aicook.v1.UpdateRecipeRequest.steps:type_name -> aicook.v1.CreateRecipeDraftStep
-	23, // 8: aicook.v1.UpdateRecipeReply.detail:type_name -> aicook.v1.RecipeDetail
-	22, // 9: aicook.v1.TodayRecipe.recipe:type_name -> aicook.v1.Recipe
-	12, // 10: aicook.v1.TodayRecipe.reasons:type_name -> aicook.v1.TodayRecipeReason
-	13, // 11: aicook.v1.ListTodayRecipesReply.items:type_name -> aicook.v1.TodayRecipe
-	22, // 12: aicook.v1.AddRecipeFavoriteReply.recipe:type_name -> aicook.v1.Recipe
-	22, // 13: aicook.v1.ListMyFavoritesReply.recipes:type_name -> aicook.v1.Recipe
-	0,  // 14: aicook.v1.RecipeService.ListRecipes:input_type -> aicook.v1.ListRecipesRequest
-	14, // 15: aicook.v1.RecipeService.ListTodayRecipes:input_type -> aicook.v1.ListTodayRecipesRequest
-	20, // 16: aicook.v1.RecipeService.ListMyFavorites:input_type -> aicook.v1.ListMyFavoritesRequest
-	6,  // 17: aicook.v1.RecipeService.CreateRecipeDraft:input_type -> aicook.v1.CreateRecipeDraftRequest
-	16, // 18: aicook.v1.RecipeService.AddRecipeFavorite:input_type -> aicook.v1.AddRecipeFavoriteRequest
-	18, // 19: aicook.v1.RecipeService.RemoveRecipeFavorite:input_type -> aicook.v1.RemoveRecipeFavoriteRequest
-	2,  // 20: aicook.v1.RecipeService.GetRecipeDetail:input_type -> aicook.v1.GetRecipeDetailRequest
-	8,  // 21: aicook.v1.RecipeService.UpdateRecipe:input_type -> aicook.v1.UpdateRecipeRequest
-	10, // 22: aicook.v1.RecipeService.DeleteRecipe:input_type -> aicook.v1.DeleteRecipeRequest
-	1,  // 23: aicook.v1.RecipeService.ListRecipes:output_type -> aicook.v1.ListRecipesReply
-	15, // 24: aicook.v1.RecipeService.ListTodayRecipes:output_type -> aicook.v1.ListTodayRecipesReply
-	21, // 25: aicook.v1.RecipeService.ListMyFavorites:output_type -> aicook.v1.ListMyFavoritesReply
-	7,  // 26: aicook.v1.RecipeService.CreateRecipeDraft:output_type -> aicook.v1.CreateRecipeDraftReply
-	17, // 27: aicook.v1.RecipeService.AddRecipeFavorite:output_type -> aicook.v1.AddRecipeFavoriteReply
-	19, // 28: aicook.v1.RecipeService.RemoveRecipeFavorite:output_type -> aicook.v1.RemoveRecipeFavoriteReply
-	3,  // 29: aicook.v1.RecipeService.GetRecipeDetail:output_type -> aicook.v1.GetRecipeDetailReply
-	9,  // 30: aicook.v1.RecipeService.UpdateRecipe:output_type -> aicook.v1.UpdateRecipeReply
-	11, // 31: aicook.v1.RecipeService.DeleteRecipe:output_type -> aicook.v1.DeleteRecipeReply
-	23, // [23:32] is the sub-list for method output_type
-	14, // [14:23] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	28, // 8: aicook.v1.UpdateRecipeReply.detail:type_name -> aicook.v1.RecipeDetail
+	27, // 9: aicook.v1.PublishRecipeReply.recipe:type_name -> aicook.v1.Recipe
+	15, // 10: aicook.v1.RecommendDishesReply.dishes:type_name -> aicook.v1.DishSuggestion
+	27, // 11: aicook.v1.TodayRecipe.recipe:type_name -> aicook.v1.Recipe
+	17, // 12: aicook.v1.TodayRecipe.reasons:type_name -> aicook.v1.TodayRecipeReason
+	18, // 13: aicook.v1.ListTodayRecipesReply.items:type_name -> aicook.v1.TodayRecipe
+	27, // 14: aicook.v1.AddRecipeFavoriteReply.recipe:type_name -> aicook.v1.Recipe
+	27, // 15: aicook.v1.ListMyFavoritesReply.recipes:type_name -> aicook.v1.Recipe
+	0,  // 16: aicook.v1.RecipeService.ListRecipes:input_type -> aicook.v1.ListRecipesRequest
+	19, // 17: aicook.v1.RecipeService.ListTodayRecipes:input_type -> aicook.v1.ListTodayRecipesRequest
+	25, // 18: aicook.v1.RecipeService.ListMyFavorites:input_type -> aicook.v1.ListMyFavoritesRequest
+	6,  // 19: aicook.v1.RecipeService.CreateRecipeDraft:input_type -> aicook.v1.CreateRecipeDraftRequest
+	21, // 20: aicook.v1.RecipeService.AddRecipeFavorite:input_type -> aicook.v1.AddRecipeFavoriteRequest
+	23, // 21: aicook.v1.RecipeService.RemoveRecipeFavorite:input_type -> aicook.v1.RemoveRecipeFavoriteRequest
+	12, // 22: aicook.v1.RecipeService.PublishRecipe:input_type -> aicook.v1.PublishRecipeRequest
+	14, // 23: aicook.v1.RecipeService.RecommendDishes:input_type -> aicook.v1.RecommendDishesRequest
+	2,  // 24: aicook.v1.RecipeService.GetRecipeDetail:input_type -> aicook.v1.GetRecipeDetailRequest
+	8,  // 25: aicook.v1.RecipeService.UpdateRecipe:input_type -> aicook.v1.UpdateRecipeRequest
+	10, // 26: aicook.v1.RecipeService.DeleteRecipe:input_type -> aicook.v1.DeleteRecipeRequest
+	1,  // 27: aicook.v1.RecipeService.ListRecipes:output_type -> aicook.v1.ListRecipesReply
+	20, // 28: aicook.v1.RecipeService.ListTodayRecipes:output_type -> aicook.v1.ListTodayRecipesReply
+	26, // 29: aicook.v1.RecipeService.ListMyFavorites:output_type -> aicook.v1.ListMyFavoritesReply
+	7,  // 30: aicook.v1.RecipeService.CreateRecipeDraft:output_type -> aicook.v1.CreateRecipeDraftReply
+	22, // 31: aicook.v1.RecipeService.AddRecipeFavorite:output_type -> aicook.v1.AddRecipeFavoriteReply
+	24, // 32: aicook.v1.RecipeService.RemoveRecipeFavorite:output_type -> aicook.v1.RemoveRecipeFavoriteReply
+	13, // 33: aicook.v1.RecipeService.PublishRecipe:output_type -> aicook.v1.PublishRecipeReply
+	16, // 34: aicook.v1.RecipeService.RecommendDishes:output_type -> aicook.v1.RecommendDishesReply
+	3,  // 35: aicook.v1.RecipeService.GetRecipeDetail:output_type -> aicook.v1.GetRecipeDetailReply
+	9,  // 36: aicook.v1.RecipeService.UpdateRecipe:output_type -> aicook.v1.UpdateRecipeReply
+	11, // 37: aicook.v1.RecipeService.DeleteRecipe:output_type -> aicook.v1.DeleteRecipeReply
+	27, // [27:38] is the sub-list for method output_type
+	16, // [16:27] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_api_aicook_v1_recipe_proto_init() }
@@ -1625,13 +1927,14 @@ func file_api_aicook_v1_recipe_proto_init() {
 		return
 	}
 	file_api_aicook_v1_common_proto_init()
+	file_api_aicook_v1_recipe_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_aicook_v1_recipe_proto_rawDesc), len(file_api_aicook_v1_recipe_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

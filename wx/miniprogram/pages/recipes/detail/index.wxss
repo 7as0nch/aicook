@@ -13,6 +13,7 @@
   overflow: hidden;
 }
 
+.rd__hero-swiper { width: 100%; height: 100%; }
 .rd__hero-img { width: 100%; height: 100%; }
 
 .rd__hero-overlay {
@@ -56,6 +57,42 @@
   font-size: 26rpx;
   font-weight: 500;
   color: #FF7A00;
+}
+
+/* 草稿发布入口（实心橙，强调主操作）*/
+.rd__nav-btn--publish {
+  width: auto;
+  padding: 0 24rpx;
+  border-radius: 32rpx;
+  background: #FF7A00;
+  box-shadow: 0 4rpx 14rpx rgba(255, 122, 0, 0.4);
+}
+
+.rd__nav-publish-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+/* 完整制作流程长视频区块 */
+.rd__video-block {
+  margin-top: 8rpx;
+  padding: 0 4rpx;
+}
+
+.rd__video-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  margin-bottom: 16rpx;
+}
+
+.rd__video-player {
+  width: 100%;
+  height: 380rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: #000;
 }
 
 /* 分享按钮：橙色实心圆（share 图标是白色，放白底会“隐身”）。圆圈与对齐由 view 控制，

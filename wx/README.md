@@ -1,6 +1,6 @@
 # AIcook 微信小程序
 
-馋猫厨房 — 家庭智能厨房助手的微信小程序端，复用同仓库 `backend/` 后端 API。
+萝卜爱做饭 — 家庭智能厨房助手的微信小程序端，复用同仓库 `backend/` 后端 API。
 
 ## 技术栈
 
@@ -23,7 +23,7 @@ wx/
 │   ├── utils/           # 通用工具：env/storage/time/format/nav/id/eventbus
 │   ├── styles/          # 主题变量 theme.wxss
 │   ├── types/           # api.d.ts / chat.d.ts / common.d.ts
-│   └── assets/          # 图片资源（tabbar 图标 / 馋猫 IP / 通用图标）
+│   └── assets/          # 图片资源（tabbar 图标 / 萝卜 IP / 通用图标）
 ├── typings/             # 微信运行时类型补充
 ├── package.json
 ├── tsconfig.json
@@ -82,7 +82,7 @@ npm run lint
 
 - **阶段 0**（已完成）脚手架：项目骨架、API 封装、SSE 雏形、5 Tab 空壳
 - **阶段 1** 鉴权：登录 / 注册 / 自动续登 / 家庭切换
-- **阶段 2** 首页：今日推荐、馋猫吉祥物、最近做过
+- **阶段 2** 首页：今日推荐、萝卜吉祥物、最近做过
 - **阶段 3** 菜谱浏览：列表 / 分类 / 详情 / 食材勾选
 - **阶段 4** 做菜步骤 + 烹饪历史：计时器、跨设备同步、完成入历史
 - **阶段 5** 周计划 + 购物清单

@@ -1,3 +1,4 @@
+<wxs src="../../../utils/media.wxs" module="media" />
 <view class="rl">
   <!-- 顶部 -->
   <view class="rl__header">
@@ -42,7 +43,7 @@
     </scroll-view>
 
     <!-- 右菜谱列 -->
-    <scroll-view scroll-y class="rl__main" show-scrollbar="{{false}}">
+    <scroll-view scroll-y class="rl__main" show-scrollbar="{{false}}" bindscrolltolower="onLoadMore" lower-threshold="150">
       <view
         wx:for="{{recipes}}"
         wx:for-item="r"
@@ -52,14 +53,23 @@
         bindtap="onRecipeTap"
       >
         <view class="rl__row-cover">
-          <image wx:if="{{r.cover_image_url}}" class="rl__row-cover-img" src="{{r.cover_image_url}}" mode="aspectFill" />
+          <video wx:if="{{r.cover_image_url && media.isVideo(r.cover_image_url)}}" class="rl__row-cover-img" src="{{r.cover_image_url}}" object-fit="cover" autoplay muted loop controls="{{false}}" show-center-play-btn="{{false}}" enable-progress-gesture="{{false}}"></video>
+          <image wx:elif="{{r.cover_image_url}}" class="rl__row-cover-img" src="{{r.cover_image_url}}" mode="aspectFill" lazy-load />
+          <view wx:if="{{r.status === 'draft'}}" class="rl__row-draft">草稿</view>
         </view>
         <view class="rl__row-body">
           <text class="rl__row-title">{{r.title}}</text>
           <text wx:if="{{r.__meta}}" class="rl__row-meta">{{r.__meta}}</text>
           <view class="rl__row-actions">
-            <view class="rl__row-btn" data-id="{{r.id}}" catchtap="onEditRecipe">编辑</view>
-            <view class="rl__row-btn rl__row-btn--del" data-id="{{r.id}}" catchtap="onDeleteRecipe">删除</view>
+            <!-- 草稿：发布(主) + ⋯(编辑/删除)，避免三个按钮挤 -->
+            <block wx:if="{{r.status === 'draft'}}">
+              <view class="rl__row-btn rl__row-btn--pub" data-id="{{r.id}}" catchtap="onPublishRecipe">发布</view>
+              <view class="rl__row-btn rl__row-btn--more" data-id="{{r.id}}" catchtap="onRowMore">⋯</view>
+            </block>
+            <block wx:else>
+              <view class="rl__row-btn" data-id="{{r.id}}" catchtap="onEditRecipe">编辑</view>
+              <view class="rl__row-btn rl__row-btn--del" data-id="{{r.id}}" catchtap="onDeleteRecipe">删除</view>
+            </block>
           </view>
         </view>
       </view>
@@ -67,6 +77,10 @@
       <view wx:if="{{!recipes.length && !loading}}" class="rl__empty">
         <text>该类目下暂无菜谱</text>
         <view class="rl__empty-btn" bindtap="onWorkbenchTap">＋ 新建菜谱</view>
+      </view>
+      <view wx:if="{{recipes.length}}" class="rl__more-hint">
+        <text wx:if="{{loadingMore}}">加载中…</text>
+        <text wx:elif="{{!hasMore}}">— 已经到底了 —</text>
       </view>
       <view class="rl__main-spacer"></view>
     </scroll-view>

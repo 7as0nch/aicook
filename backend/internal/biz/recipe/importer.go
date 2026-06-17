@@ -26,6 +26,10 @@ type CreateImageRecipeRequest struct {
 	UserID        int64
 	MediaAssetIDs []int64
 	TitleHint     string
+	// Preview=true：只识别、不落库，把草稿与图片 URL 放进 job.normalized_payload，
+	// 由前端跳编辑页预填、用户确认后再手动保存为草稿（拍照/工作台走此模式）。
+	// Preview=false：识别后直接落库为草稿（AI 对话图文识别走此模式，保持原行为）。
+	Preview bool
 }
 
 type ImportUsecase struct {
@@ -111,13 +115,61 @@ func (u *ImportUsecase) CreateImageRecipe(ctx context.Context, req CreateImageRe
 		return nil, err
 	}
 
+	// 非菜谱（如宠物/风景/无关物体）：不落库，job 置 failed 并带上中文理由，
+	// 由前端据 job.status/error_message 提示用户「为何无法创建」。
+	if !draft.IsRecipe {
+		reason := strings.TrimSpace(draft.RejectReason)
+		if reason == "" {
+			reason = "图片中未识别到可制作的菜谱，请上传菜谱或菜品图片。"
+		}
+		log.Infof("image recipe import rejected: job_id=%d reason=%s", job.ID, reason)
+		_ = u.repo.UpdateResult(ctx, job.ID, "failed", "normalize", nil, map[string]any{
+			"draft_source":  draftSource,
+			"is_recipe":     false,
+			"reject_reason": reason,
+		}, reason)
+		updated, err := u.repo.Get(ctx, job.ID)
+		if err != nil {
+			return nil, fmt.Errorf("load import job failed: %w", err)
+		}
+		return updated, nil
+	}
+
+	cover := firstAttachmentURL(attachments)
+	galleryURLs := make([]string, 0, len(attachments))
+	for _, a := range attachments {
+		if a.URL != "" {
+			galleryURLs = append(galleryURLs, a.URL)
+		}
+	}
+
+	// 预览模式：不落库，把识别草稿 + 图片 URL 放进 normalized_payload，
+	// 前端据此跳编辑页预填，用户确认后再手动保存为草稿（避免后台静默建草稿）。
+	if req.Preview {
+		resultPayload := map[string]any{
+			"draft":              draft,
+			"draft_source":       draftSource,
+			"cover_image_url":    cover,
+			"gallery_image_urls": galleryURLs,
+		}
+		if err := u.repo.UpdateResult(ctx, job.ID, "review_required", "preview", nil, resultPayload, ""); err != nil {
+			return nil, err
+		}
+		updated, err := u.repo.Get(ctx, job.ID)
+		if err != nil {
+			return nil, fmt.Errorf("load import job failed: %w", err)
+		}
+		return updated, nil
+	}
+
 	recipe := &data.Recipe{
 		HouseholdID:   req.HouseholdID,
 		OwnerUserID:   req.UserID,
 		Title:         draft.Title,
 		Summary:       draft.Summary,
-		CoverImageURL: firstAttachmentURL(attachments),
-		Status:        "review",
+		CoverImageURL: cover,
+		// 默认存草稿：菜谱页带「草稿」徽标可见、可一键发布；首页/推荐/选菜只显示已发布。
+		Status: "draft",
 		SourceType:    "image_tutorial",
 		Category:      draft.Category,
 		TotalMinutes:  draft.TotalMinutes,
@@ -221,6 +273,21 @@ func (u *ImportUsecase) CreateImageRecipeCardForAI(ctx context.Context, househol
 	})
 	if err != nil {
 		return nil, err
+	}
+	// 非菜谱：未落库（RecipeID 为空），回退为拒绝卡片，把理由透传给用户。
+	if job.RecipeID == nil {
+		reason := strings.TrimSpace(job.ErrorMessage)
+		if reason == "" {
+			reason = "图片中未识别到可制作的菜谱。"
+		}
+		return &airuntime.RecipeCard{
+			Title:        "无法生成菜谱",
+			Summary:      reason,
+			Status:       "rejected",
+			Source:       "image_recipe",
+			IsRecipe:     false,
+			RejectReason: reason,
+		}, nil
 	}
 	card := &airuntime.RecipeCard{
 		Title:    "已生成菜谱草稿",

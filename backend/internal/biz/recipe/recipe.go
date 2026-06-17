@@ -13,10 +13,11 @@ import (
 )
 
 type RecipeRepo interface {
-	ListLatest(ctx context.Context, householdID int64, limit int, keyword, kitchenTag string, excludeDraft bool, recipeStatus string) ([]*data.Recipe, error)
+	ListLatest(ctx context.Context, householdID int64, limit int, keyword, kitchenTag string, excludeDraft bool, recipeStatus string, beforeID int64) ([]*data.Recipe, error)
 	GetDetail(ctx context.Context, householdID, recipeID int64) (*data.RecipeDetail, error)
 	CreateDraft(ctx context.Context, recipe *data.Recipe, ingredients []*data.RecipeIngredient, steps []*data.RecipeStep) error
 	UpdateRecipe(ctx context.Context, householdID int64, recipe *data.Recipe, ingredients []*data.RecipeIngredient, steps []*data.RecipeStep) error
+	SetStatus(ctx context.Context, householdID, recipeID int64, status string) (*data.Recipe, error)
 	DeleteRecipe(ctx context.Context, householdID, recipeID int64) error
 }
 
@@ -101,11 +102,11 @@ func canonicalizeGalleryImageURLs(urls []string) []string {
 	return out
 }
 
-func (u *RecipeUsecase) ListLatest(ctx context.Context, householdID int64, limit int, keyword, kitchenTag string, excludeDraft bool, recipeStatus string) ([]*data.Recipe, error) {
+func (u *RecipeUsecase) ListLatest(ctx context.Context, householdID int64, limit int, keyword, kitchenTag string, excludeDraft bool, recipeStatus string, beforeID int64) ([]*data.Recipe, error) {
 	if limit <= 0 {
 		limit = 12
 	}
-	return u.repo.ListLatest(ctx, householdID, limit, keyword, kitchenTag, excludeDraft, recipeStatus)
+	return u.repo.ListLatest(ctx, householdID, limit, keyword, kitchenTag, excludeDraft, recipeStatus, beforeID)
 }
 
 func (u *RecipeUsecase) GetDetail(ctx context.Context, householdID, recipeID int64) (*data.RecipeDetail, error) {
@@ -231,6 +232,14 @@ func (u *RecipeUsecase) DeleteRecipe(ctx context.Context, householdID, recipeID 
 	return u.repo.DeleteRecipe(ctx, householdID, recipeID)
 }
 
+// Publish 把草稿一键发布为正式菜谱（仅更新 status，不重传食材/步骤）。
+func (u *RecipeUsecase) Publish(ctx context.Context, householdID, recipeID int64) (*data.Recipe, error) {
+	if recipeID <= 0 {
+		return nil, fmt.Errorf("recipe id is required")
+	}
+	return u.repo.SetStatus(ctx, householdID, recipeID, "published")
+}
+
 func (u *RecipeUsecase) CreateDraft(ctx context.Context, req CreateRecipeDraftRequest) (*data.RecipeDetail, error) {
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
@@ -334,7 +343,7 @@ func (u *RecipeUsecase) CreateDraft(ctx context.Context, req CreateRecipeDraftRe
 }
 
 func (u *RecipeUsecase) SearchRecipesForAI(ctx context.Context, householdID int64, query string, limit int) ([]airuntime.RecipeCard, error) {
-	items, err := u.repo.ListLatest(ctx, householdID, limit, strings.TrimSpace(query), "", false, "")
+	items, err := u.repo.ListLatest(ctx, householdID, limit, strings.TrimSpace(query), "", false, "", 0)
 	if err != nil {
 		return nil, err
 	}

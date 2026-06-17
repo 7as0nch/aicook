@@ -24,6 +24,11 @@ Page({
     steps: [] as RecipeStep[],
     favored: false,
     canEdit: false,
+    // 顶部轮播媒体（封面图集，可含 ≤10s 短视频）；长视频单独走 longVideoUrl
+    mediaList: [] as string[],
+    longVideoUrl: '',
+    // 草稿且本家庭可编辑 → 显示「发布」入口
+    isDraft: false,
   },
 
   onLoad(query: Record<string, string>) {
@@ -45,6 +50,11 @@ Page({
       const diffLabel = diff ? (typeof diff === 'string' ? diff : ['', '入门', '简单', '中等', '挑战', '大师'][Number(diff)] || '中等') : '';
       // 只允许编辑本家庭的菜谱（分享导入的副本 household_id 也是本家庭，可编辑）
       const canEdit = String(detail.recipe.household_id || '') === String(authStore.currentHousehold?.id || '');
+      // 轮播媒体：优先图集，回退单封面
+      const gallery = ((detail.recipe.gallery_image_urls as string[] | undefined) || []).filter(Boolean);
+      const mediaList = gallery.length
+        ? gallery
+        : (detail.recipe.cover_image_url ? [detail.recipe.cover_image_url] : []);
       this.setData({
         recipe: detail.recipe,
         difficultyLabel: diffLabel,
@@ -52,6 +62,9 @@ Page({
         ingredientGroups: grouped,
         steps: detail.steps || [],
         canEdit,
+        mediaList,
+        longVideoUrl: detail.recipe.video_url || '',
+        isDraft: detail.recipe.status === 'draft' && canEdit,
       });
     } catch (e) {
       console.error('load detail error', e);
@@ -74,6 +87,19 @@ Page({
   onEditTap() {
     if (!this.data.id) return;
     wx.navigateTo({ url: `/pages/recipes/editor/index?recipe_id=${this.data.id}` });
+  },
+
+  // 草稿一键发布为正式菜谱（发布后首页/推荐/选菜可见）
+  async onPublishTap() {
+    if (!this.data.id) return;
+    try {
+      await recipeApi.publish(this.data.id);
+      const recipe = this.data.recipe ? { ...this.data.recipe, status: 'published' } : this.data.recipe;
+      this.setData({ isDraft: false, recipe });
+      wx.showToast({ title: '已发布', icon: 'success' });
+    } catch {
+      wx.showToast({ title: '发布失败', icon: 'none' });
+    }
   },
 
   async onFavTap() {
@@ -117,7 +143,7 @@ Page({
   onShareAppMessage(): WechatMiniprogram.Page.ICustomShareContent {
     const recipe = this.data.recipe;
     return {
-      title: recipe ? `${recipe.title} - 馋猫厨房` : '馋猫厨房',
+      title: recipe ? `${recipe.title} - 萝卜爱做饭` : '萝卜爱做饭',
       path: `/pages/recipes/detail/index?id=${this.data.id}`,
       imageUrl: recipe?.cover_image_url,
     };
@@ -127,7 +153,7 @@ Page({
   onShareTimeline(): WechatMiniprogram.Page.ICustomTimelineContent {
     const recipe = this.data.recipe;
     return {
-      title: recipe ? `${recipe.title} - 馋猫厨房 AI 菜谱` : '馋猫厨房',
+      title: recipe ? `${recipe.title} - 萝卜爱做饭 AI 菜谱` : '萝卜爱做饭',
       imageUrl: recipe?.cover_image_url,
     };
   },

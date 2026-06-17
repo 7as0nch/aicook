@@ -85,7 +85,7 @@ Page({
     if (!hasToken()) return;
     const user = authStore.user;
     this.setData({
-      greeting: user ? `你好，${user.display_name || user.username}` : '欢迎来到馋猫厨房',
+      greeting: user ? `你好，${user.display_name || user.username}` : '欢迎来到萝卜爱做饭',
     });
     // 首次有缓存则跳过；30s 内不重复拉取；切 household 后事件回调已把 _lastLoadAt 置 0，此处会立即刷新
     const now = Date.now();
@@ -109,7 +109,8 @@ Page({
       // 并行拉取今日推荐 + 灵感推荐 + chip 标签
       const [todayRes, listRes] = await Promise.all([
         recipeApi.listToday(1).catch(() => ({ items: [] as TodayRecipe[] })),
-        recipeApi.list({ limit: 6 }).catch(() => ({ recipes: [] as Recipe[] })),
+        // 首页只显示已发布菜谱（草稿仅在菜谱页可见）
+        recipeApi.list({ limit: 6, recipe_status: 'published' }).catch(() => ({ recipes: [] as Recipe[] })),
       ]);
       const todayItem = todayRes.items?.[0];
       this.setData({
@@ -220,6 +221,7 @@ Page({
       const res = await recipeApi.list({
         limit: 6,
         kitchen_tag: name === '为你推荐' ? undefined : name,
+        recipe_status: 'published',
       });
       this.setData({
         suggested: (res.recipes || []).map(r => ({ ...r, __meta: recipeMetaLabel(r) })),

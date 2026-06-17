@@ -32,6 +32,15 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     'no-console': 'off',
   },
+  overrides: [
+    {
+      // WXS 是受限的类 ES5 脚本（CommonJS module.exports），不属于 TS project。
+      // 用默认解析器解析，否则 @typescript-eslint/parser 会因 .wxs 不在 tsconfig 报 parsing error。
+      files: ['*.wxs'],
+      parser: 'espree',
+      parserOptions: { ecmaVersion: 2020, sourceType: 'script', project: null },
+    },
+  ],
   ignorePatterns: [
     'node_modules/',
     'miniprogram/miniprogram_npm/',

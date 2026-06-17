@@ -18,6 +18,9 @@ export interface PickMediaOptions {
   count?: number;          // 默认 1
   sizeType?: ('original' | 'compressed')[];
   sourceType?: ('album' | 'camera')[];
+  // 覆盖默认的可选媒体类型（默认按 mediaKind 推断）；图集混传图片+视频时传 ['image','video']。
+  // 返回的 tempFiles[i].fileType 区分 'image'/'video'，视频还带 duration（秒）。
+  mediaType?: ('image' | 'video')[];
 }
 
 // 整体上传结果
@@ -31,7 +34,7 @@ export function pickMedia(opts: PickMediaOptions): Promise<WechatMiniprogram.Cho
   return new Promise((resolve, reject) => {
     wx.chooseMedia({
       count: opts.count ?? 1,
-      mediaType: opts.mediaKind === 'video' ? ['video'] : ['image'],
+      mediaType: opts.mediaType ?? (opts.mediaKind === 'video' ? ['video'] : ['image']),
       sizeType: opts.sizeType ?? ['compressed'],
       sourceType: opts.sourceType ?? ['album', 'camera'],
       success: resolve,

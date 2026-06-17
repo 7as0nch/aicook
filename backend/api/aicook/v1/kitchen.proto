@@ -33,6 +33,14 @@ service KitchenService {
     option (google.api.http) = {post: "/api/v1/shopping-lists:generate"};
   }
 
+  // AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。
+  rpc AddShoppingItems(AddShoppingItemsRequest) returns (AddShoppingItemsReply) {
+    option (google.api.http) = {
+      post: "/api/v1/shopping-lists:add-items"
+      body: "*"
+    };
+  }
+
   rpc PatchShoppingListItem(PatchShoppingListItemRequest) returns (PatchShoppingListItemReply) {
     option (google.api.http) = {
       patch: "/api/v1/shopping-lists/{list_id}/items/{item_id}"
@@ -165,6 +173,21 @@ message GenerateShoppingListRequest {
 message GenerateShoppingListReply {
   ShoppingList list = 1;
   repeated ShoppingListItem items = 2;
+}
+
+message ShoppingItemAdd {
+  string name = 1;
+  string quantity_text = 2;
+}
+
+message AddShoppingItemsRequest {
+  string week_start = 1;
+  repeated ShoppingItemAdd items = 2;
+}
+
+message AddShoppingItemsReply {
+  ShoppingList list = 1;
+  repeated ShoppingListItem items = 2; // 实际新增（去重后）的条目
 }
 
 message ShoppingList {

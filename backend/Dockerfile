@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/server ./cmd/backend
 
 FROM alpine:latest
 
@@ -19,7 +19,9 @@ RUN apk add --no-cache ca-certificates tzdata && \
 WORKDIR /app
 
 COPY --from=builder /app/server .
-COPY configs/config.yaml /app/configs/config.yaml
+# 仅打包占位模板做兜底；真实配置在运行时由 ConfigMap 挂载到 /data/conf/config.yaml（AICOOK_CONFIG）。
+# 切勿把含真实密钥的 configs/config.yaml 烤进推送到公共仓库的镜像。
+COPY configs/config.yaml.example /app/configs/config.yaml
 
 EXPOSE 8000
 EXPOSE 9000

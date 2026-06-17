@@ -693,6 +693,162 @@ func (x *GenerateShoppingListReply) GetItems() []*ShoppingListItem {
 	return nil
 }
 
+type ShoppingItemAdd struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	QuantityText  string                 `protobuf:"bytes,2,opt,name=quantity_text,json=quantityText,proto3" json:"quantity_text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShoppingItemAdd) Reset() {
+	*x = ShoppingItemAdd{}
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShoppingItemAdd) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShoppingItemAdd) ProtoMessage() {}
+
+func (x *ShoppingItemAdd) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShoppingItemAdd.ProtoReflect.Descriptor instead.
+func (*ShoppingItemAdd) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ShoppingItemAdd) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ShoppingItemAdd) GetQuantityText() string {
+	if x != nil {
+		return x.QuantityText
+	}
+	return ""
+}
+
+type AddShoppingItemsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WeekStart     string                 `protobuf:"bytes,1,opt,name=week_start,json=weekStart,proto3" json:"week_start,omitempty"`
+	Items         []*ShoppingItemAdd     `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddShoppingItemsRequest) Reset() {
+	*x = AddShoppingItemsRequest{}
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddShoppingItemsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddShoppingItemsRequest) ProtoMessage() {}
+
+func (x *AddShoppingItemsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddShoppingItemsRequest.ProtoReflect.Descriptor instead.
+func (*AddShoppingItemsRequest) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AddShoppingItemsRequest) GetWeekStart() string {
+	if x != nil {
+		return x.WeekStart
+	}
+	return ""
+}
+
+func (x *AddShoppingItemsRequest) GetItems() []*ShoppingItemAdd {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type AddShoppingItemsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	List          *ShoppingList          `protobuf:"bytes,1,opt,name=list,proto3" json:"list,omitempty"`
+	Items         []*ShoppingListItem    `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"` // 实际新增（去重后）的条目
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddShoppingItemsReply) Reset() {
+	*x = AddShoppingItemsReply{}
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddShoppingItemsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddShoppingItemsReply) ProtoMessage() {}
+
+func (x *AddShoppingItemsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddShoppingItemsReply.ProtoReflect.Descriptor instead.
+func (*AddShoppingItemsReply) Descriptor() ([]byte, []int) {
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AddShoppingItemsReply) GetList() *ShoppingList {
+	if x != nil {
+		return x.List
+	}
+	return nil
+}
+
+func (x *AddShoppingItemsReply) GetItems() []*ShoppingListItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 type ShoppingList struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -706,7 +862,7 @@ type ShoppingList struct {
 
 func (x *ShoppingList) Reset() {
 	*x = ShoppingList{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[13]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -718,7 +874,7 @@ func (x *ShoppingList) String() string {
 func (*ShoppingList) ProtoMessage() {}
 
 func (x *ShoppingList) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[13]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -731,7 +887,7 @@ func (x *ShoppingList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShoppingList.ProtoReflect.Descriptor instead.
 func (*ShoppingList) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{13}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ShoppingList) GetId() int64 {
@@ -793,7 +949,7 @@ type ShoppingListItem struct {
 
 func (x *ShoppingListItem) Reset() {
 	*x = ShoppingListItem{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[14]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -805,7 +961,7 @@ func (x *ShoppingListItem) String() string {
 func (*ShoppingListItem) ProtoMessage() {}
 
 func (x *ShoppingListItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[14]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -818,7 +974,7 @@ func (x *ShoppingListItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShoppingListItem.ProtoReflect.Descriptor instead.
 func (*ShoppingListItem) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{14}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ShoppingListItem) GetId() int64 {
@@ -947,7 +1103,7 @@ type PatchShoppingListItemRequest struct {
 
 func (x *PatchShoppingListItemRequest) Reset() {
 	*x = PatchShoppingListItemRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[15]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +1115,7 @@ func (x *PatchShoppingListItemRequest) String() string {
 func (*PatchShoppingListItemRequest) ProtoMessage() {}
 
 func (x *PatchShoppingListItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[15]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +1128,7 @@ func (x *PatchShoppingListItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatchShoppingListItemRequest.ProtoReflect.Descriptor instead.
 func (*PatchShoppingListItemRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{15}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *PatchShoppingListItemRequest) GetListId() int64 {
@@ -1026,7 +1182,7 @@ type PatchShoppingListItemReply struct {
 
 func (x *PatchShoppingListItemReply) Reset() {
 	*x = PatchShoppingListItemReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[16]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1038,7 +1194,7 @@ func (x *PatchShoppingListItemReply) String() string {
 func (*PatchShoppingListItemReply) ProtoMessage() {}
 
 func (x *PatchShoppingListItemReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[16]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1051,7 +1207,7 @@ func (x *PatchShoppingListItemReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatchShoppingListItemReply.ProtoReflect.Descriptor instead.
 func (*PatchShoppingListItemReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{16}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PatchShoppingListItemReply) GetItem() *ShoppingListItem {
@@ -1070,7 +1226,7 @@ type CompleteShoppingListRequest struct {
 
 func (x *CompleteShoppingListRequest) Reset() {
 	*x = CompleteShoppingListRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[17]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1238,7 @@ func (x *CompleteShoppingListRequest) String() string {
 func (*CompleteShoppingListRequest) ProtoMessage() {}
 
 func (x *CompleteShoppingListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[17]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1251,7 @@ func (x *CompleteShoppingListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteShoppingListRequest.ProtoReflect.Descriptor instead.
 func (*CompleteShoppingListRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{17}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CompleteShoppingListRequest) GetListId() int64 {
@@ -1114,7 +1270,7 @@ type CompleteShoppingListReply struct {
 
 func (x *CompleteShoppingListReply) Reset() {
 	*x = CompleteShoppingListReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[18]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1126,7 +1282,7 @@ func (x *CompleteShoppingListReply) String() string {
 func (*CompleteShoppingListReply) ProtoMessage() {}
 
 func (x *CompleteShoppingListReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[18]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1139,7 +1295,7 @@ func (x *CompleteShoppingListReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteShoppingListReply.ProtoReflect.Descriptor instead.
 func (*CompleteShoppingListReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{18}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CompleteShoppingListReply) GetList() *ShoppingList {
@@ -1158,7 +1314,7 @@ type ListInventoryItemsRequest struct {
 
 func (x *ListInventoryItemsRequest) Reset() {
 	*x = ListInventoryItemsRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[19]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1170,7 +1326,7 @@ func (x *ListInventoryItemsRequest) String() string {
 func (*ListInventoryItemsRequest) ProtoMessage() {}
 
 func (x *ListInventoryItemsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[19]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1183,7 +1339,7 @@ func (x *ListInventoryItemsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInventoryItemsRequest.ProtoReflect.Descriptor instead.
 func (*ListInventoryItemsRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{19}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListInventoryItemsRequest) GetKeyword() string {
@@ -1202,7 +1358,7 @@ type ListInventoryItemsReply struct {
 
 func (x *ListInventoryItemsReply) Reset() {
 	*x = ListInventoryItemsReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[20]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1214,7 +1370,7 @@ func (x *ListInventoryItemsReply) String() string {
 func (*ListInventoryItemsReply) ProtoMessage() {}
 
 func (x *ListInventoryItemsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[20]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1227,7 +1383,7 @@ func (x *ListInventoryItemsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInventoryItemsReply.ProtoReflect.Descriptor instead.
 func (*ListInventoryItemsReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{20}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListInventoryItemsReply) GetItems() []*InventoryItem {
@@ -1255,7 +1411,7 @@ type InventoryUpsertItem struct {
 
 func (x *InventoryUpsertItem) Reset() {
 	*x = InventoryUpsertItem{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[21]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1267,7 +1423,7 @@ func (x *InventoryUpsertItem) String() string {
 func (*InventoryUpsertItem) ProtoMessage() {}
 
 func (x *InventoryUpsertItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[21]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1280,7 +1436,7 @@ func (x *InventoryUpsertItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryUpsertItem.ProtoReflect.Descriptor instead.
 func (*InventoryUpsertItem) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{21}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *InventoryUpsertItem) GetId() int64 {
@@ -1362,7 +1518,7 @@ type UpsertInventoryItemsRequest struct {
 
 func (x *UpsertInventoryItemsRequest) Reset() {
 	*x = UpsertInventoryItemsRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[22]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1374,7 +1530,7 @@ func (x *UpsertInventoryItemsRequest) String() string {
 func (*UpsertInventoryItemsRequest) ProtoMessage() {}
 
 func (x *UpsertInventoryItemsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[22]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1387,7 +1543,7 @@ func (x *UpsertInventoryItemsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertInventoryItemsRequest.ProtoReflect.Descriptor instead.
 func (*UpsertInventoryItemsRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{22}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *UpsertInventoryItemsRequest) GetItems() []*InventoryUpsertItem {
@@ -1406,7 +1562,7 @@ type UpsertInventoryItemsReply struct {
 
 func (x *UpsertInventoryItemsReply) Reset() {
 	*x = UpsertInventoryItemsReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[23]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1418,7 +1574,7 @@ func (x *UpsertInventoryItemsReply) String() string {
 func (*UpsertInventoryItemsReply) ProtoMessage() {}
 
 func (x *UpsertInventoryItemsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[23]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1431,7 +1587,7 @@ func (x *UpsertInventoryItemsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertInventoryItemsReply.ProtoReflect.Descriptor instead.
 func (*UpsertInventoryItemsReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{23}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *UpsertInventoryItemsReply) GetItems() []*InventoryItem {
@@ -1465,7 +1621,7 @@ type InventoryItem struct {
 
 func (x *InventoryItem) Reset() {
 	*x = InventoryItem{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[24]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1477,7 +1633,7 @@ func (x *InventoryItem) String() string {
 func (*InventoryItem) ProtoMessage() {}
 
 func (x *InventoryItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[24]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1490,7 +1646,7 @@ func (x *InventoryItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryItem.ProtoReflect.Descriptor instead.
 func (*InventoryItem) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{24}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *InventoryItem) GetId() int64 {
@@ -1625,7 +1781,7 @@ type PatchInventoryItemRequest struct {
 
 func (x *PatchInventoryItemRequest) Reset() {
 	*x = PatchInventoryItemRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[25]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1637,7 +1793,7 @@ func (x *PatchInventoryItemRequest) String() string {
 func (*PatchInventoryItemRequest) ProtoMessage() {}
 
 func (x *PatchInventoryItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[25]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1650,7 +1806,7 @@ func (x *PatchInventoryItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatchInventoryItemRequest.ProtoReflect.Descriptor instead.
 func (*PatchInventoryItemRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{25}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *PatchInventoryItemRequest) GetItemId() int64 {
@@ -1746,7 +1902,7 @@ type PatchInventoryItemReply struct {
 
 func (x *PatchInventoryItemReply) Reset() {
 	*x = PatchInventoryItemReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[26]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1758,7 +1914,7 @@ func (x *PatchInventoryItemReply) String() string {
 func (*PatchInventoryItemReply) ProtoMessage() {}
 
 func (x *PatchInventoryItemReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[26]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1771,7 +1927,7 @@ func (x *PatchInventoryItemReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatchInventoryItemReply.ProtoReflect.Descriptor instead.
 func (*PatchInventoryItemReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{26}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *PatchInventoryItemReply) GetItem() *InventoryItem {
@@ -1790,7 +1946,7 @@ type ListInventoryRecommendationsRequest struct {
 
 func (x *ListInventoryRecommendationsRequest) Reset() {
 	*x = ListInventoryRecommendationsRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[27]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1802,7 +1958,7 @@ func (x *ListInventoryRecommendationsRequest) String() string {
 func (*ListInventoryRecommendationsRequest) ProtoMessage() {}
 
 func (x *ListInventoryRecommendationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[27]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1815,7 +1971,7 @@ func (x *ListInventoryRecommendationsRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListInventoryRecommendationsRequest.ProtoReflect.Descriptor instead.
 func (*ListInventoryRecommendationsRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{27}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListInventoryRecommendationsRequest) GetLimit() int32 {
@@ -1834,7 +1990,7 @@ type ListInventoryRecommendationsReply struct {
 
 func (x *ListInventoryRecommendationsReply) Reset() {
 	*x = ListInventoryRecommendationsReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[28]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1846,7 +2002,7 @@ func (x *ListInventoryRecommendationsReply) String() string {
 func (*ListInventoryRecommendationsReply) ProtoMessage() {}
 
 func (x *ListInventoryRecommendationsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[28]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1859,7 +2015,7 @@ func (x *ListInventoryRecommendationsReply) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListInventoryRecommendationsReply.ProtoReflect.Descriptor instead.
 func (*ListInventoryRecommendationsReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{28}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListInventoryRecommendationsReply) GetItems() []*InventoryRecommendation {
@@ -1882,7 +2038,7 @@ type InventoryRecommendation struct {
 
 func (x *InventoryRecommendation) Reset() {
 	*x = InventoryRecommendation{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[29]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1894,7 +2050,7 @@ func (x *InventoryRecommendation) String() string {
 func (*InventoryRecommendation) ProtoMessage() {}
 
 func (x *InventoryRecommendation) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[29]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1907,7 +2063,7 @@ func (x *InventoryRecommendation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryRecommendation.ProtoReflect.Descriptor instead.
 func (*InventoryRecommendation) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{29}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *InventoryRecommendation) GetRecipe() *Recipe {
@@ -1954,7 +2110,7 @@ type CreateRecipeShareRequest struct {
 
 func (x *CreateRecipeShareRequest) Reset() {
 	*x = CreateRecipeShareRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[30]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1966,7 +2122,7 @@ func (x *CreateRecipeShareRequest) String() string {
 func (*CreateRecipeShareRequest) ProtoMessage() {}
 
 func (x *CreateRecipeShareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[30]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1979,7 +2135,7 @@ func (x *CreateRecipeShareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRecipeShareRequest.ProtoReflect.Descriptor instead.
 func (*CreateRecipeShareRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{30}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *CreateRecipeShareRequest) GetId() int64 {
@@ -2002,7 +2158,7 @@ type RecipeShareSummary struct {
 
 func (x *RecipeShareSummary) Reset() {
 	*x = RecipeShareSummary{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[31]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2014,7 +2170,7 @@ func (x *RecipeShareSummary) String() string {
 func (*RecipeShareSummary) ProtoMessage() {}
 
 func (x *RecipeShareSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[31]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2027,7 +2183,7 @@ func (x *RecipeShareSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecipeShareSummary.ProtoReflect.Descriptor instead.
 func (*RecipeShareSummary) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{31}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *RecipeShareSummary) GetId() int64 {
@@ -2075,7 +2231,7 @@ type CreateRecipeShareReply struct {
 
 func (x *CreateRecipeShareReply) Reset() {
 	*x = CreateRecipeShareReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[32]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2087,7 +2243,7 @@ func (x *CreateRecipeShareReply) String() string {
 func (*CreateRecipeShareReply) ProtoMessage() {}
 
 func (x *CreateRecipeShareReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[32]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2100,7 +2256,7 @@ func (x *CreateRecipeShareReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRecipeShareReply.ProtoReflect.Descriptor instead.
 func (*CreateRecipeShareReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{32}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CreateRecipeShareReply) GetShare() *RecipeShareSummary {
@@ -2126,7 +2282,7 @@ type PreviewRecipeShareRequest struct {
 
 func (x *PreviewRecipeShareRequest) Reset() {
 	*x = PreviewRecipeShareRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[33]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2138,7 +2294,7 @@ func (x *PreviewRecipeShareRequest) String() string {
 func (*PreviewRecipeShareRequest) ProtoMessage() {}
 
 func (x *PreviewRecipeShareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[33]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2151,7 +2307,7 @@ func (x *PreviewRecipeShareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewRecipeShareRequest.ProtoReflect.Descriptor instead.
 func (*PreviewRecipeShareRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{33}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *PreviewRecipeShareRequest) GetShareCode() string {
@@ -2171,7 +2327,7 @@ type PreviewRecipeShareReply struct {
 
 func (x *PreviewRecipeShareReply) Reset() {
 	*x = PreviewRecipeShareReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[34]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2183,7 +2339,7 @@ func (x *PreviewRecipeShareReply) String() string {
 func (*PreviewRecipeShareReply) ProtoMessage() {}
 
 func (x *PreviewRecipeShareReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[34]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2196,7 +2352,7 @@ func (x *PreviewRecipeShareReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewRecipeShareReply.ProtoReflect.Descriptor instead.
 func (*PreviewRecipeShareReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{34}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *PreviewRecipeShareReply) GetShare() *RecipeShareSummary {
@@ -2222,7 +2378,7 @@ type ImportRecipeShareRequest struct {
 
 func (x *ImportRecipeShareRequest) Reset() {
 	*x = ImportRecipeShareRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[35]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2234,7 +2390,7 @@ func (x *ImportRecipeShareRequest) String() string {
 func (*ImportRecipeShareRequest) ProtoMessage() {}
 
 func (x *ImportRecipeShareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[35]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2247,7 +2403,7 @@ func (x *ImportRecipeShareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportRecipeShareRequest.ProtoReflect.Descriptor instead.
 func (*ImportRecipeShareRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{35}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ImportRecipeShareRequest) GetShareCode() string {
@@ -2266,7 +2422,7 @@ type ImportRecipeShareReply struct {
 
 func (x *ImportRecipeShareReply) Reset() {
 	*x = ImportRecipeShareReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[36]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2278,7 +2434,7 @@ func (x *ImportRecipeShareReply) String() string {
 func (*ImportRecipeShareReply) ProtoMessage() {}
 
 func (x *ImportRecipeShareReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[36]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2291,7 +2447,7 @@ func (x *ImportRecipeShareReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportRecipeShareReply.ProtoReflect.Descriptor instead.
 func (*ImportRecipeShareReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{36}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ImportRecipeShareReply) GetRecipe() *Recipe {
@@ -2324,7 +2480,7 @@ type CookingHistoryEntry struct {
 
 func (x *CookingHistoryEntry) Reset() {
 	*x = CookingHistoryEntry{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[37]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2336,7 +2492,7 @@ func (x *CookingHistoryEntry) String() string {
 func (*CookingHistoryEntry) ProtoMessage() {}
 
 func (x *CookingHistoryEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[37]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2349,7 +2505,7 @@ func (x *CookingHistoryEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CookingHistoryEntry.ProtoReflect.Descriptor instead.
 func (*CookingHistoryEntry) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{37}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CookingHistoryEntry) GetId() int64 {
@@ -2459,7 +2615,7 @@ type CreateCookingHistoryRequest struct {
 
 func (x *CreateCookingHistoryRequest) Reset() {
 	*x = CreateCookingHistoryRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[38]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2471,7 +2627,7 @@ func (x *CreateCookingHistoryRequest) String() string {
 func (*CreateCookingHistoryRequest) ProtoMessage() {}
 
 func (x *CreateCookingHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[38]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2484,7 +2640,7 @@ func (x *CreateCookingHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCookingHistoryRequest.ProtoReflect.Descriptor instead.
 func (*CreateCookingHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{38}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *CreateCookingHistoryRequest) GetRecipeId() int64 {
@@ -2545,7 +2701,7 @@ type CreateCookingHistoryReply struct {
 
 func (x *CreateCookingHistoryReply) Reset() {
 	*x = CreateCookingHistoryReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[39]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2557,7 +2713,7 @@ func (x *CreateCookingHistoryReply) String() string {
 func (*CreateCookingHistoryReply) ProtoMessage() {}
 
 func (x *CreateCookingHistoryReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[39]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2570,7 +2726,7 @@ func (x *CreateCookingHistoryReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCookingHistoryReply.ProtoReflect.Descriptor instead.
 func (*CreateCookingHistoryReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{39}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *CreateCookingHistoryReply) GetEntry() *CookingHistoryEntry {
@@ -2591,7 +2747,7 @@ type ListCookingHistoryRequest struct {
 
 func (x *ListCookingHistoryRequest) Reset() {
 	*x = ListCookingHistoryRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[40]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2603,7 +2759,7 @@ func (x *ListCookingHistoryRequest) String() string {
 func (*ListCookingHistoryRequest) ProtoMessage() {}
 
 func (x *ListCookingHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[40]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2616,7 +2772,7 @@ func (x *ListCookingHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCookingHistoryRequest.ProtoReflect.Descriptor instead.
 func (*ListCookingHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{40}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ListCookingHistoryRequest) GetLimit() int32 {
@@ -2644,7 +2800,7 @@ type ListCookingHistoryReply struct {
 
 func (x *ListCookingHistoryReply) Reset() {
 	*x = ListCookingHistoryReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[41]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2656,7 +2812,7 @@ func (x *ListCookingHistoryReply) String() string {
 func (*ListCookingHistoryReply) ProtoMessage() {}
 
 func (x *ListCookingHistoryReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[41]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2669,7 +2825,7 @@ func (x *ListCookingHistoryReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCookingHistoryReply.ProtoReflect.Descriptor instead.
 func (*ListCookingHistoryReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{41}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ListCookingHistoryReply) GetEntries() []*CookingHistoryEntry {
@@ -2695,7 +2851,7 @@ type ListRecentCookingHistoryRequest struct {
 
 func (x *ListRecentCookingHistoryRequest) Reset() {
 	*x = ListRecentCookingHistoryRequest{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[42]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2707,7 +2863,7 @@ func (x *ListRecentCookingHistoryRequest) String() string {
 func (*ListRecentCookingHistoryRequest) ProtoMessage() {}
 
 func (x *ListRecentCookingHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[42]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2720,7 +2876,7 @@ func (x *ListRecentCookingHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentCookingHistoryRequest.ProtoReflect.Descriptor instead.
 func (*ListRecentCookingHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{42}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListRecentCookingHistoryRequest) GetLimit() int32 {
@@ -2739,7 +2895,7 @@ type ListRecentCookingHistoryReply struct {
 
 func (x *ListRecentCookingHistoryReply) Reset() {
 	*x = ListRecentCookingHistoryReply{}
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[43]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2751,7 +2907,7 @@ func (x *ListRecentCookingHistoryReply) String() string {
 func (*ListRecentCookingHistoryReply) ProtoMessage() {}
 
 func (x *ListRecentCookingHistoryReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[43]
+	mi := &file_api_aicook_v1_kitchen_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2764,7 +2920,7 @@ func (x *ListRecentCookingHistoryReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecentCookingHistoryReply.ProtoReflect.Descriptor instead.
 func (*ListRecentCookingHistoryReply) Descriptor() ([]byte, []int) {
-	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{43}
+	return file_api_aicook_v1_kitchen_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListRecentCookingHistoryReply) GetEntries() []*CookingHistoryEntry {
@@ -2827,6 +2983,16 @@ const file_api_aicook_v1_kitchen_proto_rawDesc = "" +
 	"\n" +
 	"week_start\x18\x01 \x01(\tR\tweekStart\"{\n" +
 	"\x19GenerateShoppingListReply\x12+\n" +
+	"\x04list\x18\x01 \x01(\v2\x17.aicook.v1.ShoppingListR\x04list\x121\n" +
+	"\x05items\x18\x02 \x03(\v2\x1b.aicook.v1.ShoppingListItemR\x05items\"J\n" +
+	"\x0fShoppingItemAdd\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
+	"\rquantity_text\x18\x02 \x01(\tR\fquantityText\"j\n" +
+	"\x17AddShoppingItemsRequest\x12\x1d\n" +
+	"\n" +
+	"week_start\x18\x01 \x01(\tR\tweekStart\x120\n" +
+	"\x05items\x18\x02 \x03(\v2\x1a.aicook.v1.ShoppingItemAddR\x05items\"w\n" +
+	"\x15AddShoppingItemsReply\x12+\n" +
 	"\x04list\x18\x01 \x01(\v2\x17.aicook.v1.ShoppingListR\x04list\x121\n" +
 	"\x05items\x18\x02 \x03(\v2\x1b.aicook.v1.ShoppingListItemR\x05items\"\xd5\x01\n" +
 	"\fShoppingList\x12\x0e\n" +
@@ -3015,13 +3181,14 @@ const file_api_aicook_v1_kitchen_proto_rawDesc = "" +
 	"\x1fListRecentCookingHistoryRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\"Y\n" +
 	"\x1dListRecentCookingHistoryReply\x128\n" +
-	"\aentries\x18\x01 \x03(\v2\x1e.aicook.v1.CookingHistoryEntryR\aentries2\xbb\x13\n" +
+	"\aentries\x18\x01 \x03(\v2\x1e.aicook.v1.CookingHistoryEntryR\aentries2\xc3\x14\n" +
 	"\x0eKitchenService\x12\x82\x01\n" +
 	"\x12GetCurrentMealPlan\x12$.aicook.v1.GetCurrentMealPlanRequest\x1a\".aicook.v1.GetCurrentMealPlanReply\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/api/v1/meal-plans/current\x12\x88\x01\n" +
 	"\x13SaveCurrentMealPlan\x12%.aicook.v1.SaveCurrentMealPlanRequest\x1a#.aicook.v1.SaveCurrentMealPlanReply\"%\x82\xd3\xe4\x93\x02\x1f:\x01*\x1a\x1a/api/v1/meal-plans/current\x12\x9a\x01\n" +
 	"\x17GenerateCurrentMealPlan\x12).aicook.v1.GenerateCurrentMealPlanRequest\x1a'.aicook.v1.GenerateCurrentMealPlanReply\"+\x82\xd3\xe4\x93\x02%\"#/api/v1/meal-plans/current:generate\x12\x92\x01\n" +
 	"\x16GetCurrentShoppingList\x12(.aicook.v1.GetCurrentShoppingListRequest\x1a&.aicook.v1.GetCurrentShoppingListReply\"&\x82\xd3\xe4\x93\x02 \x12\x1e/api/v1/shopping-lists/current\x12\x8d\x01\n" +
-	"\x14GenerateShoppingList\x12&.aicook.v1.GenerateShoppingListRequest\x1a$.aicook.v1.GenerateShoppingListReply\"'\x82\xd3\xe4\x93\x02!\"\x1f/api/v1/shopping-lists:generate\x12\xa4\x01\n" +
+	"\x14GenerateShoppingList\x12&.aicook.v1.GenerateShoppingListRequest\x1a$.aicook.v1.GenerateShoppingListReply\"'\x82\xd3\xe4\x93\x02!\"\x1f/api/v1/shopping-lists:generate\x12\x85\x01\n" +
+	"\x10AddShoppingItems\x12\".aicook.v1.AddShoppingItemsRequest\x1a .aicook.v1.AddShoppingItemsReply\"+\x82\xd3\xe4\x93\x02%:\x01*\" /api/v1/shopping-lists:add-items\x12\xa4\x01\n" +
 	"\x15PatchShoppingListItem\x12'.aicook.v1.PatchShoppingListItemRequest\x1a%.aicook.v1.PatchShoppingListItemReply\";\x82\xd3\xe4\x93\x025:\x01*20/api/v1/shopping-lists/{list_id}/items/{item_id}\x12\x97\x01\n" +
 	"\x14CompleteShoppingList\x12&.aicook.v1.CompleteShoppingListRequest\x1a$.aicook.v1.CompleteShoppingListReply\"1\x82\xd3\xe4\x93\x02+\")/api/v1/shopping-lists/{list_id}:complete\x12\x7f\n" +
 	"\x12ListInventoryItems\x12$.aicook.v1.ListInventoryItemsRequest\x1a\".aicook.v1.ListInventoryItemsReply\"\x1f\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v1/inventory-items\x12\x8f\x01\n" +
@@ -3047,7 +3214,7 @@ func file_api_aicook_v1_kitchen_proto_rawDescGZIP() []byte {
 	return file_api_aicook_v1_kitchen_proto_rawDescData
 }
 
-var file_api_aicook_v1_kitchen_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_api_aicook_v1_kitchen_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_api_aicook_v1_kitchen_proto_goTypes = []any{
 	(*MealPlanDish)(nil),                        // 0: aicook.v1.MealPlanDish
 	(*MealPlanDaySlots)(nil),                    // 1: aicook.v1.MealPlanDaySlots
@@ -3062,123 +3229,131 @@ var file_api_aicook_v1_kitchen_proto_goTypes = []any{
 	(*GetCurrentShoppingListReply)(nil),         // 10: aicook.v1.GetCurrentShoppingListReply
 	(*GenerateShoppingListRequest)(nil),         // 11: aicook.v1.GenerateShoppingListRequest
 	(*GenerateShoppingListReply)(nil),           // 12: aicook.v1.GenerateShoppingListReply
-	(*ShoppingList)(nil),                        // 13: aicook.v1.ShoppingList
-	(*ShoppingListItem)(nil),                    // 14: aicook.v1.ShoppingListItem
-	(*PatchShoppingListItemRequest)(nil),        // 15: aicook.v1.PatchShoppingListItemRequest
-	(*PatchShoppingListItemReply)(nil),          // 16: aicook.v1.PatchShoppingListItemReply
-	(*CompleteShoppingListRequest)(nil),         // 17: aicook.v1.CompleteShoppingListRequest
-	(*CompleteShoppingListReply)(nil),           // 18: aicook.v1.CompleteShoppingListReply
-	(*ListInventoryItemsRequest)(nil),           // 19: aicook.v1.ListInventoryItemsRequest
-	(*ListInventoryItemsReply)(nil),             // 20: aicook.v1.ListInventoryItemsReply
-	(*InventoryUpsertItem)(nil),                 // 21: aicook.v1.InventoryUpsertItem
-	(*UpsertInventoryItemsRequest)(nil),         // 22: aicook.v1.UpsertInventoryItemsRequest
-	(*UpsertInventoryItemsReply)(nil),           // 23: aicook.v1.UpsertInventoryItemsReply
-	(*InventoryItem)(nil),                       // 24: aicook.v1.InventoryItem
-	(*PatchInventoryItemRequest)(nil),           // 25: aicook.v1.PatchInventoryItemRequest
-	(*PatchInventoryItemReply)(nil),             // 26: aicook.v1.PatchInventoryItemReply
-	(*ListInventoryRecommendationsRequest)(nil), // 27: aicook.v1.ListInventoryRecommendationsRequest
-	(*ListInventoryRecommendationsReply)(nil),   // 28: aicook.v1.ListInventoryRecommendationsReply
-	(*InventoryRecommendation)(nil),             // 29: aicook.v1.InventoryRecommendation
-	(*CreateRecipeShareRequest)(nil),            // 30: aicook.v1.CreateRecipeShareRequest
-	(*RecipeShareSummary)(nil),                  // 31: aicook.v1.RecipeShareSummary
-	(*CreateRecipeShareReply)(nil),              // 32: aicook.v1.CreateRecipeShareReply
-	(*PreviewRecipeShareRequest)(nil),           // 33: aicook.v1.PreviewRecipeShareRequest
-	(*PreviewRecipeShareReply)(nil),             // 34: aicook.v1.PreviewRecipeShareReply
-	(*ImportRecipeShareRequest)(nil),            // 35: aicook.v1.ImportRecipeShareRequest
-	(*ImportRecipeShareReply)(nil),              // 36: aicook.v1.ImportRecipeShareReply
-	(*CookingHistoryEntry)(nil),                 // 37: aicook.v1.CookingHistoryEntry
-	(*CreateCookingHistoryRequest)(nil),         // 38: aicook.v1.CreateCookingHistoryRequest
-	(*CreateCookingHistoryReply)(nil),           // 39: aicook.v1.CreateCookingHistoryReply
-	(*ListCookingHistoryRequest)(nil),           // 40: aicook.v1.ListCookingHistoryRequest
-	(*ListCookingHistoryReply)(nil),             // 41: aicook.v1.ListCookingHistoryReply
-	(*ListRecentCookingHistoryRequest)(nil),     // 42: aicook.v1.ListRecentCookingHistoryRequest
-	(*ListRecentCookingHistoryReply)(nil),       // 43: aicook.v1.ListRecentCookingHistoryReply
-	nil,                                         // 44: aicook.v1.SaveCurrentMealPlanRequest.DaysEntry
-	nil,                                         // 45: aicook.v1.MealPlanWeek.DaysEntry
-	(*timestamppb.Timestamp)(nil),               // 46: google.protobuf.Timestamp
-	(*Recipe)(nil),                              // 47: aicook.v1.Recipe
-	(*RecipeDetail)(nil),                        // 48: aicook.v1.RecipeDetail
+	(*ShoppingItemAdd)(nil),                     // 13: aicook.v1.ShoppingItemAdd
+	(*AddShoppingItemsRequest)(nil),             // 14: aicook.v1.AddShoppingItemsRequest
+	(*AddShoppingItemsReply)(nil),               // 15: aicook.v1.AddShoppingItemsReply
+	(*ShoppingList)(nil),                        // 16: aicook.v1.ShoppingList
+	(*ShoppingListItem)(nil),                    // 17: aicook.v1.ShoppingListItem
+	(*PatchShoppingListItemRequest)(nil),        // 18: aicook.v1.PatchShoppingListItemRequest
+	(*PatchShoppingListItemReply)(nil),          // 19: aicook.v1.PatchShoppingListItemReply
+	(*CompleteShoppingListRequest)(nil),         // 20: aicook.v1.CompleteShoppingListRequest
+	(*CompleteShoppingListReply)(nil),           // 21: aicook.v1.CompleteShoppingListReply
+	(*ListInventoryItemsRequest)(nil),           // 22: aicook.v1.ListInventoryItemsRequest
+	(*ListInventoryItemsReply)(nil),             // 23: aicook.v1.ListInventoryItemsReply
+	(*InventoryUpsertItem)(nil),                 // 24: aicook.v1.InventoryUpsertItem
+	(*UpsertInventoryItemsRequest)(nil),         // 25: aicook.v1.UpsertInventoryItemsRequest
+	(*UpsertInventoryItemsReply)(nil),           // 26: aicook.v1.UpsertInventoryItemsReply
+	(*InventoryItem)(nil),                       // 27: aicook.v1.InventoryItem
+	(*PatchInventoryItemRequest)(nil),           // 28: aicook.v1.PatchInventoryItemRequest
+	(*PatchInventoryItemReply)(nil),             // 29: aicook.v1.PatchInventoryItemReply
+	(*ListInventoryRecommendationsRequest)(nil), // 30: aicook.v1.ListInventoryRecommendationsRequest
+	(*ListInventoryRecommendationsReply)(nil),   // 31: aicook.v1.ListInventoryRecommendationsReply
+	(*InventoryRecommendation)(nil),             // 32: aicook.v1.InventoryRecommendation
+	(*CreateRecipeShareRequest)(nil),            // 33: aicook.v1.CreateRecipeShareRequest
+	(*RecipeShareSummary)(nil),                  // 34: aicook.v1.RecipeShareSummary
+	(*CreateRecipeShareReply)(nil),              // 35: aicook.v1.CreateRecipeShareReply
+	(*PreviewRecipeShareRequest)(nil),           // 36: aicook.v1.PreviewRecipeShareRequest
+	(*PreviewRecipeShareReply)(nil),             // 37: aicook.v1.PreviewRecipeShareReply
+	(*ImportRecipeShareRequest)(nil),            // 38: aicook.v1.ImportRecipeShareRequest
+	(*ImportRecipeShareReply)(nil),              // 39: aicook.v1.ImportRecipeShareReply
+	(*CookingHistoryEntry)(nil),                 // 40: aicook.v1.CookingHistoryEntry
+	(*CreateCookingHistoryRequest)(nil),         // 41: aicook.v1.CreateCookingHistoryRequest
+	(*CreateCookingHistoryReply)(nil),           // 42: aicook.v1.CreateCookingHistoryReply
+	(*ListCookingHistoryRequest)(nil),           // 43: aicook.v1.ListCookingHistoryRequest
+	(*ListCookingHistoryReply)(nil),             // 44: aicook.v1.ListCookingHistoryReply
+	(*ListRecentCookingHistoryRequest)(nil),     // 45: aicook.v1.ListRecentCookingHistoryRequest
+	(*ListRecentCookingHistoryReply)(nil),       // 46: aicook.v1.ListRecentCookingHistoryReply
+	nil,                                         // 47: aicook.v1.SaveCurrentMealPlanRequest.DaysEntry
+	nil,                                         // 48: aicook.v1.MealPlanWeek.DaysEntry
+	(*timestamppb.Timestamp)(nil),               // 49: google.protobuf.Timestamp
+	(*Recipe)(nil),                              // 50: aicook.v1.Recipe
+	(*RecipeDetail)(nil),                        // 51: aicook.v1.RecipeDetail
 }
 var file_api_aicook_v1_kitchen_proto_depIdxs = []int32{
 	0,  // 0: aicook.v1.MealPlanDaySlots.breakfast:type_name -> aicook.v1.MealPlanDish
 	0,  // 1: aicook.v1.MealPlanDaySlots.lunch:type_name -> aicook.v1.MealPlanDish
 	0,  // 2: aicook.v1.MealPlanDaySlots.dinner:type_name -> aicook.v1.MealPlanDish
 	8,  // 3: aicook.v1.GetCurrentMealPlanReply.plan:type_name -> aicook.v1.MealPlanWeek
-	44, // 4: aicook.v1.SaveCurrentMealPlanRequest.days:type_name -> aicook.v1.SaveCurrentMealPlanRequest.DaysEntry
+	47, // 4: aicook.v1.SaveCurrentMealPlanRequest.days:type_name -> aicook.v1.SaveCurrentMealPlanRequest.DaysEntry
 	8,  // 5: aicook.v1.SaveCurrentMealPlanReply.plan:type_name -> aicook.v1.MealPlanWeek
 	8,  // 6: aicook.v1.GenerateCurrentMealPlanReply.plan:type_name -> aicook.v1.MealPlanWeek
-	45, // 7: aicook.v1.MealPlanWeek.days:type_name -> aicook.v1.MealPlanWeek.DaysEntry
-	13, // 8: aicook.v1.GetCurrentShoppingListReply.list:type_name -> aicook.v1.ShoppingList
-	14, // 9: aicook.v1.GetCurrentShoppingListReply.items:type_name -> aicook.v1.ShoppingListItem
-	13, // 10: aicook.v1.GenerateShoppingListReply.list:type_name -> aicook.v1.ShoppingList
-	14, // 11: aicook.v1.GenerateShoppingListReply.items:type_name -> aicook.v1.ShoppingListItem
-	46, // 12: aicook.v1.ShoppingList.completed_at:type_name -> google.protobuf.Timestamp
-	14, // 13: aicook.v1.PatchShoppingListItemReply.item:type_name -> aicook.v1.ShoppingListItem
-	13, // 14: aicook.v1.CompleteShoppingListReply.list:type_name -> aicook.v1.ShoppingList
-	24, // 15: aicook.v1.ListInventoryItemsReply.items:type_name -> aicook.v1.InventoryItem
-	21, // 16: aicook.v1.UpsertInventoryItemsRequest.items:type_name -> aicook.v1.InventoryUpsertItem
-	24, // 17: aicook.v1.UpsertInventoryItemsReply.items:type_name -> aicook.v1.InventoryItem
-	46, // 18: aicook.v1.InventoryItem.expires_at:type_name -> google.protobuf.Timestamp
-	46, // 19: aicook.v1.InventoryItem.last_seen_at:type_name -> google.protobuf.Timestamp
-	46, // 20: aicook.v1.InventoryItem.created_at:type_name -> google.protobuf.Timestamp
-	46, // 21: aicook.v1.InventoryItem.updated_at:type_name -> google.protobuf.Timestamp
-	46, // 22: aicook.v1.PatchInventoryItemRequest.expires_at:type_name -> google.protobuf.Timestamp
-	46, // 23: aicook.v1.PatchInventoryItemRequest.last_seen_at:type_name -> google.protobuf.Timestamp
-	24, // 24: aicook.v1.PatchInventoryItemReply.item:type_name -> aicook.v1.InventoryItem
-	29, // 25: aicook.v1.ListInventoryRecommendationsReply.items:type_name -> aicook.v1.InventoryRecommendation
-	47, // 26: aicook.v1.InventoryRecommendation.recipe:type_name -> aicook.v1.Recipe
-	31, // 27: aicook.v1.CreateRecipeShareReply.share:type_name -> aicook.v1.RecipeShareSummary
-	48, // 28: aicook.v1.CreateRecipeShareReply.detail:type_name -> aicook.v1.RecipeDetail
-	31, // 29: aicook.v1.PreviewRecipeShareReply.share:type_name -> aicook.v1.RecipeShareSummary
-	48, // 30: aicook.v1.PreviewRecipeShareReply.detail:type_name -> aicook.v1.RecipeDetail
-	47, // 31: aicook.v1.ImportRecipeShareReply.recipe:type_name -> aicook.v1.Recipe
-	46, // 32: aicook.v1.CookingHistoryEntry.started_at:type_name -> google.protobuf.Timestamp
-	46, // 33: aicook.v1.CookingHistoryEntry.completed_at:type_name -> google.protobuf.Timestamp
-	46, // 34: aicook.v1.CookingHistoryEntry.created_at:type_name -> google.protobuf.Timestamp
-	37, // 35: aicook.v1.CreateCookingHistoryReply.entry:type_name -> aicook.v1.CookingHistoryEntry
-	37, // 36: aicook.v1.ListCookingHistoryReply.entries:type_name -> aicook.v1.CookingHistoryEntry
-	37, // 37: aicook.v1.ListRecentCookingHistoryReply.entries:type_name -> aicook.v1.CookingHistoryEntry
-	1,  // 38: aicook.v1.SaveCurrentMealPlanRequest.DaysEntry.value:type_name -> aicook.v1.MealPlanDaySlots
-	1,  // 39: aicook.v1.MealPlanWeek.DaysEntry.value:type_name -> aicook.v1.MealPlanDaySlots
-	2,  // 40: aicook.v1.KitchenService.GetCurrentMealPlan:input_type -> aicook.v1.GetCurrentMealPlanRequest
-	4,  // 41: aicook.v1.KitchenService.SaveCurrentMealPlan:input_type -> aicook.v1.SaveCurrentMealPlanRequest
-	6,  // 42: aicook.v1.KitchenService.GenerateCurrentMealPlan:input_type -> aicook.v1.GenerateCurrentMealPlanRequest
-	9,  // 43: aicook.v1.KitchenService.GetCurrentShoppingList:input_type -> aicook.v1.GetCurrentShoppingListRequest
-	11, // 44: aicook.v1.KitchenService.GenerateShoppingList:input_type -> aicook.v1.GenerateShoppingListRequest
-	15, // 45: aicook.v1.KitchenService.PatchShoppingListItem:input_type -> aicook.v1.PatchShoppingListItemRequest
-	17, // 46: aicook.v1.KitchenService.CompleteShoppingList:input_type -> aicook.v1.CompleteShoppingListRequest
-	19, // 47: aicook.v1.KitchenService.ListInventoryItems:input_type -> aicook.v1.ListInventoryItemsRequest
-	22, // 48: aicook.v1.KitchenService.UpsertInventoryItems:input_type -> aicook.v1.UpsertInventoryItemsRequest
-	25, // 49: aicook.v1.KitchenService.PatchInventoryItem:input_type -> aicook.v1.PatchInventoryItemRequest
-	27, // 50: aicook.v1.KitchenService.ListInventoryRecommendations:input_type -> aicook.v1.ListInventoryRecommendationsRequest
-	30, // 51: aicook.v1.KitchenService.CreateRecipeShare:input_type -> aicook.v1.CreateRecipeShareRequest
-	33, // 52: aicook.v1.KitchenService.PreviewRecipeShare:input_type -> aicook.v1.PreviewRecipeShareRequest
-	35, // 53: aicook.v1.KitchenService.ImportRecipeShare:input_type -> aicook.v1.ImportRecipeShareRequest
-	38, // 54: aicook.v1.KitchenService.CreateCookingHistory:input_type -> aicook.v1.CreateCookingHistoryRequest
-	40, // 55: aicook.v1.KitchenService.ListCookingHistory:input_type -> aicook.v1.ListCookingHistoryRequest
-	42, // 56: aicook.v1.KitchenService.ListRecentCookingHistory:input_type -> aicook.v1.ListRecentCookingHistoryRequest
-	3,  // 57: aicook.v1.KitchenService.GetCurrentMealPlan:output_type -> aicook.v1.GetCurrentMealPlanReply
-	5,  // 58: aicook.v1.KitchenService.SaveCurrentMealPlan:output_type -> aicook.v1.SaveCurrentMealPlanReply
-	7,  // 59: aicook.v1.KitchenService.GenerateCurrentMealPlan:output_type -> aicook.v1.GenerateCurrentMealPlanReply
-	10, // 60: aicook.v1.KitchenService.GetCurrentShoppingList:output_type -> aicook.v1.GetCurrentShoppingListReply
-	12, // 61: aicook.v1.KitchenService.GenerateShoppingList:output_type -> aicook.v1.GenerateShoppingListReply
-	16, // 62: aicook.v1.KitchenService.PatchShoppingListItem:output_type -> aicook.v1.PatchShoppingListItemReply
-	18, // 63: aicook.v1.KitchenService.CompleteShoppingList:output_type -> aicook.v1.CompleteShoppingListReply
-	20, // 64: aicook.v1.KitchenService.ListInventoryItems:output_type -> aicook.v1.ListInventoryItemsReply
-	23, // 65: aicook.v1.KitchenService.UpsertInventoryItems:output_type -> aicook.v1.UpsertInventoryItemsReply
-	26, // 66: aicook.v1.KitchenService.PatchInventoryItem:output_type -> aicook.v1.PatchInventoryItemReply
-	28, // 67: aicook.v1.KitchenService.ListInventoryRecommendations:output_type -> aicook.v1.ListInventoryRecommendationsReply
-	32, // 68: aicook.v1.KitchenService.CreateRecipeShare:output_type -> aicook.v1.CreateRecipeShareReply
-	34, // 69: aicook.v1.KitchenService.PreviewRecipeShare:output_type -> aicook.v1.PreviewRecipeShareReply
-	36, // 70: aicook.v1.KitchenService.ImportRecipeShare:output_type -> aicook.v1.ImportRecipeShareReply
-	39, // 71: aicook.v1.KitchenService.CreateCookingHistory:output_type -> aicook.v1.CreateCookingHistoryReply
-	41, // 72: aicook.v1.KitchenService.ListCookingHistory:output_type -> aicook.v1.ListCookingHistoryReply
-	43, // 73: aicook.v1.KitchenService.ListRecentCookingHistory:output_type -> aicook.v1.ListRecentCookingHistoryReply
-	57, // [57:74] is the sub-list for method output_type
-	40, // [40:57] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	48, // 7: aicook.v1.MealPlanWeek.days:type_name -> aicook.v1.MealPlanWeek.DaysEntry
+	16, // 8: aicook.v1.GetCurrentShoppingListReply.list:type_name -> aicook.v1.ShoppingList
+	17, // 9: aicook.v1.GetCurrentShoppingListReply.items:type_name -> aicook.v1.ShoppingListItem
+	16, // 10: aicook.v1.GenerateShoppingListReply.list:type_name -> aicook.v1.ShoppingList
+	17, // 11: aicook.v1.GenerateShoppingListReply.items:type_name -> aicook.v1.ShoppingListItem
+	13, // 12: aicook.v1.AddShoppingItemsRequest.items:type_name -> aicook.v1.ShoppingItemAdd
+	16, // 13: aicook.v1.AddShoppingItemsReply.list:type_name -> aicook.v1.ShoppingList
+	17, // 14: aicook.v1.AddShoppingItemsReply.items:type_name -> aicook.v1.ShoppingListItem
+	49, // 15: aicook.v1.ShoppingList.completed_at:type_name -> google.protobuf.Timestamp
+	17, // 16: aicook.v1.PatchShoppingListItemReply.item:type_name -> aicook.v1.ShoppingListItem
+	16, // 17: aicook.v1.CompleteShoppingListReply.list:type_name -> aicook.v1.ShoppingList
+	27, // 18: aicook.v1.ListInventoryItemsReply.items:type_name -> aicook.v1.InventoryItem
+	24, // 19: aicook.v1.UpsertInventoryItemsRequest.items:type_name -> aicook.v1.InventoryUpsertItem
+	27, // 20: aicook.v1.UpsertInventoryItemsReply.items:type_name -> aicook.v1.InventoryItem
+	49, // 21: aicook.v1.InventoryItem.expires_at:type_name -> google.protobuf.Timestamp
+	49, // 22: aicook.v1.InventoryItem.last_seen_at:type_name -> google.protobuf.Timestamp
+	49, // 23: aicook.v1.InventoryItem.created_at:type_name -> google.protobuf.Timestamp
+	49, // 24: aicook.v1.InventoryItem.updated_at:type_name -> google.protobuf.Timestamp
+	49, // 25: aicook.v1.PatchInventoryItemRequest.expires_at:type_name -> google.protobuf.Timestamp
+	49, // 26: aicook.v1.PatchInventoryItemRequest.last_seen_at:type_name -> google.protobuf.Timestamp
+	27, // 27: aicook.v1.PatchInventoryItemReply.item:type_name -> aicook.v1.InventoryItem
+	32, // 28: aicook.v1.ListInventoryRecommendationsReply.items:type_name -> aicook.v1.InventoryRecommendation
+	50, // 29: aicook.v1.InventoryRecommendation.recipe:type_name -> aicook.v1.Recipe
+	34, // 30: aicook.v1.CreateRecipeShareReply.share:type_name -> aicook.v1.RecipeShareSummary
+	51, // 31: aicook.v1.CreateRecipeShareReply.detail:type_name -> aicook.v1.RecipeDetail
+	34, // 32: aicook.v1.PreviewRecipeShareReply.share:type_name -> aicook.v1.RecipeShareSummary
+	51, // 33: aicook.v1.PreviewRecipeShareReply.detail:type_name -> aicook.v1.RecipeDetail
+	50, // 34: aicook.v1.ImportRecipeShareReply.recipe:type_name -> aicook.v1.Recipe
+	49, // 35: aicook.v1.CookingHistoryEntry.started_at:type_name -> google.protobuf.Timestamp
+	49, // 36: aicook.v1.CookingHistoryEntry.completed_at:type_name -> google.protobuf.Timestamp
+	49, // 37: aicook.v1.CookingHistoryEntry.created_at:type_name -> google.protobuf.Timestamp
+	40, // 38: aicook.v1.CreateCookingHistoryReply.entry:type_name -> aicook.v1.CookingHistoryEntry
+	40, // 39: aicook.v1.ListCookingHistoryReply.entries:type_name -> aicook.v1.CookingHistoryEntry
+	40, // 40: aicook.v1.ListRecentCookingHistoryReply.entries:type_name -> aicook.v1.CookingHistoryEntry
+	1,  // 41: aicook.v1.SaveCurrentMealPlanRequest.DaysEntry.value:type_name -> aicook.v1.MealPlanDaySlots
+	1,  // 42: aicook.v1.MealPlanWeek.DaysEntry.value:type_name -> aicook.v1.MealPlanDaySlots
+	2,  // 43: aicook.v1.KitchenService.GetCurrentMealPlan:input_type -> aicook.v1.GetCurrentMealPlanRequest
+	4,  // 44: aicook.v1.KitchenService.SaveCurrentMealPlan:input_type -> aicook.v1.SaveCurrentMealPlanRequest
+	6,  // 45: aicook.v1.KitchenService.GenerateCurrentMealPlan:input_type -> aicook.v1.GenerateCurrentMealPlanRequest
+	9,  // 46: aicook.v1.KitchenService.GetCurrentShoppingList:input_type -> aicook.v1.GetCurrentShoppingListRequest
+	11, // 47: aicook.v1.KitchenService.GenerateShoppingList:input_type -> aicook.v1.GenerateShoppingListRequest
+	14, // 48: aicook.v1.KitchenService.AddShoppingItems:input_type -> aicook.v1.AddShoppingItemsRequest
+	18, // 49: aicook.v1.KitchenService.PatchShoppingListItem:input_type -> aicook.v1.PatchShoppingListItemRequest
+	20, // 50: aicook.v1.KitchenService.CompleteShoppingList:input_type -> aicook.v1.CompleteShoppingListRequest
+	22, // 51: aicook.v1.KitchenService.ListInventoryItems:input_type -> aicook.v1.ListInventoryItemsRequest
+	25, // 52: aicook.v1.KitchenService.UpsertInventoryItems:input_type -> aicook.v1.UpsertInventoryItemsRequest
+	28, // 53: aicook.v1.KitchenService.PatchInventoryItem:input_type -> aicook.v1.PatchInventoryItemRequest
+	30, // 54: aicook.v1.KitchenService.ListInventoryRecommendations:input_type -> aicook.v1.ListInventoryRecommendationsRequest
+	33, // 55: aicook.v1.KitchenService.CreateRecipeShare:input_type -> aicook.v1.CreateRecipeShareRequest
+	36, // 56: aicook.v1.KitchenService.PreviewRecipeShare:input_type -> aicook.v1.PreviewRecipeShareRequest
+	38, // 57: aicook.v1.KitchenService.ImportRecipeShare:input_type -> aicook.v1.ImportRecipeShareRequest
+	41, // 58: aicook.v1.KitchenService.CreateCookingHistory:input_type -> aicook.v1.CreateCookingHistoryRequest
+	43, // 59: aicook.v1.KitchenService.ListCookingHistory:input_type -> aicook.v1.ListCookingHistoryRequest
+	45, // 60: aicook.v1.KitchenService.ListRecentCookingHistory:input_type -> aicook.v1.ListRecentCookingHistoryRequest
+	3,  // 61: aicook.v1.KitchenService.GetCurrentMealPlan:output_type -> aicook.v1.GetCurrentMealPlanReply
+	5,  // 62: aicook.v1.KitchenService.SaveCurrentMealPlan:output_type -> aicook.v1.SaveCurrentMealPlanReply
+	7,  // 63: aicook.v1.KitchenService.GenerateCurrentMealPlan:output_type -> aicook.v1.GenerateCurrentMealPlanReply
+	10, // 64: aicook.v1.KitchenService.GetCurrentShoppingList:output_type -> aicook.v1.GetCurrentShoppingListReply
+	12, // 65: aicook.v1.KitchenService.GenerateShoppingList:output_type -> aicook.v1.GenerateShoppingListReply
+	15, // 66: aicook.v1.KitchenService.AddShoppingItems:output_type -> aicook.v1.AddShoppingItemsReply
+	19, // 67: aicook.v1.KitchenService.PatchShoppingListItem:output_type -> aicook.v1.PatchShoppingListItemReply
+	21, // 68: aicook.v1.KitchenService.CompleteShoppingList:output_type -> aicook.v1.CompleteShoppingListReply
+	23, // 69: aicook.v1.KitchenService.ListInventoryItems:output_type -> aicook.v1.ListInventoryItemsReply
+	26, // 70: aicook.v1.KitchenService.UpsertInventoryItems:output_type -> aicook.v1.UpsertInventoryItemsReply
+	29, // 71: aicook.v1.KitchenService.PatchInventoryItem:output_type -> aicook.v1.PatchInventoryItemReply
+	31, // 72: aicook.v1.KitchenService.ListInventoryRecommendations:output_type -> aicook.v1.ListInventoryRecommendationsReply
+	35, // 73: aicook.v1.KitchenService.CreateRecipeShare:output_type -> aicook.v1.CreateRecipeShareReply
+	37, // 74: aicook.v1.KitchenService.PreviewRecipeShare:output_type -> aicook.v1.PreviewRecipeShareReply
+	39, // 75: aicook.v1.KitchenService.ImportRecipeShare:output_type -> aicook.v1.ImportRecipeShareReply
+	42, // 76: aicook.v1.KitchenService.CreateCookingHistory:output_type -> aicook.v1.CreateCookingHistoryReply
+	44, // 77: aicook.v1.KitchenService.ListCookingHistory:output_type -> aicook.v1.ListCookingHistoryReply
+	46, // 78: aicook.v1.KitchenService.ListRecentCookingHistory:output_type -> aicook.v1.ListRecentCookingHistoryReply
+	61, // [61:79] is the sub-list for method output_type
+	43, // [43:61] is the sub-list for method input_type
+	43, // [43:43] is the sub-list for extension type_name
+	43, // [43:43] is the sub-list for extension extendee
+	0,  // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_api_aicook_v1_kitchen_proto_init() }
@@ -3188,16 +3363,16 @@ func file_api_aicook_v1_kitchen_proto_init() {
 	}
 	file_api_aicook_v1_common_proto_init()
 	file_api_aicook_v1_kitchen_proto_msgTypes[0].OneofWrappers = []any{}
-	file_api_aicook_v1_kitchen_proto_msgTypes[13].OneofWrappers = []any{}
-	file_api_aicook_v1_kitchen_proto_msgTypes[14].OneofWrappers = []any{}
-	file_api_aicook_v1_kitchen_proto_msgTypes[15].OneofWrappers = []any{}
+	file_api_aicook_v1_kitchen_proto_msgTypes[16].OneofWrappers = []any{}
+	file_api_aicook_v1_kitchen_proto_msgTypes[17].OneofWrappers = []any{}
+	file_api_aicook_v1_kitchen_proto_msgTypes[18].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_aicook_v1_kitchen_proto_rawDesc), len(file_api_aicook_v1_kitchen_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   46,
+			NumMessages:   49,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

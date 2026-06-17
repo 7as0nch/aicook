@@ -17,11 +17,12 @@ interface EnvLocalOverride {
 
 const DEFAULT_DEVELOP_HOST = 'http://127.0.0.1:8000';
 
-// 三套环境预设。release/trial 当前为占位域名（尚未部署公网），换真实域名只改这里。
+// 三套环境预设。换真实域名只改这里。
+// 注意：体验版/正式版必须走 HTTPS，且域名要先加进微信公众平台「request 合法域名」白名单。
 const ENV_PRESETS: Record<EnvVersion, EnvConfig> = {
   develop: { host: DEFAULT_DEVELOP_HOST, envVersion: 'develop' },
-  trial: { host: 'https://test.aicook.example.com', envVersion: 'trial' },
-  release: { host: 'https://api.aicook.example.com', envVersion: 'release' },
+  trial: { host: 'https://aicookapi.aihelper.chat', envVersion: 'trial' },
+  release: { host: 'https://aicookapi.aihelper.chat', envVersion: 'release' },
 };
 
 // 微信运行时的 CommonJS require（用于可选加载 env.local，缺失时静默忽略）

@@ -5,6 +5,7 @@ import { recipeApi, CreateDraftIngredient, CreateDraftStep } from '../../../serv
 import { householdApi } from '../../../services/household.api';
 import { householdStore } from '../../../store/household.store';
 import { pickMedia, uploadFile } from '../../../services/upload';
+import { GALLERY_MEDIA_TYPES, COVER_VIDEO_MAX_SECONDS } from '../../../utils/media';
 import type { KitchenTag } from '../../../types/api';
 
 interface DraftIngredient extends CreateDraftIngredient {
@@ -59,6 +60,9 @@ Page({
     typing: false,
     // 非空 = 编辑已有菜谱（保存走 update 而非 createDraft）
     editingId: '',
+    // 编辑已有菜谱时记录其原 status，保存时回传，避免已发布菜谱被降级回草稿。
+    // 默认 'draft'：即使 loadExisting 异常未赋值也不会误降级（且空表单本就无法保存）。
+    editingStatus: 'draft' as 'draft' | 'published',
   },
 
   onLoad(query: Record<string, string>) {
@@ -93,6 +97,9 @@ Page({
     try {
       const res = await recipeApi.detail(id);
       const d = res.detail;
+      // 记录原状态：保存时回传，避免编辑已发布菜谱被降级为草稿
+      const st = (d.recipe.status === 'published' ? 'published' : 'draft') as 'draft' | 'published';
+      this.setData({ editingStatus: st });
       this.hydrate({
         title: d.recipe.title,
         summary: d.recipe.summary,
@@ -180,20 +187,26 @@ Page({
       wx.showToast({ title: `最多 ${MAX_GALLERY} 张`, icon: 'none' });
       return;
     }
-    let file: { tempFilePath: string; size?: number } | undefined;
+    // 图集支持图片 + ≤10s 短视频（封面也可为视频，在列表里循环播放）；长视频用下方「介绍视频」
+    let file: { tempFilePath: string; size?: number; fileType?: string; duration?: number } | undefined;
     try {
-      const res = await pickMedia({ mediaKind: 'image', count: 1 });
+      const res = await pickMedia({ mediaKind: 'image', count: 1, mediaType: GALLERY_MEDIA_TYPES });
       file = res.tempFiles?.[0];
     } catch {
       return;
     }
     if (!file) return;
+    const isVid = file.fileType === 'video';
+    if (isVid && (file.duration || 0) > COVER_VIDEO_MAX_SECONDS) {
+      wx.showToast({ title: `封面/图集视频需 ≤${COVER_VIDEO_MAX_SECONDS} 秒`, icon: 'none' });
+      return;
+    }
     this.setData({ galleryUploading: true });
     try {
       const asset = await uploadFile({
         tempFilePath: file.tempFilePath,
-        mediaKind: 'image',
-        contentType: 'image/jpeg',
+        mediaKind: isVid ? 'video' : 'image',
+        contentType: isVid ? 'video/mp4' : 'image/jpeg',
         sizeBytes: file.size || 0,
       });
       const url = asset.storage_url;
@@ -201,7 +214,7 @@ Page({
       this.setData({ galleryImages: [...this.data.galleryImages, url] });
     } catch (e) {
       console.error('[editor] gallery upload fail', e);
-      wx.showToast({ title: '图片上传失败', icon: 'none' });
+      wx.showToast({ title: isVid ? '视频上传失败' : '图片上传失败', icon: 'none' });
     } finally {
       this.setData({ galleryUploading: false });
     }
@@ -451,7 +464,12 @@ Page({
     try {
       let recipeId: string;
       if (this.data.editingId) {
-        const res = await recipeApi.update(this.data.editingId, { id: this.data.editingId, ...payload });
+        // 回传原状态：避免编辑已发布菜谱时被后端默认降级回草稿
+        const res = await recipeApi.update(this.data.editingId, {
+          id: this.data.editingId,
+          ...payload,
+          status: this.data.editingStatus || 'draft',
+        });
         recipeId = String(res.detail.recipe.id);
       } else {
         const res = await recipeApi.createDraft(payload);

@@ -50,7 +50,7 @@ func (s *RecipeService) injectFavoredBatch(ctx context.Context, recipes []*v1.Re
 
 func (s *RecipeService) ListRecipes(ctx context.Context, req *v1.ListRecipesRequest) (*v1.ListRecipesReply, error) {
 	actor := common.ActorFromContext(ctx)
-	items, err := s.usecase.ListLatest(ctx, actor.HouseholdID, int(req.GetLimit()), req.GetKeyword(), req.GetKitchenTag(), req.GetExcludeDraft(), req.GetRecipeStatus())
+	items, err := s.usecase.ListLatest(ctx, actor.HouseholdID, int(req.GetLimit()), req.GetKeyword(), req.GetKitchenTag(), req.GetExcludeDraft(), req.GetRecipeStatus(), req.GetBeforeId())
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +140,51 @@ func (s *RecipeService) UpdateRecipe(ctx context.Context, req *v1.UpdateRecipeRe
 	out := toProtoRecipeDetail(detail)
 	signRecipeDetailMediaURLs(ctx, s.media, out)
 	return &v1.UpdateRecipeReply{Detail: out}, nil
+}
+
+func (s *RecipeService) RecommendDishes(ctx context.Context, req *v1.RecommendDishesRequest) (*v1.RecommendDishesReply, error) {
+	actor := common.ActorFromContext(ctx)
+	items, err := s.recommend.RecommendDishes(ctx, actor, req.GetIngredients(), int(req.GetLimit()))
+	if err != nil {
+		return nil, err
+	}
+	dishes := make([]*v1.DishSuggestion, 0, len(items))
+	for _, it := range items {
+		if it == nil {
+			continue
+		}
+		d := &v1.DishSuggestion{
+			Title:  it.Title,
+			Reason: it.Reason,
+			Source: it.Source,
+		}
+		if it.RecipeID > 0 {
+			id := it.RecipeID
+			d.RecipeId = &id
+		}
+		if it.CoverImageURL != "" {
+			cover := it.CoverImageURL
+			if s.media != nil {
+				if signed, serr := s.media.SignMediaURL(ctx, it.CoverImageURL); serr == nil && signed != "" {
+					cover = signed
+				}
+			}
+			d.CoverImageUrl = cover
+		}
+		dishes = append(dishes, d)
+	}
+	return &v1.RecommendDishesReply{Dishes: dishes}, nil
+}
+
+func (s *RecipeService) PublishRecipe(ctx context.Context, req *v1.PublishRecipeRequest) (*v1.PublishRecipeReply, error) {
+	actor := common.ActorFromContext(ctx)
+	rec, err := s.usecase.Publish(ctx, actor.HouseholdID, req.GetRecipeId())
+	if err != nil {
+		return nil, err
+	}
+	r := toProtoRecipe(rec)
+	signRecipeMediaURLs(ctx, s.media, r)
+	return &v1.PublishRecipeReply{Recipe: r}, nil
 }
 
 func (s *RecipeService) DeleteRecipe(ctx context.Context, req *v1.DeleteRecipeRequest) (*v1.DeleteRecipeReply, error) {

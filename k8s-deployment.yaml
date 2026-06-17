@@ -3,20 +3,12 @@ kind: Namespace
 metadata:
   name: aicook
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aicook-secrets
-  namespace: aicook
-type: Opaque
-# 真实凭据请勿提交到仓库；部署时用 `kubectl create secret generic aicook-secrets ...`
-# 覆盖，或维护一份未跟踪的本地副本（见 .gitignore 的 *.local.yaml）。
-stringData:
-  pg-password: "<REPLACE_PG_PASSWORD>"
-  minio-root-user: "<REPLACE_MINIO_ROOT_USER>"
-  minio-root-password: "<REPLACE_MINIO_ROOT_PASSWORD>"
-  openai-api-key: ""
----
+# 说明：本仓库清单【不含】Secret。密钥放在 k8s Secret `aicook-secrets`（namespace: aicook），
+# 由部署脚本交互式录入并创建/更新：
+#   Windows : .\publish.ps1 -UpdateSecrets
+#   WSL/bash: UPDATE_SECRETS=1 ./publish.sh backend
+# 下面 ConfigMap 里的 ${VAR} 占位符由后端在启动加载配置时、用该 Secret 注入的同名环境变量替换；
+# 若有占位符没对应环境变量，后端会启动即报错（点名缺失的键），不会拿占位符当密钥静默运行。
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -28,119 +20,69 @@ data:
       name: aicook-backend
       http:
         addr: 0.0.0.0:8000
-        timeout: 30s
+        timeout: 1000s
+      grpc:
+        addr: 0.0.0.0:9000
+        timeout: 1000s
     data:
       pg_database:
         host: sshjd.aihelper.chat
         port: 30532
         user: pgadmin
-        password: "<REPLACE_PG_PASSWORD>"
+        password: "${PG_PASSWORD}"
         dbname: pgdb
         sslmode: disable
         schema: aicook
+        # 生产关闭自动迁移（避免启动时改库结构）；本地 config.yaml 用 true 方便开发，二者刻意不同。
         auto_migrate: false
+      redis:
+        addr: sshjd.aihelper.chat:30379
+        read_timeout: 0.2s
+        write_timeout: 0.2s
+        password: "${REDIS_PASSWORD}"
     oss:
-      endpoint: minio.aicook.svc.cluster.local:9000
-      access_key: "<REPLACE_MINIO_ROOT_USER>"
-      secret_key: "<REPLACE_MINIO_ROOT_PASSWORD>"
-      use_ssl: false
+      # 外部 MinIO（位于 Cloudflare 之后，单独部署，不在本集群内）。
+      # endpoint（后端直连）与 public_endpoint（前端访问/预签名）必须同域名，
+      # 否则预签名 URL 的 host 重写会让签名失效。
+      endpoint: minio.aihelper.chat
+      public_endpoint: https://minio.aihelper.chat
+      access_key: "${MINIO_ACCESS_KEY}"
+      secret_key: "${MINIO_SECRET_KEY}"
+      use_ssl: true
       media_bucket: aicook-media
       knowledge_bucket: aicook-kb
     auth:
-      # JWT HMAC 签名密钥；生产环境务必替换为足够随机的强密钥（建议用 Secret 注入）。
-      jwt_secret: "change-me-to-a-strong-random-secret"
+      # JWT HMAC 签名密钥（由 Secret 注入）。
+      jwt_secret: "${JWT_SECRET}"
       # token 有效期（protobuf Duration 仅接受秒，24h=86400s）；<=0 时回退为 24h。
       token_ttl: 86400s
     log:
-      # 日志目录、文件名与级别（gocommon zap 日志，含按天切割与压缩备份）。
       path: /app/logs
       filename: aicook.log
       level: info
     ai:
       mode: adk
-      provider: openai-compatible
-      base_url: ""
-      api_key: ""
-      chat_model: ""
-      vision_model: ""
-      asr_model: ""
-      embedding_model: ""
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: minio-data
-  namespace: aicook
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: minio
-  namespace: aicook
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: minio
-  template:
-    metadata:
-      labels:
-        app: minio
-    spec:
-      containers:
-        - name: minio
-          image: minio/minio:RELEASE.2025-02-07T23-21-09Z
-          args: ["server", "/data", "--console-address", ":9001"]
-          env:
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: aicook-secrets
-                  key: minio-root-user
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: aicook-secrets
-                  key: minio-root-password
-          ports:
-            - containerPort: 9000
-            - containerPort: 9001
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 600m
-              memory: 768Mi
-          volumeMounts:
-            - name: data
-              mountPath: /data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: minio-data
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-  namespace: aicook
-spec:
-  selector:
-    app: minio
-  ports:
-    - name: api
-      port: 9000
-      targetPort: 9000
-    - name: console
-      port: 9001
-      targetPort: 9001
+      # Xiaomi MiMo 兼容 OpenAI Chat Completions。
+      provider: xiaomi
+      base_url: "https://api.xiaomimimo.com/v1"
+      api_key: "${MIMO_API_KEY}"
+      # 纯文本默认走轻量文本模型；上传图片/音频自动切多模态；语音用 asr。
+      chat_model: "mimo-v2.5-pro"
+      vision_model: "mimo-v2.5"
+      asr_model: "mimo-v2.5-asr"
+      request_timeout: 1000s
+      embedding:
+        provider:
+          doubao:
+            base_url: "https://ark.cn-beijing.volces.com/api/v3"
+            model: "doubao-embedding-vision-251215"
+            api_key: "${DOUBAO_API_KEY}"
+            api_type: "multimodal"
+            dimensions: 2048
+    wechat:
+      # appid 非密钥，明文即可；secret 由 Secret 注入。
+      appid: "wxf9cdbc153c9b1bb5"
+      secret: "${WX_SECRET}"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -159,7 +101,12 @@ spec:
     spec:
       containers:
         - name: backend
-          image: 7as0nch/aicook-backend:latest
+          image: 7as0nch/aicook-backend:v0.1.0
+          # 密钥统一从 Secret 注入为环境变量，供 config.yaml 的 ${VAR} 占位替换。
+          # 注意：Secret 不存在时 Pod 会起不来（CreateContainerConfigError）——先跑脚本的 -UpdateSecrets。
+          envFrom:
+            - secretRef:
+                name: aicook-secrets
           env:
             - name: AICOOK_CONFIG
               value: /data/conf/config.yaml
@@ -204,58 +151,6 @@ spec:
     - port: 8000
       targetPort: 8000
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-  namespace: aicook
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: frontend
-  template:
-    metadata:
-      labels:
-        app: frontend
-    spec:
-      containers:
-        - name: frontend
-          image: 7as0nch/aicook-frontend:latest
-          ports:
-            - containerPort: 80
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 3
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 10
-            periodSeconds: 20
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 300m
-              memory: 192Mi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-  namespace: aicook
-spec:
-  selector:
-    app: frontend
-  ports:
-    - port: 80
-      targetPort: 80
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -263,22 +158,23 @@ metadata:
   namespace: aicook
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 32m
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    # 与后端 server.http.timeout=1000s 对齐，避免长耗时 AI 请求被 ingress 提前 504。
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1000"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1000"
+    # /chat/send 是 SSE 流式输出，关闭 nginx 缓冲，避免攒包导致前端收不到增量。
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager 自动签发 Let's Encrypt 证书（DNS-01 via Cloudflare），供 Cloudflare「完全(严格)」校验源站。
+    cert-manager.io/cluster-issuer: "letsencrypt-cloudflare"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - aicookapi.aihelper.chat
+      secretName: aicookapi-tls
   rules:
-    - host: aicook.aihelper.chat
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend
-                port:
-                  number: 80
-    - host: api.aicook.aihelper.chat
+    - host: aicookapi.aihelper.chat
       http:
         paths:
           - path: /

@@ -6,6 +6,6 @@
     "ingredient-pill": "/components/ingredient-pill/index",
     "user-avatar": "/components/user-avatar/index"
   },
-  "navigationBarTitleText": "馋猫厨房",
+  "navigationBarTitleText": "萝卜爱做饭",
   "enablePullDownRefresh": true
 }

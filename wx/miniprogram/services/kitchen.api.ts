@@ -112,6 +112,16 @@ export const kitchenApi = {
     });
   },
 
+  // 按食材往当周采购清单追加条目（带数量；清单不存在则新建；返回实际新增项）
+  addShoppingItems(items: { name: string; quantity_text?: string }[], week_start?: string) {
+    return request<{ list: ShoppingList; items: ShoppingListItem[] }>({
+      url: '/api/v1/shopping-lists:add-items',
+      method: 'POST',
+      data: { items, week_start },
+      loading: '添加中',
+    });
+  },
+
   patchShoppingItem(req: PatchShoppingListItemReq) {
     return request<{ item: ShoppingListItem }>({
       url: `/api/v1/shopping-lists/${req.list_id}/items/${req.item_id}`,

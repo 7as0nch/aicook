@@ -149,7 +149,7 @@ func (u *KitchenOpsUsecase) GenerateWeekPlan(ctx context.Context, actor common.A
 	if err != nil {
 		return nil, err
 	}
-	recipes, err := u.recipeRepo.ListLatest(ctx, actor.HouseholdID, 30, "", "", true, "published")
+	recipes, err := u.recipeRepo.ListLatest(ctx, actor.HouseholdID, 30, "", "", true, "published", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -191,6 +191,38 @@ func (u *KitchenOpsUsecase) GetOrGenerateShoppingList(ctx context.Context, actor
 		return list, items, nil
 	}
 	return u.GenerateShoppingList(ctx, actor, weekStartRaw)
+}
+
+// ShoppingItemAddInput 追加采购项（含可选数量文本）。
+type ShoppingItemAddInput struct {
+	Name         string
+	QuantityText string
+}
+
+// AddShoppingItems 往当周采购清单追加条目（标准化 + 去重后交给 data 追加，不删旧项；带上数量）。
+func (u *KitchenOpsUsecase) AddShoppingItems(ctx context.Context, actor common.Actor, weekStartRaw string, items []ShoppingItemAddInput) (*data.ShoppingList, []*data.ShoppingListItem, error) {
+	weekStart, err := parseWeekStart(weekStartRaw)
+	if err != nil {
+		return nil, nil, err
+	}
+	inputs := make([]data.ShoppingItemInput, 0, len(items))
+	seen := map[string]struct{}{}
+	for _, it := range items {
+		name := strings.TrimSpace(it.Name)
+		if name == "" {
+			continue
+		}
+		norm := normalizeIngredientName(name)
+		if norm == "" {
+			continue
+		}
+		if _, dup := seen[norm]; dup {
+			continue
+		}
+		seen[norm] = struct{}{}
+		inputs = append(inputs, data.ShoppingItemInput{Name: name, Normalized: norm, QuantityText: strings.TrimSpace(it.QuantityText)})
+	}
+	return u.repo.AddShoppingListItems(ctx, actor.HouseholdID, weekStart, inputs)
 }
 
 func (u *KitchenOpsUsecase) GenerateShoppingList(ctx context.Context, actor common.Actor, weekStartRaw string) (*data.ShoppingList, []*data.ShoppingListItem, error) {
@@ -386,7 +418,7 @@ func (u *KitchenOpsUsecase) RecommendRecipesByInventory(ctx context.Context, act
 		}
 		names[item.NormalizedName] = struct{}{}
 	}
-	recipes, err := u.recipeRepo.ListLatest(ctx, actor.HouseholdID, 40, "", "", true, "published")
+	recipes, err := u.recipeRepo.ListLatest(ctx, actor.HouseholdID, 40, "", "", true, "published", 0)
 	if err != nil {
 		return nil, err
 	}

@@ -181,6 +181,84 @@ func (r *KitchenOpsRepo) SaveShoppingListWithItems(ctx context.Context, list *Sh
 	})
 }
 
+// ShoppingItemInput 追加采购项的输入（biz 已做标准化/去重）。
+type ShoppingItemInput struct {
+	Name         string
+	Normalized   string
+	QuantityText string
+}
+
+// AddShoppingListItems 往当周未完成清单追加食材项：清单不存在则新建空清单（不依赖 meal plan、不删旧项），
+// 按 normalized_name 跳过已存在项，sort_order 续号。返回清单 + 实际新增的项。
+func (r *KitchenOpsRepo) AddShoppingListItems(ctx context.Context, householdID int64, weekStart time.Time, inputs []ShoppingItemInput) (*ShoppingList, []*ShoppingListItem, error) {
+	var list ShoppingList
+	var appended []*ShoppingListItem
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := tx.Where("household_id = ? AND week_start_date = ? AND status <> ?", householdID, dateOnly(weekStart), "completed").
+			Order("created_at DESC").First(&list).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return err
+		}
+		if err == gorm.ErrRecordNotFound {
+			list = ShoppingList{HouseholdID: householdID, WeekStartDate: dateOnly(weekStart), Status: "draft"}
+			list.ID = utils.GetSFID()
+			if err := tx.Create(&list).Error; err != nil {
+				return err
+			}
+		}
+		var existing []*ShoppingListItem
+		if err := tx.Where("shopping_list_id = ?", list.ID).Find(&existing).Error; err != nil {
+			return err
+		}
+		seen := make(map[string]struct{}, len(existing))
+		maxSort := 0
+		for _, it := range existing {
+			seen[it.NormalizedName] = struct{}{}
+			if it.SortOrder > maxSort {
+				maxSort = it.SortOrder
+			}
+		}
+		toAdd := make([]*ShoppingListItem, 0, len(inputs))
+		for _, in := range inputs {
+			if in.Normalized == "" {
+				continue
+			}
+			if _, dup := seen[in.Normalized]; dup {
+				continue
+			}
+			seen[in.Normalized] = struct{}{}
+			maxSort++
+			qty := in.QuantityText
+			if qty == "" {
+				qty = "适量"
+			}
+			item := &ShoppingListItem{
+				HouseholdID:    householdID,
+				ShoppingListID: list.ID,
+				SortOrder:      maxSort,
+				SourceType:     "manual_add",
+				IngredientName: in.Name,
+				NormalizedName: in.Normalized,
+				RequiredText:   qty,
+				MissingText:    qty,
+			}
+			item.ID = utils.GetSFID()
+			toAdd = append(toAdd, item)
+		}
+		if len(toAdd) > 0 {
+			if err := tx.Create(&toAdd).Error; err != nil {
+				return err
+			}
+		}
+		appended = toAdd
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return &list, appended, nil
+}
+
 func (r *KitchenOpsRepo) UpdateShoppingListItem(ctx context.Context, householdID, listID, itemID int64, updates map[string]any) (*ShoppingListItem, error) {
 	var item ShoppingListItem
 	if err := r.db.WithContext(ctx).

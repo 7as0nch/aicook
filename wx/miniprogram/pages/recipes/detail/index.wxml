@@ -1,13 +1,29 @@
+<wxs src="../../../utils/media.wxs" module="media" />
 <view class="rd">
-  <!-- Hero 图 -->
+  <!-- Hero 轮播：封面图集（可含 ≤10s 短视频）逐张展示 -->
   <view class="rd__hero">
-    <image wx:if="{{recipe.cover_image_url}}" class="rd__hero-img" src="{{recipe.cover_image_url}}" mode="aspectFill" />
+    <swiper
+      wx:if="{{mediaList.length}}"
+      class="rd__hero-swiper"
+      indicator-dots="{{mediaList.length > 1}}"
+      indicator-color="rgba(255,255,255,0.45)"
+      indicator-active-color="#FFFFFF"
+      circular="{{mediaList.length > 1}}"
+    >
+      <swiper-item wx:for="{{mediaList}}" wx:key="*this" wx:for-item="m">
+        <video wx:if="{{media.isVideo(m)}}" class="rd__hero-img" src="{{m}}" object-fit="cover" show-center-play-btn controls></video>
+        <image wx:else class="rd__hero-img" src="{{m}}" mode="aspectFill" />
+      </swiper-item>
+    </swiper>
     <view class="rd__hero-overlay"></view>
   </view>
 
   <!-- 顶部导航：统一 custom-navbar（叠加在 hero 上）；左返回内置，右侧编辑/分享走右插槽（胶囊安全） -->
   <custom-navbar overlay border="{{false}}">
     <view slot="right" class="rd__nav-actions">
+      <view wx:if="{{isDraft}}" class="rd__nav-btn rd__nav-btn--publish" bindtap="onPublishTap">
+        <text class="rd__nav-publish-text">发布</text>
+      </view>
       <view wx:if="{{canEdit}}" class="rd__nav-btn rd__nav-btn--edit" bindtap="onEditTap">
         <text class="rd__nav-edit-text">编辑</text>
       </view>
@@ -29,6 +45,12 @@
       <view wx:if="{{recipe.total_minutes}}" class="rd__chip">{{recipe.total_minutes}}分钟</view>
       <view wx:if="{{recipe.difficulty}}" class="rd__chip">{{difficultyLabel}}</view>
       <view wx:if="{{recipe.servings}}" class="rd__chip">{{recipe.servings}}人</view>
+    </view>
+
+    <!-- 完整制作流程长视频（选填，不限时长） -->
+    <view wx:if="{{longVideoUrl}}" class="rd__video-block">
+      <view class="rd__video-title">完整制作流程</view>
+      <video class="rd__video-player" src="{{longVideoUrl}}" object-fit="cover" show-center-play-btn controls></video>
     </view>
 
     <view class="rd__divider"></view>

@@ -198,6 +198,8 @@ func normalizeMediaKind(kind string) string {
 		return "image"
 	case "audio", "voice":
 		return "audio"
+	case "video", "videos":
+		return "video"
 	case "document", "knowledge", "knowledge_document":
 		return "document"
 	default:

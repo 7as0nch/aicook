@@ -12,21 +12,24 @@ type Source struct {
 	Snippet string
 }
 
+// 注意：这些 struct 直接 json.Unmarshal 模型输出，字段必须带 snake_case tag，
+// 否则 amount_text / timer_seconds / end_condition / group_name 等多词字段不会绑定
+// （Go 大小写不敏感匹配但不跨下划线），导致用量/时长/完成条件被静默丢弃。
 type DraftIngredient struct {
-	GroupName   string
-	Name        string
-	AmountText  string
-	Preparation string
+	GroupName   string `json:"group_name"`
+	Name        string `json:"name"`
+	AmountText  string `json:"amount_text"`
+	Preparation string `json:"preparation"`
 }
 
 type DraftStep struct {
-	Title          string
-	Description    string
-	StepType       string
-	NeedTimer      bool
-	TimerSeconds   int
-	TimerAnimation string
-	EndCondition   string
+	Title          string `json:"title"`
+	Description    string `json:"description"`
+	StepType       string `json:"step_type"`
+	NeedTimer      bool   `json:"need_timer"`
+	TimerSeconds   int    `json:"timer_seconds"`
+	TimerAnimation string `json:"timer_animation"`
+	EndCondition   string `json:"end_condition"`
 }
 
 type ImageDraftInput struct {
@@ -35,14 +38,18 @@ type ImageDraftInput struct {
 }
 
 type ImageDraft struct {
-	Title        string
-	Summary      string
-	Category     string
-	TotalMinutes int
-	Difficulty   int
-	Tools        []string
-	Ingredients  []DraftIngredient
-	Steps        []DraftStep
+	// IsRecipe 标记图片是否为「可制作的菜谱/食材/烹饪」相关；非菜谱时仅填 RejectReason。
+	// 默认 true：模型未显式给出时不拒绝（从宽），避免误杀食材照。
+	IsRecipe     bool              `json:"is_recipe"`
+	RejectReason string            `json:"reject_reason"`
+	Title        string            `json:"title"`
+	Summary      string            `json:"summary"`
+	Category     string            `json:"category"`
+	TotalMinutes int               `json:"total_minutes"`
+	Difficulty   int               `json:"difficulty"`
+	Tools        []string          `json:"tools"`
+	Ingredients  []DraftIngredient `json:"ingredients"`
+	Steps        []DraftStep       `json:"steps"`
 }
 
 type TextPreferences struct {
@@ -54,17 +61,17 @@ type TextPreferences struct {
 }
 
 type TextDraft struct {
-	Title         string
-	Summary       string
-	Category      string
-	CoverImageURL string
-	TotalMinutes  int
-	Difficulty    int
-	Tools         []string
-	ScenarioTags  []string
-	FlavorTags    []string
-	Ingredients   []DraftIngredient
-	Steps         []DraftStep
+	Title         string            `json:"title"`
+	Summary       string            `json:"summary"`
+	Category      string            `json:"category"`
+	CoverImageURL string            `json:"cover_image_url"`
+	TotalMinutes  int               `json:"total_minutes"`
+	Difficulty    int               `json:"difficulty"`
+	Tools         []string          `json:"tools"`
+	ScenarioTags  []string          `json:"scenario_tags"`
+	FlavorTags    []string          `json:"flavor_tags"`
+	Ingredients   []DraftIngredient `json:"ingredients"`
+	Steps         []DraftStep       `json:"steps"`
 }
 
 func ParseImageDraftJSON(raw string) (*ImageDraft, error) {
@@ -77,9 +84,14 @@ func ParseImageDraftJSON(raw string) (*ImageDraft, error) {
 		return nil, fmt.Errorf("draft response is not valid json")
 	}
 
-	var draft ImageDraft
+	// 默认 IsRecipe=true：模型遗漏该字段时按「是菜谱」处理（从宽，不误杀）。
+	draft := ImageDraft{IsRecipe: true}
 	if err := json.Unmarshal([]byte(body), &draft); err != nil {
 		return nil, err
+	}
+	// 非菜谱：带 reject_reason 直接返回，跳过 title 校验（此时其余字段允许为空）。
+	if !draft.IsRecipe {
+		return &draft, nil
 	}
 	if strings.TrimSpace(draft.Title) == "" {
 		return nil, fmt.Errorf("draft title is empty")
@@ -137,6 +149,7 @@ func HeuristicImageDraft(input ImageDraftInput) *ImageDraft {
 	}
 
 	return &ImageDraft{
+		IsRecipe:     true,
 		Title:        title,
 		Summary:      "基于教程图片与 OCR 文本生成的菜谱草稿，建议发布前人工确认。",
 		Category:     "家常菜",
@@ -305,9 +318,10 @@ func BuildTextDraftPrompt(query string, sources []Source, preferences TextPrefer
 2. 步骤要可执行，避免空泛描述。
 3. 如果步骤里出现焖、炖、蒸、腌制等耗时动作，请尽量填写 timer_seconds。
 4. 难度范围为 1 到 5。
-5. ingredients 和 steps 不能为空。
+5. ingredients 和 steps 不能为空；每个食材尽量给推荐用量 amount_text（带单位，如 200g、2个、适量）。
 6. 请尽量贴合用户已确认的偏好项。
 7. flavor_tags 里至少体现主要口味偏好；category 尽量给出适合当前菜谱的厨房标签名或菜系标签。
+8. total_minutes 必须是合理的正整数（预计总耗时，分钟），禁止为 0 或留空；含计时步骤按秒数换算汇总，否则按步骤数估算（通常每步 3-10 分钟）。
 
 请严格使用以下 JSON 结构：
 {

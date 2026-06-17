@@ -1,3 +1,4 @@
+<wxs src="../../../utils/media.wxs" module="media" />
 <view class="ed">
   <!-- 保存按钮放底部固定条（右上角会被微信胶囊遮挡） -->
   <custom-navbar title="{{editingId ? '编辑菜谱' : '创建菜谱'}}" />
@@ -8,7 +9,7 @@
       <view class="ed__field">
         <view class="ed__label-row">
           <text class="ed__label">封面图集</text>
-          <text class="ed__label-hint">第一张为封面，最多 {{maxGallery}} 张</text>
+          <text class="ed__label-hint">第一张为封面，支持图片/≤10秒短视频，最多 {{maxGallery}} 张</text>
         </view>
         <view class="ed__gallery">
           <view
@@ -20,7 +21,8 @@
             data-idx="{{gi}}"
             bindtap="onSetCover"
           >
-            <image class="ed__g-img" src="{{img}}" mode="aspectFill" />
+            <video wx:if="{{media.isVideo(img)}}" class="ed__g-img" src="{{img}}" object-fit="cover" show-center-play-btn="{{false}}" controls="{{false}}" muted></video>
+            <image wx:else class="ed__g-img" src="{{img}}" mode="aspectFill" />
             <view wx:if="{{gi === 0}}" class="ed__g-cover-badge">封面</view>
             <view wx:else class="ed__g-set">设为封面</view>
             <view class="ed__g-del" data-idx="{{gi}}" catchtap="onRemoveGalleryImage">×</view>

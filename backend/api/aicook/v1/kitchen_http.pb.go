@@ -19,6 +19,7 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationKitchenServiceAddShoppingItems = "/aicook.v1.KitchenService/AddShoppingItems"
 const OperationKitchenServiceCompleteShoppingList = "/aicook.v1.KitchenService/CompleteShoppingList"
 const OperationKitchenServiceCreateCookingHistory = "/aicook.v1.KitchenService/CreateCookingHistory"
 const OperationKitchenServiceCreateRecipeShare = "/aicook.v1.KitchenService/CreateRecipeShare"
@@ -38,6 +39,8 @@ const OperationKitchenServiceSaveCurrentMealPlan = "/aicook.v1.KitchenService/Sa
 const OperationKitchenServiceUpsertInventoryItems = "/aicook.v1.KitchenService/UpsertInventoryItems"
 
 type KitchenServiceHTTPServer interface {
+	// AddShoppingItems AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。
+	AddShoppingItems(context.Context, *AddShoppingItemsRequest) (*AddShoppingItemsReply, error)
 	CompleteShoppingList(context.Context, *CompleteShoppingListRequest) (*CompleteShoppingListReply, error)
 	// CreateCookingHistory CreateCookingHistory 在烹饪流程结束时落库一条历史记录。
 	CreateCookingHistory(context.Context, *CreateCookingHistoryRequest) (*CreateCookingHistoryReply, error)
@@ -67,6 +70,7 @@ func RegisterKitchenServiceHTTPServer(s *http.Server, srv KitchenServiceHTTPServ
 	r.POST("/api/v1/meal-plans/current:generate", _KitchenService_GenerateCurrentMealPlan0_HTTP_Handler(srv))
 	r.GET("/api/v1/shopping-lists/current", _KitchenService_GetCurrentShoppingList0_HTTP_Handler(srv))
 	r.POST("/api/v1/shopping-lists:generate", _KitchenService_GenerateShoppingList0_HTTP_Handler(srv))
+	r.POST("/api/v1/shopping-lists:add-items", _KitchenService_AddShoppingItems0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/shopping-lists/{list_id}/items/{item_id}", _KitchenService_PatchShoppingListItem0_HTTP_Handler(srv))
 	r.POST("/api/v1/shopping-lists/{list_id}:complete", _KitchenService_CompleteShoppingList0_HTTP_Handler(srv))
 	r.GET("/api/v1/inventory-items", _KitchenService_ListInventoryItems0_HTTP_Handler(srv))
@@ -175,6 +179,28 @@ func _KitchenService_GenerateShoppingList0_HTTP_Handler(srv KitchenServiceHTTPSe
 			return err
 		}
 		reply := out.(*GenerateShoppingListReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _KitchenService_AddShoppingItems0_HTTP_Handler(srv KitchenServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AddShoppingItemsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationKitchenServiceAddShoppingItems)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AddShoppingItems(ctx, req.(*AddShoppingItemsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AddShoppingItemsReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -438,6 +464,8 @@ func _KitchenService_ListRecentCookingHistory0_HTTP_Handler(srv KitchenServiceHT
 }
 
 type KitchenServiceHTTPClient interface {
+	// AddShoppingItems AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。
+	AddShoppingItems(ctx context.Context, req *AddShoppingItemsRequest, opts ...http.CallOption) (rsp *AddShoppingItemsReply, err error)
 	CompleteShoppingList(ctx context.Context, req *CompleteShoppingListRequest, opts ...http.CallOption) (rsp *CompleteShoppingListReply, err error)
 	// CreateCookingHistory CreateCookingHistory 在烹饪流程结束时落库一条历史记录。
 	CreateCookingHistory(ctx context.Context, req *CreateCookingHistoryRequest, opts ...http.CallOption) (rsp *CreateCookingHistoryReply, err error)
@@ -466,6 +494,20 @@ type KitchenServiceHTTPClientImpl struct {
 
 func NewKitchenServiceHTTPClient(client *http.Client) KitchenServiceHTTPClient {
 	return &KitchenServiceHTTPClientImpl{client}
+}
+
+// AddShoppingItems AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。
+func (c *KitchenServiceHTTPClientImpl) AddShoppingItems(ctx context.Context, in *AddShoppingItemsRequest, opts ...http.CallOption) (*AddShoppingItemsReply, error) {
+	var out AddShoppingItemsReply
+	pattern := "/api/v1/shopping-lists:add-items"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationKitchenServiceAddShoppingItems))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (c *KitchenServiceHTTPClientImpl) CompleteShoppingList(ctx context.Context, in *CompleteShoppingListRequest, opts ...http.CallOption) (*CompleteShoppingListReply, error) {

@@ -237,12 +237,21 @@ func buildImageDraftPrompt(mode Mode, input ImageRecipeDraftInput) string {
 	if ocrText == "" {
 		ocrText = "无 OCR 文本，请直接根据图片理解内容。"
 	}
-	return fmt.Sprintf(`你是 AICook 的菜谱结构化助手，请优先根据图片内容理解菜谱；如果有 OCR 文本，只把它当作辅助线索。
+	return fmt.Sprintf(`你是 AICook 的菜谱结构化助手。请先判断图片是否与「食物 / 菜肴 / 食材 / 烹饪过程」相关：
+- 若【不相关】（如人物、宠物、风景、商品、文档截图、无关物体等），设 "is_recipe": false，并在 "reject_reason" 用一句中文说明无法生成菜谱的原因；其余字段可留空。
+- 若【相关】，设 "is_recipe": true，优先根据图片内容把菜谱结构化；如有 OCR 文本，只当作辅助线索。
+判定从宽：只要是食材、半成品、成品菜或烹饪场景，都算相关。
+填写要求（is_recipe=true 时）：
+- 每个食材必须给出推荐用量 amount_text，并带单位（如 200g、2个、1勺、少许、适量），不要留空。
+- 每个步骤必须给出预计时长 timer_seconds（秒，免计时填 0）和完成判断 end_condition（如"汤汁收浓"、"蛋液凝固"、"豆芽变软"）。
+- 尽量列出图片中所有可见食材，不要只挑其中一两样。
 当前编排模式: %s
 标题提示: %s
 
 请仅输出 JSON，结构如下：
 {
+  "is_recipe": true,
+  "reject_reason": "",
   "title": "",
   "summary": "",
   "category": "",

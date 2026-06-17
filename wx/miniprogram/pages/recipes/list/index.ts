@@ -9,6 +9,7 @@ import { recipeMetaLabel } from '../../../utils/format';
 import type { Recipe, KitchenTag } from '../../../types/api';
 
 const ALL_ID = '__all__';
+const PAGE_SIZE = 20;
 
 interface CategoryCell {
   id: string;        // tag id 或 ALL_ID
@@ -26,6 +27,8 @@ Page({
     activeCat: ALL_ID,
     recipes: [] as RowRecipe[],
     loading: false,
+    loadingMore: false,
+    hasMore: true,
     catDialogVisible: false,
   },
 
@@ -95,21 +98,53 @@ Page({
   },
 
   async loadRecipes(categoryName: string, keyword?: string) {
-    this.setData({ loading: true });
+    // 记住当前过滤条件，供「加载更多」沿用同一筛选
+    const self = this as unknown as { _loadCat?: string; _loadKeyword?: string };
+    self._loadCat = categoryName || '';
+    self._loadKeyword = keyword || '';
+    this.setData({ loading: true, hasMore: true });
     try {
       // 不排除 draft：本 App 仅在显式保存时落库，家庭里的菜谱都应展示（与首页一致）
       const res = await recipeApi.list({
-        limit: 50,
+        limit: PAGE_SIZE,
         kitchen_tag: categoryName || undefined,
         keyword: keyword || undefined,
       });
-      this.setData({
-        recipes: (res.recipes || []).map((r) => ({ ...r, __meta: recipeMetaLabel(r) })),
-      });
+      const list = (res.recipes || []).map((r) => ({ ...r, __meta: recipeMetaLabel(r) }));
+      this.setData({ recipes: list, hasMore: list.length >= PAGE_SIZE });
     } catch (e) {
       console.error('[recipes/list] load fail', e);
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  // 滑到底加载下一页（游标 before_id = 当前末项 id；末页返回 < PAGE_SIZE 即停）
+  async onLoadMore() {
+    if (this.data.loadingMore || this.data.loading || !this.data.hasMore) return;
+    const last = this.data.recipes[this.data.recipes.length - 1];
+    if (!last || !last.id) {
+      this.setData({ hasMore: false });
+      return;
+    }
+    const self = this as unknown as { _loadCat?: string; _loadKeyword?: string };
+    this.setData({ loadingMore: true });
+    try {
+      const res = await recipeApi.list({
+        limit: PAGE_SIZE,
+        kitchen_tag: self._loadCat || undefined,
+        keyword: self._loadKeyword || undefined,
+        before_id: String(last.id),
+      });
+      const more = (res.recipes || []).map((r) => ({ ...r, __meta: recipeMetaLabel(r) }));
+      this.setData({
+        recipes: this.data.recipes.concat(more),
+        hasMore: more.length >= PAGE_SIZE,
+      });
+    } catch (e) {
+      console.error('[recipes/list] load more fail', e);
+    } finally {
+      this.setData({ loadingMore: false });
     }
   },
 
@@ -202,10 +237,24 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/recipes/editor/index?recipe_id=${id}` });
   },
 
-  onDeleteRecipe(e: WechatMiniprogram.BaseEvent) {
+  // 草稿行「⋯」：编辑 / 删除（草稿已有「发布」主按钮，次操作收进菜单避免 3 个按钮挤）
+  onRowMore(e: WechatMiniprogram.BaseEvent) {
     const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
     const target = this.data.recipes.find((r) => String(r.id) === String(id));
     if (!target) return;
+    wx.showActionSheet({
+      itemList: ['编辑', '删除'],
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          wx.navigateTo({ url: `/pages/recipes/editor/index?recipe_id=${id}` });
+        } else if (res.tapIndex === 1) {
+          this.confirmDeleteRecipe(target);
+        }
+      },
+    });
+  },
+
+  confirmDeleteRecipe(target: RowRecipe) {
     wx.showModal({
       title: '删除菜谱',
       content: `确定删除「${target.title}」？此操作不可恢复`,
@@ -215,7 +264,7 @@ Page({
         if (!res.confirm) return;
         try {
           await recipeApi.delete(target.id);
-          this.setData({ recipes: this.data.recipes.filter((r) => String(r.id) !== String(id)) });
+          this.setData({ recipes: this.data.recipes.filter((r) => String(r.id) !== String(target.id)) });
           wx.showToast({ title: '已删除', icon: 'success' });
         } catch (err) {
           console.error('[recipes/list] delete recipe fail', err);
@@ -223,6 +272,41 @@ Page({
         }
       },
     });
+  },
+
+  // 草稿一键发布为正式菜谱（发布后首页/推荐/选菜可见）
+  onPublishRecipe(e: WechatMiniprogram.BaseEvent) {
+    const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
+    if (!id) return;
+    wx.showModal({
+      title: '发布菜谱',
+      content: '发布后该菜谱将出现在首页与推荐中，确定发布？',
+      confirmText: '发布',
+      confirmColor: '#FF7A00',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await recipeApi.publish(id);
+          // 局部更新该行 status：去掉「草稿」徽标 + 发布按钮
+          this.setData({
+            recipes: this.data.recipes.map((r) =>
+              String(r.id) === String(id) ? { ...r, status: 'published' } : r,
+            ),
+          });
+          wx.showToast({ title: '已发布', icon: 'success' });
+        } catch (err) {
+          console.error('[recipes/list] publish fail', err);
+          wx.showToast({ title: '发布失败', icon: 'none' });
+        }
+      },
+    });
+  },
+
+  onDeleteRecipe(e: WechatMiniprogram.BaseEvent) {
+    const id = (e.currentTarget as unknown as { dataset: { id: string } }).dataset.id;
+    const target = this.data.recipes.find((r) => String(r.id) === String(id));
+    if (!target) return;
+    this.confirmDeleteRecipe(target);
   },
 
   onWorkbenchTap() {

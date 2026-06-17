@@ -48,7 +48,7 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	recipeUsecase := recipe.NewRecipeUsecase(recipeRepo, runtime)
 	kitchenOpsRepo := data.NewKitchenOpsRepo(db)
 	cookingHistoryRepo := data.NewCookingHistoryRepo(db)
-	recommendUsecase := recipe.NewRecommendUsecase(recipeRepo, householdRepo, kitchenOpsRepo, cookingHistoryRepo)
+	recommendUsecase := recipe.NewRecommendUsecase(recipeRepo, householdRepo, kitchenOpsRepo, cookingHistoryRepo, householdUsecase, runtime)
 	recipeFavoriteRepo := data.NewRecipeFavoriteRepo(db)
 	recipeFavoriteUsecase := recipe.NewRecipeFavoriteUsecase(recipeFavoriteRepo, recipeRepo)
 	recipeService := service.NewRecipeService(recipeUsecase, mediaUsecase, recommendUsecase, recipeFavoriteUsecase)

@@ -24,6 +24,7 @@ const (
 	KitchenService_GenerateCurrentMealPlan_FullMethodName      = "/aicook.v1.KitchenService/GenerateCurrentMealPlan"
 	KitchenService_GetCurrentShoppingList_FullMethodName       = "/aicook.v1.KitchenService/GetCurrentShoppingList"
 	KitchenService_GenerateShoppingList_FullMethodName         = "/aicook.v1.KitchenService/GenerateShoppingList"
+	KitchenService_AddShoppingItems_FullMethodName             = "/aicook.v1.KitchenService/AddShoppingItems"
 	KitchenService_PatchShoppingListItem_FullMethodName        = "/aicook.v1.KitchenService/PatchShoppingListItem"
 	KitchenService_CompleteShoppingList_FullMethodName         = "/aicook.v1.KitchenService/CompleteShoppingList"
 	KitchenService_ListInventoryItems_FullMethodName           = "/aicook.v1.KitchenService/ListInventoryItems"
@@ -49,6 +50,8 @@ type KitchenServiceClient interface {
 	GenerateCurrentMealPlan(ctx context.Context, in *GenerateCurrentMealPlanRequest, opts ...grpc.CallOption) (*GenerateCurrentMealPlanReply, error)
 	GetCurrentShoppingList(ctx context.Context, in *GetCurrentShoppingListRequest, opts ...grpc.CallOption) (*GetCurrentShoppingListReply, error)
 	GenerateShoppingList(ctx context.Context, in *GenerateShoppingListRequest, opts ...grpc.CallOption) (*GenerateShoppingListReply, error)
+	// AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。
+	AddShoppingItems(ctx context.Context, in *AddShoppingItemsRequest, opts ...grpc.CallOption) (*AddShoppingItemsReply, error)
 	PatchShoppingListItem(ctx context.Context, in *PatchShoppingListItemRequest, opts ...grpc.CallOption) (*PatchShoppingListItemReply, error)
 	CompleteShoppingList(ctx context.Context, in *CompleteShoppingListRequest, opts ...grpc.CallOption) (*CompleteShoppingListReply, error)
 	ListInventoryItems(ctx context.Context, in *ListInventoryItemsRequest, opts ...grpc.CallOption) (*ListInventoryItemsReply, error)
@@ -118,6 +121,16 @@ func (c *kitchenServiceClient) GenerateShoppingList(ctx context.Context, in *Gen
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GenerateShoppingListReply)
 	err := c.cc.Invoke(ctx, KitchenService_GenerateShoppingList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *kitchenServiceClient) AddShoppingItems(ctx context.Context, in *AddShoppingItemsRequest, opts ...grpc.CallOption) (*AddShoppingItemsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddShoppingItemsReply)
+	err := c.cc.Invoke(ctx, KitchenService_AddShoppingItems_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +268,8 @@ type KitchenServiceServer interface {
 	GenerateCurrentMealPlan(context.Context, *GenerateCurrentMealPlanRequest) (*GenerateCurrentMealPlanReply, error)
 	GetCurrentShoppingList(context.Context, *GetCurrentShoppingListRequest) (*GetCurrentShoppingListReply, error)
 	GenerateShoppingList(context.Context, *GenerateShoppingListRequest) (*GenerateShoppingListReply, error)
+	// AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。
+	AddShoppingItems(context.Context, *AddShoppingItemsRequest) (*AddShoppingItemsReply, error)
 	PatchShoppingListItem(context.Context, *PatchShoppingListItemRequest) (*PatchShoppingListItemReply, error)
 	CompleteShoppingList(context.Context, *CompleteShoppingListRequest) (*CompleteShoppingListReply, error)
 	ListInventoryItems(context.Context, *ListInventoryItemsRequest) (*ListInventoryItemsReply, error)
@@ -293,6 +308,9 @@ func (UnimplementedKitchenServiceServer) GetCurrentShoppingList(context.Context,
 }
 func (UnimplementedKitchenServiceServer) GenerateShoppingList(context.Context, *GenerateShoppingListRequest) (*GenerateShoppingListReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method GenerateShoppingList not implemented")
+}
+func (UnimplementedKitchenServiceServer) AddShoppingItems(context.Context, *AddShoppingItemsRequest) (*AddShoppingItemsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddShoppingItems not implemented")
 }
 func (UnimplementedKitchenServiceServer) PatchShoppingListItem(context.Context, *PatchShoppingListItemRequest) (*PatchShoppingListItemReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method PatchShoppingListItem not implemented")
@@ -436,6 +454,24 @@ func _KitchenService_GenerateShoppingList_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(KitchenServiceServer).GenerateShoppingList(ctx, req.(*GenerateShoppingListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KitchenService_AddShoppingItems_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddShoppingItemsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KitchenServiceServer).AddShoppingItems(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: KitchenService_AddShoppingItems_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KitchenServiceServer).AddShoppingItems(ctx, req.(*AddShoppingItemsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -682,6 +718,10 @@ var KitchenService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GenerateShoppingList",
 			Handler:    _KitchenService_GenerateShoppingList_Handler,
+		},
+		{
+			MethodName: "AddShoppingItems",
+			Handler:    _KitchenService_AddShoppingItems_Handler,
 		},
 		{
 			MethodName: "PatchShoppingListItem",
