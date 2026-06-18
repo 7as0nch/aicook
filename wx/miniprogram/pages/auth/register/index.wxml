@@ -36,6 +36,10 @@
       <input class="auth__input" placeholder="例如：温馨小厨房" data-field="household_name" bindinput="onInput" />
     </view>
 
+    <view class="auth__consent">
+      <agreement-consent checked="{{agreed}}" bindchange="onAgreeChange" />
+    </view>
+
     <view class="auth__btn {{loading ? 'auth__btn--loading' : ''}}" bindtap="onSubmit">
       <text>{{loading ? '注册中…' : '注册并登录'}}</text>
     </view>

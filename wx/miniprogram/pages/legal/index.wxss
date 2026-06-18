@@ -1,0 +1,13 @@
+.legal {
+  min-height: 100vh;
+  background: #FFFFFF;
+}
+
+.legal__body {
+  padding: 8rpx 32rpx 60rpx;
+}
+
+.legal__rt {
+  display: block;
+  word-break: break-word;
+}

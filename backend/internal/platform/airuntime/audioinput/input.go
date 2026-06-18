@@ -192,3 +192,29 @@ func ensureEinoOpenAIAudioPayload(ctx context.Context, data []byte, mime string)
 	}
 	return wav, "audio/wav", nil
 }
+
+// EnsureMiMoAudio 把任意音频规范成 MiMo（ASR/Chat）可接受的格式：
+// 按「字节魔数」嗅探真实类型（上传 content-type 不可信——浏览器/开发者工具录的是 WebM 却标成 mp3），
+// 已是 wav/mp3 直接用，其它（webm/ogg/m4a…）用 ffmpeg 转 WAV。返回 (规范化字节, mime)。
+func EnsureMiMoAudio(ctx context.Context, data []byte) ([]byte, string, error) {
+	return ensureEinoOpenAIAudioPayload(ctx, data, SniffAudioMIME(data))
+}
+
+// SniffAudioMIME 按魔数嗅探音频真实容器类型；识别不出返回空串（交给上层转码兜底）。
+func SniffAudioMIME(b []byte) string {
+	switch {
+	case len(b) >= 4 && b[0] == 0x1A && b[1] == 0x45 && b[2] == 0xDF && b[3] == 0xA3:
+		return "audio/webm" // Matroska/WebM（浏览器 MediaRecorder 默认）
+	case len(b) >= 4 && string(b[0:4]) == "OggS":
+		return "audio/ogg"
+	case len(b) >= 12 && string(b[0:4]) == "RIFF" && string(b[8:12]) == "WAVE":
+		return "audio/wav"
+	case len(b) >= 3 && string(b[0:3]) == "ID3":
+		return "audio/mpeg" // 带 ID3 头的 MP3
+	case len(b) >= 2 && b[0] == 0xFF && (b[1]&0xE0) == 0xE0:
+		return "audio/mpeg" // MP3 帧同步
+	case len(b) >= 8 && string(b[4:8]) == "ftyp":
+		return "audio/mp4" // m4a/aac（iOS 真机常见）
+	}
+	return ""
+}

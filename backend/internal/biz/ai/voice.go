@@ -5,6 +5,7 @@ import (
 
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/platform/airuntime/audioinput"
 	"github.com/chengjiang/aicook/backend/internal/platform/asr"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
 )
@@ -34,9 +35,16 @@ func (u *VoiceUsecase) TranscribeAsset(ctx context.Context, assetID int64) (*asr
 		return nil, err
 	}
 
+	// 按字节嗅探真实格式：微信开发者工具/浏览器录的是 WebM 却标成 mp3，MiMo 只认 wav/mp3，
+	// 直接送会报 "Format not recognised"。这里非 wav/mp3 的统一用 ffmpeg 转 WAV 再送。
+	clean, mime, err := audioinput.EnsureMiMoAudio(ctx, payload)
+	if err != nil {
+		return nil, err
+	}
+
 	return u.asr.Transcribe(ctx, asr.FilePayload{
 		FileName:    asset.FileName,
-		ContentType: asset.ContentType,
-		Data:        payload,
+		ContentType: mime,
+		Data:        clean,
 	})
 }

@@ -6,6 +6,7 @@ import { chatStream, ChatSendRequest, SSEEvent, SSETask } from '../services/sse'
 import { aiApi } from '../services/ai.api';
 import { nextClientId } from '../utils/id';
 import { markdownToNodes, looksLikeMarkdown } from '../utils/markdown';
+import { getItem, setItem, STORAGE_KEYS } from '../utils/storage';
 import type { AISession, Int64Like } from '../types/api';
 import type { ApprovalChoice, ChatMessage, ChatSegment } from '../types/chat';
 import type { SSEDonePayload } from '../types/sse-events';
@@ -15,16 +16,21 @@ export interface SendOptions {
   recipe_id?: number;
   quote_context?: Record<string, unknown>;
   attachments?: unknown[];
+  // 用户消息气泡里要显示的图片预览地址（本地临时路径，立即可看）；与 attachments 一一对应
+  display_images?: string[];
   context?: Record<string, unknown>;
   title?: string;
 }
+
+// 厨艺助理的「深度思考 / 联网搜索」开关偏好持久化，避免每次进入又要重选。
+const persistedChatModes = getItem<{ reasoning?: boolean; webSearch?: boolean }>(STORAGE_KEYS.CHAT_MODES) || {};
 
 export const chatStore = observable({
   session: null as AISession | null,
   messages: [] as ChatMessage[],
   streaming: false as boolean,
-  reasoningEnabled: false as boolean,
-  webSearchEnabled: false as boolean,
+  reasoningEnabled: !!persistedChatModes.reasoning,
+  webSearchEnabled: !!persistedChatModes.webSearch,
   imageRecipeEnabled: false as boolean,
   // 持有当前流任务，便于停止生成
   _currentTask: null as SSETask | null,
@@ -89,11 +95,14 @@ export const chatStore = observable({
     if (!trimmed && !opts?.attachments?.length) {
       return;
     }
+    const userSegs: ChatSegment[] = [];
+    if (opts?.display_images?.length) userSegs.push({ kind: 'image', urls: opts.display_images });
+    if (trimmed) userSegs.push({ kind: 'text', content: trimmed });
     const userMsg: ChatMessage = {
       client_id: nextClientId(),
       session_id: this.session?.id,
       role: 'user',
-      segments: trimmed ? [{ kind: 'text', content: trimmed }] : [],
+      segments: userSegs,
       status: 'done',
       created_at_ms: Date.now(),
     };
@@ -119,7 +128,9 @@ export const chatStore = observable({
       quote_context: opts?.quote_context,
       reasoning_enabled: this.reasoningEnabled,
       web_search_enabled: this.webSearchEnabled,
-      image_recipe_enabled: this.imageRecipeEnabled,
+      // 带图片附件即按「图文识别」处理（后端再用 hasImageAttachments 兜底门控）；
+      // 图文识别开关已从 UI 移除，改由「带附件」自动开启。
+      image_recipe_enabled: this.imageRecipeEnabled || !!(opts?.attachments && opts.attachments.length > 0),
     };
 
     const task = chatStream(body, {
@@ -239,10 +250,12 @@ export const chatStore = observable({
 
   toggleReasoning: action(function (this: typeof chatStore) {
     this.reasoningEnabled = !this.reasoningEnabled;
+    setItem(STORAGE_KEYS.CHAT_MODES, { reasoning: this.reasoningEnabled, webSearch: this.webSearchEnabled });
   }),
 
   toggleWebSearch: action(function (this: typeof chatStore) {
     this.webSearchEnabled = !this.webSearchEnabled;
+    setItem(STORAGE_KEYS.CHAT_MODES, { reasoning: this.reasoningEnabled, webSearch: this.webSearchEnabled });
   }),
 
   toggleImageRecipe: action(function (this: typeof chatStore) {
@@ -301,6 +314,14 @@ function toClientMessage(m: import('../types/api').AIMessage): ChatMessage {
   const segs: ChatSegment[] = [];
   // response_meta 即 ReplyMetadata 本体（见 types/api.d.ts 注释）
   const meta = m.response_meta;
+
+  // 历史里用户上传的图片附件 → 图片段（url 由后端签名后可直接预览）
+  const imageURLs = (m.attachments || [])
+    .filter((a) => (a.type || '').toLowerCase() === 'image' && a.url)
+    .map((a) => a.url as string);
+  if (imageURLs.length) {
+    segs.push({ kind: 'image', urls: imageURLs });
+  }
 
   // 思考过程（默认折叠）
   if (meta?.reasoning_content) {

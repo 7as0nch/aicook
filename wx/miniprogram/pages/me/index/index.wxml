@@ -68,15 +68,27 @@
       <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="" bindtap="onMenuTap">
+    <view class="me__set-row" data-url="/pages/me/about/index" bindtap="onMenuTap">
       <image class="me__set-icon" src="/assets/icons/info.png" mode="aspectFit" />
       <view class="me__set-text">关于 aicook</view>
       <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="" bindtap="onMenuTap">
+    <view class="me__set-row" data-key="user-agreement" bindtap="onDocTap">
+      <image class="me__set-icon" src="/assets/icons/edit.png" mode="aspectFit" />
+      <view class="me__set-text">用户协议</view>
+      <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
+    </view>
+    <view class="me__set-divider"></view>
+    <view class="me__set-row" data-key="privacy-policy" bindtap="onDocTap">
       <image class="me__set-icon" src="/assets/icons/shield.png" mode="aspectFit" />
-      <view class="me__set-text">用户隐私政策</view>
+      <view class="me__set-text">隐私政策</view>
+      <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
+    </view>
+    <view class="me__set-divider"></view>
+    <view class="me__set-row" data-key="disclaimer" bindtap="onDocTap">
+      <image class="me__set-icon" src="/assets/icons/heart.png" mode="aspectFit" />
+      <view class="me__set-text">医疗与营养免责声明</view>
       <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="me__set-divider"></view>

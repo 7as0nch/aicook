@@ -8,6 +8,7 @@ import { kitchenApi } from '../../../services/kitchen.api';
 import { householdApi } from '../../../services/household.api';
 import { hasToken } from '../../../utils/auth-guard';
 import { computeStreakDays } from '../../../utils/time';
+import { openLegalDoc, type LegalDocKey } from '../../../utils/legal';
 import type { CookingHistoryEntry, HouseholdMemberDetail } from '../../../types/api';
 
 interface MenuItem { id: string; emoji: string; text: string; url: string; }
@@ -163,11 +164,13 @@ Page({
       wx.showToast({ title: '敬请期待', icon: 'none' });
       return;
     }
-    if (url.startsWith('/pages/recipes/list')) {
-      wx.navigateTo({ url });
-    } else {
-      wx.navigateTo({ url });
-    }
+    wx.navigateTo({ url });
+  },
+
+  // 打开法律文档（用户协议 / 隐私政策 / 医疗与营养免责声明），小程序内原生页渲染
+  onDocTap(e: WechatMiniprogram.BaseEvent) {
+    const key = (e.currentTarget as unknown as { dataset: { key: LegalDocKey } }).dataset.key;
+    openLegalDoc(key);
   },
 
   onLogoutTap() {

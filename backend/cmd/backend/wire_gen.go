@@ -73,7 +73,7 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	cookingProgressUsecase := kitchen.NewCookingProgressUsecase(recipeRepo, cookingProgressStore)
 	aiUsecase := ai.NewAIUsecase(aiRepo, runtime, cookingProgressUsecase, knowledgeUsecase)
 	knowledgeService := service.NewKnowledgeService(knowledgeUsecase, aiUsecase)
-	aiService := service.NewAIService(aiUsecase)
+	aiService := service.NewAIService(aiUsecase, mediaUsecase)
 	cookingService := service.NewCookingService(cookingProgressUsecase, mediaUsecase)
 	kitchenOpsUsecase := kitchen.NewKitchenOpsUsecase(kitchenOpsRepo, recipeRepo, householdRepo, recommendUsecase)
 	cookingHistoryUsecase := kitchen.NewCookingHistoryUsecase(cookingHistoryRepo, recipeRepo, cookingProgressUsecase)

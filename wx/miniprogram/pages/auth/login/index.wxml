@@ -16,6 +16,9 @@
         <text>{{loading ? '登录中…' : '微信一键登录'}}</text>
       </view>
       <text class="auth__wx-tip">未注册的微信号将自动创建账号</text>
+      <view class="auth__consent">
+        <agreement-consent checked="{{agreed}}" bindchange="onAgreeChange" />
+      </view>
     </view>
 
     <view class="auth__alt" bindtap="onShowAccountForm">其他登录方式</view>
@@ -48,6 +51,10 @@
           value="{{password}}"
           bindinput="onPasswordInput"
         />
+      </view>
+
+      <view class="auth__consent">
+        <agreement-consent checked="{{agreed}}" bindchange="onAgreeChange" />
       </view>
 
       <view class="auth__btn {{loading ? 'auth__btn--loading' : ''}}" bindtap="onLoginTap">

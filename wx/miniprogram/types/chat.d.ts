@@ -25,6 +25,7 @@ export interface ChatMessage {
 
 export type ChatSegment =
   | TextSegment
+  | ImageSegment
   | ReasoningSegment
   | ToolCallSegment
   | RecipeCardSegment
@@ -39,6 +40,12 @@ export interface TextSegment {
   content: string;
   // 流结束后由 utils/markdown 解析出的 rich-text 节点；存在时优先用它渲染
   nodes?: unknown[];
+}
+
+// 用户上传的图片段（一条消息可含多张）；urls 为可显示的预览地址（本地临时路径或已签名 URL）
+export interface ImageSegment {
+  kind: 'image';
+  urls: string[];
 }
 
 export interface ReasoningSegment {

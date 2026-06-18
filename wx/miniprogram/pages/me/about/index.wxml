@@ -1,0 +1,66 @@
+<view class="about">
+  <custom-navbar title="关于"></custom-navbar>
+
+  <!-- 品牌区 -->
+  <view class="about__hero">
+    <view class="about__logo">
+      <image class="about__logo-img" src="/assets/mascot/bao-smile.png" mode="aspectFit" />
+    </view>
+    <view class="about__name">萝卜爱做饭</view>
+    <view class="about__en">AICook</view>
+    <view class="about__ver">内测版 · v0.1.0</view>
+  </view>
+
+  <!-- 项目介绍 -->
+  <view class="about__card">
+    <view class="about__sec-title">这是一款什么 App</view>
+    <view class="about__desc">萝卜爱做饭是一款 AI 做饭助手。你可以上传和管理菜谱、获取每日菜品推荐、用「冰箱里有什么」找能做的菜，还能一键生成一周菜单与购物清单，让一家人的吃饭这件事更省心。</view>
+    <view class="about__feature">
+      <view class="about__feature-item">📒 菜谱管理：拍照识别、草稿编辑、收藏与分享</view>
+      <view class="about__feature-item">🍳 每日推荐：结合家庭口味与忌口智能挑菜</view>
+      <view class="about__feature-item">🧊 冰箱有啥：按现有食材推荐能做的菜</view>
+      <view class="about__feature-item">🗓️ 周计划：一键生成一周菜单与购物清单</view>
+      <view class="about__feature-item">💬 厨艺助理：随时问 AI 做法与替代食材</view>
+    </view>
+  </view>
+
+  <!-- AI 能力说明 -->
+  <view class="about__card about__card--note">
+    <view class="about__sec-title">关于 AI 能力</view>
+    <view class="about__desc">本应用当前为内测版本，试用模型为小米 MiMo。AI 生成的推荐、识别与回答可能出错，营养与份量等信息仅供参考，请谨慎判断、自行核实。</view>
+  </view>
+
+  <!-- 协议与文档 -->
+  <view class="about__card about__card--list">
+    <view class="about__row" data-key="user-agreement" bindtap="onDocTap">
+      <view class="about__row-text">用户协议</view>
+      <image class="about__row-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
+    </view>
+    <view class="about__row-divider"></view>
+    <view class="about__row" data-key="privacy-policy" bindtap="onDocTap">
+      <view class="about__row-text">隐私政策</view>
+      <image class="about__row-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
+    </view>
+    <view class="about__row-divider"></view>
+    <view class="about__row" data-key="disclaimer" bindtap="onDocTap">
+      <view class="about__row-text">医疗与营养免责声明</view>
+      <image class="about__row-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
+    </view>
+  </view>
+
+  <!-- 联系方式 -->
+  <view class="about__card about__card--list">
+    <view class="about__row">
+      <view class="about__row-text">运营者</view>
+      <view class="about__row-value">个人开发者</view>
+    </view>
+    <view class="about__row-divider"></view>
+    <view class="about__row" bindtap="onCopyEmail">
+      <view class="about__row-text">联系邮箱</view>
+      <view class="about__row-value">7as0nch@gmail.com</view>
+    </view>
+  </view>
+
+  <view class="about__copyright">© 2026 萝卜爱做饭（AICook）· 内测版</view>
+  <view class="about__spacer"></view>
+</view>

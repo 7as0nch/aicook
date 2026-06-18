@@ -9,6 +9,7 @@ Page({
     password: '',
     loading: false,
     showAccountForm: false, // false: 默认微信视图；true: 切到账号密码表单
+    agreed: false, // 是否已勾选同意协议（微信登录与账号登录共用）
   },
 
   onLoad() {
@@ -16,6 +17,11 @@ Page({
     if (authStore.token) {
       wx.reLaunch({ url: '/pages/home/index/index' });
     }
+  },
+
+  // 同意协议勾选变化
+  onAgreeChange(e: WechatMiniprogram.CustomEvent<{ checked: boolean }>) {
+    this.setData({ agreed: e.detail.checked });
   },
 
   // ====== 视图切换 ======
@@ -42,6 +48,10 @@ Page({
       wx.showToast({ title: '请输入用户名和密码', icon: 'none' });
       return;
     }
+    if (!this.data.agreed) {
+      wx.showToast({ title: '请先阅读并勾选同意协议', icon: 'none' });
+      return;
+    }
     this.setData({ loading: true });
     try {
       await authStore.login({ username, password });
@@ -63,6 +73,10 @@ Page({
   // 「我的-个人资料」页用 button open-type="chooseAvatar" + input type="nickname" 自行设置。
   async onWxLogin() {
     if (this.data.loading) return;
+    if (!this.data.agreed) {
+      wx.showToast({ title: '请先阅读并勾选同意协议', icon: 'none' });
+      return;
+    }
     this.setData({ loading: true });
     try {
       const loginRes = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>((resolve, reject) => {

@@ -12,7 +12,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /app/serv
 
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates tzdata && \
+# ffmpeg：语音/聊天音频入模前转码用——微信开发者工具/浏览器录的是 WebM，
+# MiMo ASR 只认 wav/mp3，需 ffmpeg 转 WAV（真机录 mp3 时不触发转码）。
+RUN apk add --no-cache ca-certificates tzdata ffmpeg && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 

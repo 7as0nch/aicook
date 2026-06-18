@@ -6,16 +6,18 @@ import (
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/biz/ai"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/user"
 )
 
 type AIService struct {
 	v1.UnimplementedAIServiceServer
 
 	usecase *ai.AIUsecase
+	media   *user.MediaUsecase
 }
 
-func NewAIService(usecase *ai.AIUsecase) *AIService {
-	return &AIService{usecase: usecase}
+func NewAIService(usecase *ai.AIUsecase, media *user.MediaUsecase) *AIService {
+	return &AIService{usecase: usecase, media: media}
 }
 
 func (s *AIService) CreateSession(ctx context.Context, req *v1.CreateSessionRequest) (*v1.CreateSessionReply, error) {
@@ -45,9 +47,11 @@ func (s *AIService) SendMessage(ctx context.Context, req *v1.SendMessageRequest)
 		return nil, err
 	}
 
+	userMsg := toProtoAIMessage(reply.User)
+	signAIMessageMedia(ctx, s.media, userMsg)
 	return &v1.SendMessageReply{
 		Session:          toProtoAISession(reply.Session),
-		UserMessage:      toProtoAIMessage(reply.User),
+		UserMessage:      userMsg,
 		AssistantMessage: toProtoAIMessage(reply.Assistant),
 		ReplyContent:     reply.Reply.Content,
 		ReplyMode:        string(reply.Reply.Mode),
@@ -89,7 +93,9 @@ func (s *AIService) ListMessages(ctx context.Context, req *v1.ListMessagesReques
 		HasMore:  hasMore,
 	}
 	for _, message := range messages {
-		reply.Messages = append(reply.Messages, toProtoAIMessage(message))
+		pm := toProtoAIMessage(message)
+		signAIMessageMedia(ctx, s.media, pm) // 历史图片附件按 host/path 重签，前端可直接预览
+		reply.Messages = append(reply.Messages, pm)
 	}
 	return reply, nil
 }

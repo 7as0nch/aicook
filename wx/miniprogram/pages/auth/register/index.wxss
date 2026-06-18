@@ -78,3 +78,6 @@
 /* 内联校验错误 */
 .auth__input--err { border: 2rpx solid #E5604A; }
 .auth__err { display: block; margin-top: 8rpx; font-size: 22rpx; color: #E5604A; }
+
+/* 协议同意勾选区 */
+.auth__consent { margin-top: 24rpx; }

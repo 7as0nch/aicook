@@ -1,0 +1,6 @@
+<view class="legal">
+  <custom-navbar title="{{title}}"></custom-navbar>
+  <view class="legal__body">
+    <rich-text class="legal__rt" nodes="{{nodes}}" user-select="{{true}}"></rich-text>
+  </view>
+</view>

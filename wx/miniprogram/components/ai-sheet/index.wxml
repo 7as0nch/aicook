@@ -151,6 +151,19 @@
                   <rich-text wx:if="{{seg.nodes}}" class="ais__msg-rich" nodes="{{seg.nodes}}" />
                   <view wx:else class="ais__msg-text">{{seg.content}}</view>
                 </block>
+                <view wx:elif="{{seg.kind === 'image'}}" class="ais__msg-images">
+                  <image
+                    wx:for="{{seg.urls}}"
+                    wx:for-item="u"
+                    wx:key="*this"
+                    class="ais__msg-img"
+                    src="{{u}}"
+                    mode="aspectFill"
+                    data-url="{{u}}"
+                    data-urls="{{seg.urls}}"
+                    catchtap="onPreviewMsgImage"
+                  />
+                </view>
                 <view wx:elif="{{seg.kind === 'reasoning'}}" class="ais__msg-reason">
                   <view class="ais__msg-reason-head" data-cid="{{msg.client_id}}" catchtap="onReasonToggle">
                     <view class="ais__msg-reason-dot"></view>
@@ -265,23 +278,32 @@
       </block>
     </scroll-view>
 
-    <!-- mode chip -->
+    <!-- mode chip：图文识别已挪到输入框「+」里，这里只留深度思考 / 联网搜索 -->
     <view class="ais__modes">
       <mode-chip dotColor="#FF7A00" label="深度思考" active="{{reasoningEnabled}}" bind:toggle="onToggleReasoning" />
       <mode-chip dotColor="#2DBE7A" label="联网搜索" active="{{webSearchEnabled}}" bind:toggle="onToggleWebSearch" />
-      <mode-chip dotColor="#9B978F" label="图文识别" active="{{imageRecipeEnabled}}" bind:toggle="onToggleImageRecipe" />
     </view>
 
-    <!-- 输入条 -->
+    <!-- 待发送图片预览（输入框上方）：点看大图，× 删除 -->
+    <view wx:if="{{pendingImages.length}}" class="ais__pending">
+      <view wx:for="{{pendingImages}}" wx:key="localPath" class="ais__pending-item">
+        <image class="ais__pending-img" src="{{item.localPath}}" mode="aspectFill" data-idx="{{index}}" catchtap="onPreviewPending" />
+        <view class="ais__pending-del" data-idx="{{index}}" catchtap="onRemovePending">×</view>
+      </view>
+    </view>
+
+    <!-- 输入条：左「+」传图/拍摄，输入框长按语音 -->
     <view class="ais__input">
-      <view class="ais__input-mic {{recording ? 'ais__input-mic--rec' : ''}}" bindtap="onMicTap">
-        <image class="ais__input-mic-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+      <view class="ais__input-plus {{plusPanelOpen ? 'ais__input-plus--open' : ''}}" bindtap="onPlusTap">
+        <image class="ais__input-plus-icon" src="/assets/icons/plus.svg" mode="aspectFit" />
       </view>
       <input
-        class="ais__input-field"
-        placeholder="说点什么，或长按语音…"
+        class="ais__input-field {{recording ? 'ais__input-field--rec' : ''}}"
+        placeholder="{{recording ? '正在录音…' : '说点什么，长按语音输入'}}"
         value="{{text}}"
         bindinput="onInputChange"
+        bindfocus="onInputFocus"
+        bindlongpress="onInputLongpress"
         confirm-type="send"
         bindconfirm="onSendTap"
       />
@@ -292,5 +314,26 @@
         <image class="ais__input-send-icon" src="/assets/icons/send.svg" mode="aspectFit" />
       </view>
     </view>
+
+    <!-- 「+」展开面板：相册/拍摄，仿微信从输入框下方顶起 -->
+    <view class="ais__plus-panel {{plusPanelOpen ? 'ais__plus-panel--open' : ''}}">
+      <view class="ais__plus-grid">
+        <view class="ais__plus-item" bindtap="onPlusAlbum">
+          <view class="ais__plus-icon-wrap">
+            <image class="ais__plus-icon" src="/assets/icons/image.svg" mode="aspectFit" />
+          </view>
+          <text class="ais__plus-label">相册</text>
+        </view>
+        <view class="ais__plus-item" bindtap="onPlusCamera">
+          <view class="ais__plus-icon-wrap">
+            <image class="ais__plus-icon" src="/assets/icons/camera.png" mode="aspectFit" />
+          </view>
+          <text class="ais__plus-label">拍摄</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 模型免责提示 -->
+    <view class="ais__input-hint">本模型为 MiMo，AI 可能出错，请谨慎参考</view>
   </view>
 </view>

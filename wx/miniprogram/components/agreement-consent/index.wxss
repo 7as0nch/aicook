@@ -1,0 +1,41 @@
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  padding: 0 8rpx;
+}
+
+.consent__box {
+  width: 32rpx;
+  height: 32rpx;
+  margin-top: 2rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #D8D4CC;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.consent__box--on {
+  background: #FF7A00;
+  border-color: #FF7A00;
+}
+
+.consent__tick {
+  font-size: 22rpx;
+  color: #FFFFFF;
+  line-height: 1;
+}
+
+.consent__text {
+  flex: 1;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #9B978F;
+}
+
+.consent__link {
+  color: #FF7A00;
+}

@@ -1,0 +1,13 @@
+<!-- 协议同意勾选：登录/注册前必须勾选。点击文字链接打开对应文档，不影响勾选状态。 -->
+<view class="consent">
+  <view class="consent__box {{checked ? 'consent__box--on' : ''}}" catchtap="onToggle">
+    <text wx:if="{{checked}}" class="consent__tick">✓</text>
+  </view>
+  <view class="consent__text">
+    <text catchtap="onToggle">我已阅读并同意</text>
+    <text class="consent__link" catchtap="onOpen" data-key="user-agreement">《用户协议》</text>
+    <text class="consent__link" catchtap="onOpen" data-key="privacy-policy">《隐私政策》</text>
+    <text>和</text>
+    <text class="consent__link" catchtap="onOpen" data-key="disclaimer">《医疗与营养免责声明》</text>
+  </view>
+</view>

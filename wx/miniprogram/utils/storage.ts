@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   RECENT_KEYWORDS: 'aicook:recent:kw',    // string[]
   RECIPE_DRAFT: 'aicook:recipe:draft',    // 详情页食材勾选草稿
   ACTIVE_COOKING: 'aicook:cooking:active',// 本地烹饪进度备份
+  CHAT_MODES: 'aicook:chat:modes',        // 厨艺助理「深度思考/联网搜索」开关偏好 { reasoning, webSearch }
 } as const;
 
 export function getItem<T>(key: string): T | null {

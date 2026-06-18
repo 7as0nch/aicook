@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
@@ -36,6 +37,22 @@ func signRecipeMediaURLs(ctx context.Context, m *user.MediaUsecase, r *v1.Recipe
 	if r.GetVideoUrl() != "" {
 		if signed, err := m.SignMediaURL(ctx, r.GetVideoUrl()); err == nil && signed != "" {
 			r.VideoUrl = signed
+		}
+	}
+}
+
+// signAIMessageMedia 把聊天消息里用户上传的图片附件 URL 重签为短期可访问的预签名 URL，
+// 让历史消息里的图片在前端能直接预览（存的是 storage_url，未签名不可访问）。
+func signAIMessageMedia(ctx context.Context, m *user.MediaUsecase, msg *v1.AIMessage) {
+	if m == nil || msg == nil {
+		return
+	}
+	for _, a := range msg.GetAttachments() {
+		if a == nil || a.GetUrl() == "" || !strings.EqualFold(a.GetType(), "image") {
+			continue
+		}
+		if signed, err := m.SignMediaURL(ctx, a.GetUrl()); err == nil && signed != "" {
+			a.Url = signed
 		}
 	}
 }

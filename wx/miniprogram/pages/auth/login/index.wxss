@@ -138,3 +138,6 @@
 .auth__wx-btn--loading { opacity: 0.65; }
 
 .auth__wx-icon { width: 40rpx; height: 40rpx; }
+
+/* 协议同意勾选区（微信登录视图与账号表单共用） */
+.auth__consent { margin-top: 24rpx; }

@@ -7,7 +7,7 @@ import { createStoreBindings } from 'mobx-miniprogram-bindings';
 import { chatStore } from '../../store/chat.store';
 import { aiApi } from '../../services/ai.api';
 import { voiceApi } from '../../services/voice.api';
-import { uploadFile } from '../../services/upload';
+import { uploadFile, pickMedia } from '../../services/upload';
 import type { ApprovalSegment } from '../../types/chat';
 
 interface QuickAction {
@@ -16,6 +16,10 @@ interface QuickAction {
   label: string;
   desc: string;
 }
+
+// 待发送的图片：localPath 本地预览即时可看，url/assetId 用于发送
+type PendingImage = { localPath: string; url: string; contentType: string; assetId: string; name: string };
+const MAX_IMAGES = 9;
 
 // 从 store 中按消息 client_id + 审批 id 找到 approval 段（交互回调用）
 function findApprovalSeg(msgClientId: string, approvalId: string): ApprovalSegment | undefined {
@@ -92,6 +96,8 @@ Component({
     suggestions: SUGGESTIONS,
     recording: false,
     sending: false,
+    plusPanelOpen: false,       // 「+」展开的相册/拍摄面板（仿微信，把输入框顶起来）
+    pendingImages: [] as PendingImage[], // 待发送图片（输入框上方预览，可删，连同描述一起发）
     // 流式追底：用 scroll-top 交替大值强制滚到底（scroll-into-view 同值不重滚）
     scrollTop: 0,
     // 展开全屏时顶部为微信胶囊让出的高度（px，胶囊下沿 + 间距）
@@ -175,7 +181,12 @@ Component({
     // V10：切页时不再 setData visible —— 状态在 store 里，关闭由 store 全局同步
     // 这里只做 tabbar 兜底（防止上一页 sheet 关闭后 tabbar 仍隐藏）
     show() {
-      if (!chatStore.sheetVisible) {
+      if (chatStore.sheetVisible) {
+        // 从相册/拍摄等系统选择返回会触发页面 onShow：sheet 还开着就把 tabbar 再藏回去，
+        // 否则底部导航会盖住输入框（pageLifetimes.hide 期间放出过 TAB_BAR_SHOW）。
+        emit(EVENTS.TAB_BAR_HIDE);
+        forceTabBar(true);
+      } else {
         emit(EVENTS.TAB_BAR_SHOW);
         forceTabBar(false);
       }
@@ -373,10 +384,85 @@ Component({
     onToggleWebSearch() {
       chatStore.toggleWebSearch();
     },
-    onToggleImageRecipe() {
-      chatStore.toggleImageRecipe();
+    // 输入框左侧「+」：展开底部「相册/拍摄」面板（仿微信，把输入框顶起来）；再次点收起
+    onPlusTap() {
+      this.setData({ plusPanelOpen: !this.data.plusPanelOpen });
     },
-    onMicTap() {
+    onPlusAlbum() {
+      this.setData({ plusPanelOpen: false });
+      void this.pickImages('album');
+    },
+    onPlusCamera() {
+      this.setData({ plusPanelOpen: false });
+      void this.pickImages('camera');
+    },
+    // 聚焦输入框（要打字）时收起「+」面板，避免和键盘叠加
+    onInputFocus() {
+      if (this.data.plusPanelOpen) this.setData({ plusPanelOpen: false });
+    },
+    // 选图（相册可多选/拍摄单张）→ 上传 → 加入「待发送」预览区（不立即发，等用户补描述）
+    async pickImages(source: 'album' | 'camera') {
+      const remain = MAX_IMAGES - this.data.pendingImages.length;
+      if (remain <= 0) {
+        wx.showToast({ title: `最多 ${MAX_IMAGES} 张`, icon: 'none' });
+        return;
+      }
+      let files: { tempFilePath: string; size: number }[] = [];
+      try {
+        const picked = await pickMedia({
+          mediaKind: 'image',
+          count: source === 'camera' ? 1 : remain,
+          sourceType: [source],
+          mediaType: ['image'],
+        });
+        files = (picked.tempFiles || []).map((f) => ({ tempFilePath: f.tempFilePath, size: f.size || 0 }));
+      } catch {
+        return; // 取消/失败静默
+      }
+      if (!files.length) return;
+      wx.showLoading({ title: '上传中', mask: true });
+      try {
+        for (const f of files) {
+          const asset = await uploadFile({
+            tempFilePath: f.tempFilePath,
+            mediaKind: 'image',
+            contentType: 'image/jpeg',
+            sizeBytes: f.size,
+          });
+          const item: PendingImage = {
+            localPath: f.tempFilePath,
+            url: asset.storage_url || '',
+            contentType: 'image/jpeg',
+            assetId: String(asset.id),
+            name: asset.file_name || '图片',
+          };
+          this.setData({ pendingImages: [...this.data.pendingImages, item] });
+        }
+      } catch {
+        wx.showToast({ title: '部分图片上传失败', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+      }
+    },
+    // 删除某张待发送图片
+    onRemovePending(e: WechatMiniprogram.BaseEvent) {
+      const idx = Number((e.currentTarget as unknown as { dataset: { idx: string } }).dataset.idx);
+      this.setData({ pendingImages: this.data.pendingImages.filter((_, i) => i !== idx) });
+    },
+    // 预览待发送图片
+    onPreviewPending(e: WechatMiniprogram.BaseEvent) {
+      const idx = Number((e.currentTarget as unknown as { dataset: { idx: string } }).dataset.idx);
+      const urls = this.data.pendingImages.map((p) => p.localPath);
+      if (urls.length) wx.previewImage({ current: urls[idx] || urls[0], urls });
+    },
+    // 预览消息气泡里的图片（历史 + 刚发的）
+    onPreviewMsgImage(e: WechatMiniprogram.BaseEvent) {
+      const ds = (e.currentTarget as unknown as { dataset: { url: string; urls: string[] } }).dataset;
+      const urls = ds.urls || (ds.url ? [ds.url] : []);
+      if (urls.length) wx.previewImage({ current: ds.url || urls[0], urls });
+    },
+    // 输入框长按 → 语音输入（替代原左侧麦克风按钮）
+    onInputLongpress() {
       this.startVoice();
     },
     onAbort() {
@@ -498,7 +584,7 @@ Component({
           rm.start({ duration: 60000, sampleRate: 16000, numberOfChannels: 1, encodeBitRate: 48000, format: 'mp3' });
         });
         this.setData({ recording: true });
-        wx.showToast({ title: '正在录音…松手发送', icon: 'none' });
+        wx.showToast({ title: '正在录音…', icon: 'none' });
         setTimeout(() => this.stopVoice(rm), 3000);
       } catch (e) {
         this.setData({ recording: false });
@@ -550,18 +636,28 @@ Component({
     },
     async sendText(text: string) {
       const t = (text || this.data.text).trim();
-      if (!t) {
+      const imgs = this.data.pendingImages;
+      // 文字和图片至少有一个；纯图片也可发（让助理识别）
+      if (!t && !imgs.length) {
         wx.showToast({ title: '请输入内容', icon: 'none' });
         return;
       }
       if (this.data.sending) return;
-      this.setData({ sending: true, text: '' });
+      this.setData({ sending: true, text: '', pendingImages: [] });
       try {
         await this.ensureSession();
         chatStore.send(t, {
           scene: chatStore.sheetScene || undefined,
           recipe_id: chatStore.sheetRecipeId ? Number(chatStore.sheetRecipeId) : undefined,
           quote_context: chatStore.sheetQuoteContext || undefined,
+          attachments: imgs.map((p) => ({
+            type: 'image',
+            url: p.url,
+            content_type: p.contentType,
+            name: p.name,
+            asset_id: p.assetId,
+          })),
+          display_images: imgs.map((p) => p.localPath),
         });
         // 发送后自动展开到全屏，方便看流式输出
         chatStore.setSheetExpanded(true);

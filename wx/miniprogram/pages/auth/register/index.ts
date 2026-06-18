@@ -36,6 +36,12 @@ Page({
     // 内联错误提示（key 与字段同名）
     errors: {} as Partial<Record<Field, string>>,
     loading: false,
+    agreed: false, // 是否已勾选同意协议
+  },
+
+  // 同意协议勾选变化
+  onAgreeChange(e: WechatMiniprogram.CustomEvent<{ checked: boolean }>) {
+    this.setData({ agreed: e.detail.checked });
   },
 
   onBack() {
@@ -60,6 +66,10 @@ Page({
 
   async onSubmit() {
     if (this.data.loading) return;
+    if (!this.data.agreed) {
+      wx.showToast({ title: '请先阅读并勾选同意协议', icon: 'none' });
+      return;
+    }
     const username = this.data.username.trim();
     const password = this.data.password;
     const password2 = this.data.password2;

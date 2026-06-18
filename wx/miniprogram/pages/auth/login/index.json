@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "agreement-consent": "/components/agreement-consent/index"
+  },
   "navigationBarTitleText": "登录",
   "navigationStyle": "default"
 }
