@@ -38,10 +38,43 @@ type Drag = {
   screenH: number;
 };
 
+// —— 「快结束」提醒 ——
+const WARN_SECONDS = 60; // 当前步骤剩余 ≤ 此值弹「快好了」
+const TICK_MS = 1000;
+const REPOLL_MS = 30000; // 每 ~30s 重拉一次重置快照（容错暂停/延长/步骤变更）
+
+// 已提醒去重：模块级 Set，跨组件实例（翻页换页）共享，避免同一菜同一步骤重复弹
+const alertedKeys = new Set<string>();
+
+type Snap = {
+  recipeId: string;
+  title: string;
+  stepIndex: number;
+  stepLabel: string;
+  remaining: number; // poll 时的剩余秒数（服务端已算好）
+  running: boolean;
+  pollAt: number; // poll 的本地时间戳，用于本地递减
+};
+type AlertVM = { key: string; recipeId: string; title: string; stepLabel: string; text: string; kind: 'warn' | 'done' };
+
+function fmtMMSS(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+// 清掉已不在做的菜的提醒 key，避免 Set 无限增长
+function pruneAlerted(activeIds: Set<string>) {
+  for (const k of Array.from(alertedKeys)) {
+    if (!activeIds.has(k.split(':')[0])) alertedKeys.delete(k);
+  }
+}
+
 Component({
   properties: {
     // 浮球离底部默认距离（rpx 字符串）；默认靠右、且高于 AI 浮球避免重叠
     bottom: { type: String, value: '330rpx' },
+    // 在烹饪页传入当前菜 id：该菜的到点提醒由烹饪页自己负责，这里排除避免重复
+    excludeRecipeId: { type: String, value: '' },
   },
   data: {
     items: [] as CookingVM[],
@@ -55,6 +88,8 @@ Component({
     fabY: 0,
     fabPositioned: false,
     fabDragging: false,
+    // 「快结束」提醒横幅：多道菜各一条，顶部堆叠展示，分别可忽略/点进去
+    alerts: [] as AlertVM[],
   },
   lifetimes: {
     attached() {
@@ -68,10 +103,17 @@ Component({
         // 读取失败则用默认右下位置
       }
     },
+    detached() {
+      this.stopTicker();
+    },
   },
   pageLifetimes: {
     show() {
       void this.loadItems();
+      this.startTicker();
+    },
+    hide() {
+      this.stopTicker();
     },
   },
   methods: {
@@ -91,11 +133,111 @@ Component({
           cover: stableMediaURL(it.cover_image_url || ''),
           stepLabel: it.total_steps ? `第 ${(it.step_index || 0) + 1}/${it.total_steps} 步` : '进行中',
         }));
-        const patch: Record<string, unknown> = { items, openKey: '', dragKey: '', dragX: 0 };
+        // 倒计时快照：记录每道菜 poll 时的剩余秒数 + 计时状态，供本地 tick 递减侦测「快结束」
+        const now = Date.now();
+        const snap: Snap[] = list.map((it) => ({
+          recipeId: String(it.recipe_id),
+          title: it.title || '未命名菜谱',
+          stepIndex: it.step_index || 0,
+          stepLabel: it.total_steps ? `第 ${(it.step_index || 0) + 1}/${it.total_steps} 步` : '当前步骤',
+          remaining: Number(it.remaining_seconds) || 0,
+          running: !!it.timer_running,
+          pollAt: now,
+        }));
+        const self = this as unknown as { _snap?: Snap[]; _lastPoll?: number };
+        self._snap = snap;
+        self._lastPoll = now;
+        const activeIds = new Set(snap.map((s) => s.recipeId));
+        pruneAlerted(activeIds);
+        const patch: Record<string, unknown> = {
+          items,
+          openKey: '',
+          dragKey: '',
+          dragX: 0,
+          // 已不在做的菜，其残留横幅一并清掉
+          alerts: this.data.alerts.filter((a) => activeIds.has(a.recipeId)),
+        };
         if (!items.length) patch.drawerOpen = false;
         this.setData(patch);
       } catch {
         this.setData({ items: [] });
+      }
+    },
+
+    // ===== 「快结束」全局提醒 =====
+    startTicker() {
+      const self = this as unknown as { _tick?: number };
+      if (self._tick) return;
+      self._tick = setInterval(() => this.tick(), TICK_MS) as unknown as number;
+    },
+
+    stopTicker() {
+      const self = this as unknown as { _tick?: number };
+      if (self._tick) {
+        clearInterval(self._tick);
+        self._tick = undefined;
+      }
+    },
+
+    tick() {
+      const self = this as unknown as { _snap?: Snap[]; _lastPoll?: number };
+      const snap = self._snap || [];
+      // 周期性重拉，重置快照（容错 cooking 页改过的暂停/延长/步骤）
+      if (Date.now() - (self._lastPoll || 0) > REPOLL_MS) {
+        void this.loadItems();
+      }
+      // 多道菜：每道快结束的各弹一条，堆叠展示（不再「只显 1 条、其余排队」）。
+      const exclude = String(this.properties.excludeRecipeId || '');
+      const now = Date.now();
+      let alerts = this.data.alerts.slice();
+      let added = false;
+      let addedDone = false;
+      for (const s of snap) {
+        if (!s.running) continue;
+        if (exclude && s.recipeId === exclude) continue;
+        const live = s.remaining - (now - s.pollAt) / 1000;
+        const warnKey = `${s.recipeId}:${s.stepIndex}:warn`;
+        const doneKey = `${s.recipeId}:${s.stepIndex}:done`;
+        if (live <= 0) {
+          if (!alertedKeys.has(doneKey)) {
+            alertedKeys.add(doneKey);
+            alertedKeys.add(warnKey); // 已到点，warn 不必再补弹
+            // 升级：把该菜还在显示的「快好了」换成「时间到」
+            alerts = alerts.filter((a) => !(a.recipeId === s.recipeId && a.kind === 'warn'));
+            alerts.push({ key: doneKey, recipeId: s.recipeId, title: s.title, stepLabel: s.stepLabel, text: '时间到啦', kind: 'done' });
+            added = true;
+            addedDone = true;
+          }
+        } else if (live <= WARN_SECONDS) {
+          if (!alertedKeys.has(warnKey)) {
+            alertedKeys.add(warnKey);
+            alerts.push({ key: warnKey, recipeId: s.recipeId, title: s.title, stepLabel: s.stepLabel, text: `还有 ${fmtMMSS(live)}，快好了`, kind: 'warn' });
+            added = true;
+          }
+        }
+      }
+      if (added) {
+        // 本 tick 有新提醒才震一次（到点用长震，仅快好了用短震），避免多条各震一遍
+        if (addedDone) {
+          wx.vibrateLong();
+        } else {
+          wx.vibrateShort({ type: 'medium' });
+        }
+        this.setData({ alerts });
+      }
+    },
+
+    onAlertDismiss(e: WechatMiniprogram.BaseEvent) {
+      const key = (e.currentTarget as unknown as { dataset: { key: string } }).dataset.key;
+      this.setData({ alerts: this.data.alerts.filter((a) => a.key !== key) });
+    },
+
+    onAlertGo(e: WechatMiniprogram.BaseEvent) {
+      const key = (e.currentTarget as unknown as { dataset: { key: string } }).dataset.key;
+      const a = this.data.alerts.find((x) => x.key === key);
+      this.setData({ alerts: this.data.alerts.filter((x) => x.key !== key) });
+      if (a && a.recipeId) {
+        wx.navigateTo({ url: `/pages/recipes/cooking/index?id=${a.recipeId}` });
       }
     },
 

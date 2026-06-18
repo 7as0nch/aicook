@@ -93,6 +93,12 @@
     <text>退出登录</text>
   </view>
 
+  <!-- 内测提示：试用模型与 AI 风险告知 -->
+  <view class="me__footer">
+    <view class="me__footer-app">萝卜爱做饭 · 内测版</view>
+    <view class="me__footer-note">本应用试用模型为小米 MiMo，AI 可能出错，请谨慎参考</view>
+  </view>
+
   <view class="me__spacer"></view>
 </view>
 

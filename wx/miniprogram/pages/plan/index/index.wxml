@@ -114,7 +114,7 @@
   </view>
 
   <view class="plan__ai-btn" bindtap="onGeneratePlan">
-    <text>✨ AI 一键生成本周计划</text>
+    <text>一键生成本周计划</text>
   </view>
 
   <view class="plan__spacer"></view>

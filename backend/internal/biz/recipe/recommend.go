@@ -349,6 +349,131 @@ func (u *RecommendUsecase) matchLibraryByIngredients(ctx context.Context, actor 
 	return out
 }
 
+// RankForPlan 为「一键生成本周计划」准备三餐候选池：
+// 复用偏好打分（口味命中加分、忌口直接剔除、最近 7 天做过降权），
+// 再用 AI 判断每道菜适合哪一餐；AI 不可用/超时则按启发式（早餐取快手）兜底。
+// 返回键为 "breakfast"/"lunch"/"dinner"，每份按分排序的候选菜。
+func (u *RecommendUsecase) RankForPlan(ctx context.Context, actor common.Actor) (map[string][]*data.Recipe, error) {
+	candidates, err := u.recipes.ListLatest(ctx, actor.HouseholdID, recommendCandidatePoolSize, "", "", true, "published", 0)
+	if err != nil {
+		return nil, err
+	}
+	pools := map[string][]*data.Recipe{"breakfast": {}, "lunch": {}, "dinner": {}}
+	if len(candidates) == 0 {
+		return pools, nil
+	}
+
+	flavors, restrictions, _ := u.loadTastes(ctx, actor)
+	prefTags := map[string]struct{}{}
+	for _, f := range flavors {
+		prefTags[strings.ToLower(f)] = struct{}{}
+	}
+
+	// 最近 7 天做过 → 降权避重（区别于今日推荐的 3 天窗口）。
+	recentlyCooked := map[int64]struct{}{}
+	if u.cookHistory != nil {
+		if ids, herr := u.cookHistory.ListRecentRecipeIDsForUser(ctx, actor.UserID, 7, 100); herr == nil {
+			for _, id := range ids {
+				recentlyCooked[id] = struct{}{}
+			}
+		}
+	}
+
+	type scoredRecipe struct {
+		rec   *data.Recipe
+		score float64
+	}
+	kept := make([]scoredRecipe, 0, len(candidates))
+	titles := make([]string, 0, len(candidates))
+	for _, rec := range candidates {
+		if rec == nil {
+			continue
+		}
+		// 忌口直接剔除：周计划不该出现不能吃的菜。
+		if len(restrictions) > 0 && recipeHasRestriction(rec, restrictions) {
+			continue
+		}
+		score := recommendBaseScore + weightPopularityFloor
+		if len(prefTags) > 0 {
+			tags := collectRecipeTags(rec)
+			matched := 0
+			for _, t := range tags {
+				if _, ok := prefTags[strings.ToLower(t)]; ok {
+					matched++
+				}
+			}
+			if matched > 0 {
+				score += weightPreferenceMatch * float64(matched) / float64(len(tags)+1)
+			}
+		}
+		if _, ok := recentlyCooked[rec.ID]; ok {
+			score -= penaltyRecentlyCooked
+		}
+		kept = append(kept, scoredRecipe{rec: rec, score: score})
+		titles = append(titles, rec.Title)
+	}
+	if len(kept) == 0 {
+		return pools, nil
+	}
+	sort.SliceStable(kept, func(i, j int) bool {
+		if kept[i].score == kept[j].score {
+			return kept[i].rec.UpdatedAt.After(kept[j].rec.UpdatedAt)
+		}
+		return kept[i].score > kept[j].score
+	})
+
+	// AI 判定每道菜适合哪一餐；失败/超时则 fits=nil，走下方启发式。
+	var fits map[string]airuntime.MealSlotFit
+	if u.aiRuntime != nil {
+		if f, ferr := u.aiRuntime.ClassifyMealSlots(ctx, titles); ferr == nil {
+			fits = f
+		}
+	}
+
+	for _, s := range kept {
+		if fit, ok := fits[s.rec.Title]; fits != nil && ok && (fit.Breakfast || fit.Lunch || fit.Dinner) {
+			if fit.Breakfast {
+				pools["breakfast"] = append(pools["breakfast"], s.rec)
+			}
+			if fit.Lunch {
+				pools["lunch"] = append(pools["lunch"], s.rec)
+			}
+			if fit.Dinner {
+				pools["dinner"] = append(pools["dinner"], s.rec)
+			}
+			continue
+		}
+		// 启发式兜底：午晚=全量；早餐=快手（总时长 ≤ 20 分钟）优先纳入。
+		pools["lunch"] = append(pools["lunch"], s.rec)
+		pools["dinner"] = append(pools["dinner"], s.rec)
+		if s.rec.TotalMinutes > 0 && s.rec.TotalMinutes <= 20 {
+			pools["breakfast"] = append(pools["breakfast"], s.rec)
+		}
+	}
+	// 早餐池仍空（无快手 / AI 全判不适合）→ 用全量按时长升序兜底，避免早餐空槽。
+	if len(pools["breakfast"]) == 0 {
+		bf := make([]*data.Recipe, len(kept))
+		for i, s := range kept {
+			bf[i] = s.rec
+		}
+		sort.SliceStable(bf, func(i, j int) bool { return bf[i].TotalMinutes < bf[j].TotalMinutes })
+		pools["breakfast"] = bf
+	}
+	return pools, nil
+}
+
+// CountMembers 返回当前家庭成员人数（至少 1），供「一键生成本周计划」按人数决定每餐配几道菜。
+func (u *RecommendUsecase) CountMembers(ctx context.Context, actor common.Actor) int {
+	if u.householdUC == nil {
+		return 1
+	}
+	members, err := u.householdUC.ListMembers(ctx, actor, actor.HouseholdID)
+	if err != nil || len(members) < 1 {
+		return 1
+	}
+	return len(members)
+}
+
 // buildTasteSummary 把口味/忌口/备注拼成一行中文，喂给 AI 推荐 prompt。
 func buildTasteSummary(flavors []string, restrictions map[string]struct{}, tasteNote string) string {
 	parts := make([]string, 0, 3)

@@ -252,7 +252,7 @@ Page({
   },
 
   async onGeneratePlan() {
-    wx.showLoading({ title: 'AI 生成中…' });
+    wx.showLoading({ title: '正在为你配餐…' });
     try {
       await planStore.generatePlan(this.data.weekStart);
       this.rebuildMeals();

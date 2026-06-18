@@ -1,4 +1,22 @@
 <wxs src="../../utils/media.wxs" module="media" />
+<!-- 「快结束」提醒横幅：每道快结束的菜各一条，顶部堆叠展示 -->
+<view wx:if="{{alerts.length}}" class="ck-alerts">
+  <view
+    wx:for="{{alerts}}"
+    wx:key="key"
+    class="ck-alert {{item.kind === 'done' ? 'ck-alert--done' : ''}}"
+  >
+    <view class="ck-alert__body">
+      <text class="ck-alert__title">「{{item.title}}」{{item.stepLabel}}</text>
+      <text class="ck-alert__text">{{item.text}}</text>
+    </view>
+    <view class="ck-alert__btns">
+      <view class="ck-alert__btn" data-key="{{item.key}}" catchtap="onAlertDismiss">忽略</view>
+      <view class="ck-alert__btn ck-alert__btn--go" data-key="{{item.key}}" catchtap="onAlertGo">去看看</view>
+    </view>
+  </view>
+</view>
+
 <!-- 有正在做的菜才渲染整个组件（浮球 + 抽屉）；没有则什么都不显示 -->
 <view wx:if="{{items.length}}">
   <!-- 浮球：默认靠右、可拖拽吸附左右边缘；点击打开抽屉 -->

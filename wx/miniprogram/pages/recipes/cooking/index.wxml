@@ -93,5 +93,7 @@
   </view>
 </view>
 
+<!-- 在做本菜时，其它并行菜的「快结束」提醒仍要弹；本菜的到点由页面自带计时负责，故排除 -->
+<cooking-fab excludeRecipeId="{{recipeId}}" />
 <ai-fab scene="cooking_guide" recipeId="{{recipeId}}" contextHint="{{detail.recipe.title}}" bottom="240rpx" />
 <ai-sheet context="做菜中" />

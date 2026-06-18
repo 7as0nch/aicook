@@ -1,3 +1,80 @@
+/* 「快结束」提醒：顶部悬浮的堆叠容器，z-index 高于浮球(90) 低于抽屉(9999) */
+.ck-alerts {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  top: calc(env(safe-area-inset-top) + 96rpx);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 单条横幅（堆叠项） */
+.ck-alert {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  background: #FFFFFF;
+  border: 2rpx solid #FFE4C9;
+  border-radius: 20rpx;
+  box-shadow: 0 12rpx 36rpx rgba(31, 27, 22, 0.18);
+  animation: ck-alert-in 0.28s cubic-bezier(0.32, 1.2, 0.6, 1);
+}
+
+.ck-alert--done {
+  border-color: #FF7A00;
+}
+
+.ck-alert__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.ck-alert__title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1F1B16;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ck-alert__text {
+  font-size: 24rpx;
+  color: #FF7A00;
+  font-weight: 500;
+}
+
+.ck-alert__btns {
+  display: flex;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+.ck-alert__btn {
+  font-size: 24rpx;
+  color: #9B978F;
+  padding: 10rpx 20rpx;
+  border-radius: 9999rpx;
+  background: #F4F5F7;
+}
+
+.ck-alert__btn--go {
+  color: #FFFFFF;
+  background: #FF7A00;
+  font-weight: 500;
+}
+
+@keyframes ck-alert-in {
+  0% { opacity: 0; transform: translateY(-16rpx); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 /* 浮球：默认靠右（位置由内联 style 控制），可拖拽吸附；z-index 略低于抽屉 */
 .ck-fab {
   position: fixed;

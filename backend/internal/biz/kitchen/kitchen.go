@@ -12,6 +12,7 @@ import (
 
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
+	"github.com/chengjiang/aicook/backend/internal/biz/recipe"
 	"github.com/chengjiang/aicook/backend/internal/utils"
 )
 
@@ -76,13 +77,15 @@ type KitchenOpsUsecase struct {
 	repo         *data.KitchenOpsRepo
 	recipeRepo   *data.RecipeRepo
 	householdRepo *data.HouseholdRepo
+	recommend    *recipe.RecommendUsecase
 }
 
-func NewKitchenOpsUsecase(repo *data.KitchenOpsRepo, recipeRepo *data.RecipeRepo, householdRepo *data.HouseholdRepo) *KitchenOpsUsecase {
+func NewKitchenOpsUsecase(repo *data.KitchenOpsRepo, recipeRepo *data.RecipeRepo, householdRepo *data.HouseholdRepo, recommend *recipe.RecommendUsecase) *KitchenOpsUsecase {
 	return &KitchenOpsUsecase{
 		repo:          repo,
 		recipeRepo:    recipeRepo,
 		householdRepo: householdRepo,
+		recommend:     recommend,
 	}
 }
 
@@ -144,38 +147,115 @@ func (u *KitchenOpsUsecase) SaveWeekPlan(ctx context.Context, actor common.Actor
 	return buildMealPlanView(plan, items, weekStart), nil
 }
 
+// GenerateWeekPlan 个性化生成本周计划：
+// 候选由 RecommendUsecase.RankForPlan 给出（成员口味加分 + 忌口剔除 + 上周避重 + AI 配餐次），
+// 再按「本周用得最少优先」分配到 7 天×3 餐，整周尽量不重样、每餐合适。
 func (u *KitchenOpsUsecase) GenerateWeekPlan(ctx context.Context, actor common.Actor, weekStartRaw string) (*MealPlanWeekView, error) {
 	weekStart, err := parseWeekStart(weekStartRaw)
 	if err != nil {
 		return nil, err
 	}
-	recipes, err := u.recipeRepo.ListLatest(ctx, actor.HouseholdID, 30, "", "", true, "published", 0)
+	pools, err := u.recommend.RankForPlan(ctx, actor)
 	if err != nil {
 		return nil, err
 	}
+	merged := mergeRecipePools(pools) // 某餐候选为空时回退，保证不空槽
+
+	// 每餐配几道菜：按厨房成员人数缩放（人多则每餐多上几道；早餐略少）。
+	members := u.recommend.CountMembers(ctx, actor)
+
 	dayKeys := orderedDayKeys()
 	slotOrder := []MealSlot{MealSlotBreakfast, MealSlotLunch, MealSlotDinner}
+	slotKey := map[MealSlot]string{MealSlotBreakfast: "breakfast", MealSlotLunch: "lunch", MealSlotDinner: "dinner"}
 	input := MealPlanSaveInput{
 		WeekStartDate: weekStart.Format(dateLayout),
 		Days:          map[string]map[MealSlot][]MealPlanDishInput{},
 	}
-	cursor := 0
+	used := map[int64]int{} // 全周用量，越少越优先 → 整周尽量不重样
 	for _, dayKey := range dayKeys {
 		input.Days[dayKey] = map[MealSlot][]MealPlanDishInput{}
 		for _, slot := range slotOrder {
-			if len(recipes) == 0 {
-				input.Days[dayKey][slot] = []MealPlanDishInput{}
-				continue
+			pool := pools[slotKey[slot]]
+			if len(pool) == 0 {
+				pool = merged
 			}
-			recipe := recipes[cursor%len(recipes)]
-			input.Days[dayKey][slot] = []MealPlanDishInput{{
-				RecipeID:    &recipe.ID,
-				RecipeTitle: recipe.Title,
-			}}
-			cursor++
+			picks := pickNLeastUsed(pool, used, dishCountForMembers(members, slot == MealSlotBreakfast))
+			dishes := make([]MealPlanDishInput, 0, len(picks))
+			for _, p := range picks {
+				rid := p.ID
+				dishes = append(dishes, MealPlanDishInput{RecipeID: &rid, RecipeTitle: p.Title})
+			}
+			input.Days[dayKey][slot] = dishes
 		}
 	}
-	return u.SaveWeekPlan(ctx, actor, input, "ai")
+	return u.SaveWeekPlan(ctx, actor, input, "auto")
+}
+
+// dishCountForMembers 按成员人数决定单餐菜数：1-2人→1、3-4人→2、5+人→3；早餐封顶 2。
+func dishCountForMembers(members int, breakfast bool) int {
+	if members < 1 {
+		members = 1
+	}
+	cnt := (members + 1) / 2
+	if cnt < 1 {
+		cnt = 1
+	}
+	if cnt > 3 {
+		cnt = 3
+	}
+	if breakfast && cnt > 2 {
+		cnt = 2
+	}
+	return cnt
+}
+
+// mergeRecipePools 把三餐候选去重合并成一个总池（某餐候选为空时兜底用）。
+func mergeRecipePools(pools map[string][]*data.Recipe) []*data.Recipe {
+	seen := map[int64]struct{}{}
+	out := make([]*data.Recipe, 0)
+	for _, key := range []string{"breakfast", "lunch", "dinner"} {
+		for _, r := range pools[key] {
+			if r == nil {
+				continue
+			}
+			if _, ok := seen[r.ID]; ok {
+				continue
+			}
+			seen[r.ID] = struct{}{}
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// pickNLeastUsed 从候选池里选 n 道「本周用得最少」且本餐内不重复的菜（同用量取靠前=分高/更合适）。
+// 池内可选菜不足 n 时只返回已有的（不为凑数而重复同一道）。
+func pickNLeastUsed(pool []*data.Recipe, used map[int64]int, n int) []*data.Recipe {
+	picked := make([]*data.Recipe, 0, n)
+	taken := map[int64]struct{}{}
+	for len(picked) < n {
+		var best *data.Recipe
+		bestUse := int(^uint(0) >> 1)
+		for _, r := range pool {
+			if r == nil {
+				continue
+			}
+			if _, dup := taken[r.ID]; dup {
+				continue
+			}
+			if c := used[r.ID]; c < bestUse {
+				bestUse = c
+				best = r
+			}
+		}
+		if best == nil {
+			break // 池内可选菜已用尽
+		}
+		taken[best.ID] = struct{}{}
+		used[best.ID]++
+		picked = append(picked, best)
+	}
+	return picked
 }
 
 func (u *KitchenOpsUsecase) GetOrGenerateShoppingList(ctx context.Context, actor common.Actor, weekStartRaw string) (*data.ShoppingList, []*data.ShoppingListItem, error) {

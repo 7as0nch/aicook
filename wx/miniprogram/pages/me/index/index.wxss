@@ -359,6 +359,25 @@
   margin-right: 12rpx;
 }
 
+/* ========== 内测页脚提示 ========== */
+.me__footer {
+  margin-top: 28rpx;
+  text-align: center;
+  padding: 0 24rpx;
+}
+
+.me__footer-app {
+  font-size: 22rpx;
+  color: #B6B2AA;
+}
+
+.me__footer-note {
+  font-size: 22rpx;
+  color: #B6B2AA;
+  line-height: 1.5;
+  margin-top: 8rpx;
+}
+
 .me__spacer { height: 80rpx; }
 
 /* 统计数字骨架（首次加载时显示，避免闪 0） */

@@ -90,7 +90,7 @@ export const kitchenApi = {
       url: '/api/v1/meal-plans/current:generate',
       method: 'POST',
       data: { week_start },
-      loading: 'AI 生成中',
+      loading: '配餐中',
     });
   },
 

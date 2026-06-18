@@ -37,8 +37,10 @@ data:
         auto_migrate: false
       redis:
         addr: sshjd.aihelper.chat:30379
-        read_timeout: 0.2s
-        write_timeout: 0.2s
+        # 远端公网 Redis（跨网访问）：0.2s 过紧，任何网络抖动都会 i/o timeout，
+        # 导致审批续跑 checkpoint 读失败、对话报错。放宽到 3s 留足往返余量。
+        read_timeout: 3s
+        write_timeout: 3s
         password: "${REDIS_PASSWORD}"
     oss:
       # 外部 MinIO（位于 Cloudflare 之后，单独部署，不在本集群内）。

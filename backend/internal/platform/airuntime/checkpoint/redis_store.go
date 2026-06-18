@@ -37,16 +37,26 @@ func (s *RedisStore) Get(ctx context.Context, key string) ([]byte, bool, error) 
 	if s == nil || s.rdb == nil {
 		return nil, false, nil
 	}
-	val, err := s.rdb.Get(ctx, s.redisKey(key)).Bytes()
-	if errors.Is(err, redis.Nil) {
-		return nil, false, nil
+	// checkpoint 读在「审批续跑」关键路径上：远端 Redis 偶发抖动/超时时重试几次，
+	// 避免一次 i/o timeout 就把整条对话判为「checkpoint 不存在」而失败。
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		val, err := s.rdb.Get(ctx, s.redisKey(key)).Bytes()
+		if err == nil {
+			return val, true, nil
+		}
+		if errors.Is(err, redis.Nil) {
+			return nil, false, nil // 确实不存在，不重试
+		}
+		lastErr = err
+		if ctx.Err() != nil {
+			break // 请求已取消，不再重试
+		}
+		time.Sleep(time.Duration(attempt+1) * 150 * time.Millisecond)
 	}
-	if err != nil {
-		// Redis 异常时按「无 checkpoint」处理：让对话重新开始，而不是整条流挂掉。
-		log.Warnf("checkpoint redis get failed: key=%s err=%v", key, err)
-		return nil, false, nil
-	}
-	return val, true, nil
+	// 重试仍失败 → 按「无 checkpoint」降级：让流不至于崩（用户重发即可），但日志告警。
+	log.Warnf("checkpoint redis get failed after retries: key=%s err=%v", key, lastErr)
+	return nil, false, nil
 }
 
 func (s *RedisStore) Set(ctx context.Context, key string, checkpoint []byte) error {

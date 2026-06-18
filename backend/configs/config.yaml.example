@@ -19,8 +19,9 @@ data:
     auto_migrate: true
   redis:
     addr: your-host.example.com:30379
-    read_timeout: 0.2s
-    write_timeout: 0.2s
+    # 远端 Redis 建议 ≥3s；0.2s 这种过紧值在跨网访问下会频繁 i/o timeout。
+    read_timeout: 3s
+    write_timeout: 3s
     password: "<your-redis-password>"
 
 oss:
