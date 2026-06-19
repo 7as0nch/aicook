@@ -5,11 +5,14 @@ import (
 
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/conf"
-	svc "github.com/chengjiang/aicook/backend/internal/service"
+	svcai "github.com/chengjiang/aicook/backend/internal/service/ai"
+	svckitchen "github.com/chengjiang/aicook/backend/internal/service/kitchen"
+	svcrecipe "github.com/chengjiang/aicook/backend/internal/service/recipe"
+	svcuser "github.com/chengjiang/aicook/backend/internal/service/user"
 	kratosgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 )
 
-func NewGRPCServer(cfg *conf.Bootstrap, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService) *kratosgrpc.Server {
+func NewGRPCServer(cfg *conf.Bootstrap, authSvc *svcuser.AuthService, householdSvc *svcuser.HouseholdService, recipeSvc *svcrecipe.RecipeService, mediaSvc *svcuser.MediaService, voiceSvc *svcai.VoiceService, importSvc *svcrecipe.ImportService, knowledgeSvc *svcai.KnowledgeService, aiSvc *svcai.AIService, cookingSvc *svckitchen.CookingService, kitchenSvc *svckitchen.KitchenService) *kratosgrpc.Server {
 	timeout := cfg.GetServer().GetGrpc().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second

@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 )
 
 type HouseholdService struct {
@@ -24,7 +25,7 @@ func (s *HouseholdService) CreateHousehold(ctx context.Context, req *v1.CreateHo
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateHouseholdReply{Household: toProtoHousehold(household)}, nil
+	return &v1.CreateHouseholdReply{Household: convert.ToProtoHousehold(household)}, nil
 }
 
 func (s *HouseholdService) CreateShareCode(ctx context.Context, req *v1.CreateShareCodeRequest) (*v1.CreateShareCodeReply, error) {
@@ -33,7 +34,7 @@ func (s *HouseholdService) CreateShareCode(ctx context.Context, req *v1.CreateSh
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateShareCodeReply{Household: toProtoHousehold(household)}, nil
+	return &v1.CreateShareCodeReply{Household: convert.ToProtoHousehold(household)}, nil
 }
 
 func (s *HouseholdService) GetKitchenByShareCode(ctx context.Context, req *v1.GetKitchenByShareCodeRequest) (*v1.GetKitchenByShareCodeReply, error) {
@@ -43,12 +44,12 @@ func (s *HouseholdService) GetKitchenByShareCode(ctx context.Context, req *v1.Ge
 	}
 	items := make([]*v1.SharedRecipePreview, 0, len(recipes))
 	for _, recipe := range recipes {
-		r := toProtoRecipe(recipe)
-		signRecipeMediaURLs(ctx, s.media, r)
+		r := convert.ToProtoRecipe(recipe)
+		convert.SignRecipeMediaURLs(ctx, s.media, r)
 		items = append(items, &v1.SharedRecipePreview{Recipe: r})
 	}
 	return &v1.GetKitchenByShareCodeReply{
-		Household: toProtoHousehold(household),
+		Household: convert.ToProtoHousehold(household),
 		Recipes:   items,
 	}, nil
 }
@@ -60,13 +61,13 @@ func (s *HouseholdService) ImportSharedRecipes(ctx context.Context, req *v1.Impo
 	}
 	items := make([]*v1.Recipe, 0, len(recipes))
 	for _, recipe := range recipes {
-		r := toProtoRecipe(recipe)
-		signRecipeMediaURLs(ctx, s.media, r)
+		r := convert.ToProtoRecipe(recipe)
+		convert.SignRecipeMediaURLs(ctx, s.media, r)
 		items = append(items, r)
 	}
 	return &v1.ImportSharedRecipesReply{
 		Recipes:    items,
-		KitchenTag: toProtoKitchenTag(tag),
+		KitchenTag: convert.ToProtoKitchenTag(tag),
 	}, nil
 }
 
@@ -78,7 +79,7 @@ func (s *HouseholdService) ListKitchenTags(ctx context.Context, req *v1.ListKitc
 	}
 	items := make([]*v1.KitchenTag, 0, len(tags))
 	for _, tag := range tags {
-		items = append(items, toProtoKitchenTag(tag))
+		items = append(items, convert.ToProtoKitchenTag(tag))
 	}
 	return &v1.ListKitchenTagsReply{Tags: items}, nil
 }
@@ -88,7 +89,7 @@ func (s *HouseholdService) CreateKitchenTag(ctx context.Context, req *v1.CreateK
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateKitchenTagReply{Tag: toProtoKitchenTag(tag)}, nil
+	return &v1.CreateKitchenTagReply{Tag: convert.ToProtoKitchenTag(tag)}, nil
 }
 
 func (s *HouseholdService) UpdateKitchenTag(ctx context.Context, req *v1.UpdateKitchenTagRequest) (*v1.UpdateKitchenTagReply, error) {
@@ -96,7 +97,7 @@ func (s *HouseholdService) UpdateKitchenTag(ctx context.Context, req *v1.UpdateK
 	if err != nil {
 		return nil, err
 	}
-	return &v1.UpdateKitchenTagReply{Tag: toProtoKitchenTag(tag)}, nil
+	return &v1.UpdateKitchenTagReply{Tag: convert.ToProtoKitchenTag(tag)}, nil
 }
 
 func (s *HouseholdService) DeleteKitchenTag(ctx context.Context, req *v1.DeleteKitchenTagRequest) (*v1.DeleteKitchenTagReply, error) {

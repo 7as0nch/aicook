@@ -1,4 +1,4 @@
-package service
+package convert
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func signRecipeMediaURLs(ctx context.Context, m *user.MediaUsecase, r *v1.Recipe) {
+func SignRecipeMediaURLs(ctx context.Context, m *user.MediaUsecase, r *v1.Recipe) {
 	if m == nil || r == nil {
 		return
 	}
@@ -43,7 +43,7 @@ func signRecipeMediaURLs(ctx context.Context, m *user.MediaUsecase, r *v1.Recipe
 
 // signAIMessageMedia 把聊天消息里用户上传的图片附件 URL 重签为短期可访问的预签名 URL，
 // 让历史消息里的图片在前端能直接预览（存的是 storage_url，未签名不可访问）。
-func signAIMessageMedia(ctx context.Context, m *user.MediaUsecase, msg *v1.AIMessage) {
+func SignAIMessageMedia(ctx context.Context, m *user.MediaUsecase, msg *v1.AIMessage) {
 	if m == nil || msg == nil {
 		return
 	}
@@ -57,7 +57,7 @@ func signAIMessageMedia(ctx context.Context, m *user.MediaUsecase, msg *v1.AIMes
 	}
 }
 
-func signRecipeStepMediaURLs(ctx context.Context, m *user.MediaUsecase, s *v1.RecipeStep) {
+func SignRecipeStepMediaURLs(ctx context.Context, m *user.MediaUsecase, s *v1.RecipeStep) {
 	if m == nil || s == nil {
 		return
 	}
@@ -78,17 +78,17 @@ func signRecipeStepMediaURLs(ctx context.Context, m *user.MediaUsecase, s *v1.Re
 	s.MediaUrls = mediaURLs
 }
 
-func signRecipeDetailMediaURLs(ctx context.Context, m *user.MediaUsecase, d *v1.RecipeDetail) {
+func SignRecipeDetailMediaURLs(ctx context.Context, m *user.MediaUsecase, d *v1.RecipeDetail) {
 	if m == nil || d == nil {
 		return
 	}
-	signRecipeMediaURLs(ctx, m, d.Recipe)
+	SignRecipeMediaURLs(ctx, m, d.Recipe)
 	for _, step := range d.Steps {
-		signRecipeStepMediaURLs(ctx, m, step)
+		SignRecipeStepMediaURLs(ctx, m, step)
 	}
 }
 
-func toProtoRecipe(model *data.Recipe) *v1.Recipe {
+func ToProtoRecipe(model *data.Recipe) *v1.Recipe {
 	if model == nil {
 		return nil
 	}
@@ -109,16 +109,16 @@ func toProtoRecipe(model *data.Recipe) *v1.Recipe {
 		Category:           model.Category,
 		TotalMinutes:       int32(model.TotalMinutes),
 		Difficulty:         int32(model.Difficulty),
-		ScenarioTags:       jsonArrayToStrings(model.ScenarioTags),
-		FlavorTags:         jsonArrayToStrings(model.FlavorTags),
-		Tools:              jsonArrayToStrings(model.Tools),
-		Metadata:           jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:          toTimestamp(model.CreatedAt),
-		UpdatedAt:          toTimestamp(model.UpdatedAt),
+		ScenarioTags:       JsonArrayToStrings(model.ScenarioTags),
+		FlavorTags:         JsonArrayToStrings(model.FlavorTags),
+		Tools:              JsonArrayToStrings(model.Tools),
+		Metadata:           JsonMapToStruct(model.MetadataJSON),
+		CreatedAt:          ToTimestamp(model.CreatedAt),
+		UpdatedAt:          ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoHousehold(model *data.Household) *v1.HouseholdSummary {
+func ToProtoHousehold(model *data.Household) *v1.HouseholdSummary {
 	if model == nil {
 		return nil
 	}
@@ -127,20 +127,20 @@ func toProtoHousehold(model *data.Household) *v1.HouseholdSummary {
 		Name:      model.Name,
 		ShareCode: model.ShareCode,
 		Timezone:  model.Timezone,
-		CreatedAt: toTimestamp(model.CreatedAt),
-		UpdatedAt: toTimestamp(model.UpdatedAt),
+		CreatedAt: ToTimestamp(model.CreatedAt),
+		UpdatedAt: ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoHouseholds(items []*data.Household) []*v1.HouseholdSummary {
+func ToProtoHouseholds(items []*data.Household) []*v1.HouseholdSummary {
 	out := make([]*v1.HouseholdSummary, 0, len(items))
 	for _, item := range items {
-		out = append(out, toProtoHousehold(item))
+		out = append(out, ToProtoHousehold(item))
 	}
 	return out
 }
 
-func toProtoUser(ctx context.Context, model *data.User, media *user.MediaUsecase) *v1.UserProfile {
+func ToProtoUser(ctx context.Context, model *data.User, media *user.MediaUsecase) *v1.UserProfile {
 	if model == nil {
 		return nil
 	}
@@ -152,8 +152,8 @@ func toProtoUser(ctx context.Context, model *data.User, media *user.MediaUsecase
 		DisplayName: model.DisplayName,
 		Email:       model.Email,
 		Status:      model.Status,
-		CreatedAt:   toTimestamp(model.CreatedAt),
-		UpdatedAt:   toTimestamp(model.UpdatedAt),
+		CreatedAt:   ToTimestamp(model.CreatedAt),
+		UpdatedAt:   ToTimestamp(model.UpdatedAt),
 	}
 	// 优先级：自上传头像（AvatarAssetID → 预签名 URL）> 外部直链（AvatarURL，多为微信默认头像）。
 	if model.AvatarAssetID != nil && *model.AvatarAssetID != 0 && media != nil {
@@ -167,7 +167,7 @@ func toProtoUser(ctx context.Context, model *data.User, media *user.MediaUsecase
 	return p
 }
 
-func toProtoKitchenTag(model *data.KitchenTag) *v1.KitchenTag {
+func ToProtoKitchenTag(model *data.KitchenTag) *v1.KitchenTag {
 	if model == nil {
 		return nil
 	}
@@ -178,12 +178,12 @@ func toProtoKitchenTag(model *data.KitchenTag) *v1.KitchenTag {
 		Icon:        model.Icon,
 		Color:       model.Color,
 		Type:        uint32(model.Type),
-		CreatedAt:   toTimestamp(model.CreatedAt),
-		UpdatedAt:   toTimestamp(model.UpdatedAt),
+		CreatedAt:   ToTimestamp(model.CreatedAt),
+		UpdatedAt:   ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoRecipeIngredient(model *data.RecipeIngredient) *v1.RecipeIngredient {
+func ToProtoRecipeIngredient(model *data.RecipeIngredient) *v1.RecipeIngredient {
 	if model == nil {
 		return nil
 	}
@@ -199,7 +199,7 @@ func toProtoRecipeIngredient(model *data.RecipeIngredient) *v1.RecipeIngredient 
 	}
 }
 
-func toProtoRecipeStep(model *data.RecipeStep) *v1.RecipeStep {
+func ToProtoRecipeStep(model *data.RecipeStep) *v1.RecipeStep {
 	if model == nil {
 		return nil
 	}
@@ -223,26 +223,26 @@ func toProtoRecipeStep(model *data.RecipeStep) *v1.RecipeStep {
 	}
 }
 
-func toProtoRecipeDetail(detail *data.RecipeDetail) *v1.RecipeDetail {
+func ToProtoRecipeDetail(detail *data.RecipeDetail) *v1.RecipeDetail {
 	if detail == nil {
 		return nil
 	}
 	ingredients := make([]*v1.RecipeIngredient, 0, len(detail.Ingredients))
 	for _, item := range detail.Ingredients {
-		ingredients = append(ingredients, toProtoRecipeIngredient(item))
+		ingredients = append(ingredients, ToProtoRecipeIngredient(item))
 	}
 	steps := make([]*v1.RecipeStep, 0, len(detail.Steps))
 	for _, item := range detail.Steps {
-		steps = append(steps, toProtoRecipeStep(item))
+		steps = append(steps, ToProtoRecipeStep(item))
 	}
 	return &v1.RecipeDetail{
-		Recipe:      toProtoRecipe(detail.Recipe),
+		Recipe:      ToProtoRecipe(detail.Recipe),
 		Ingredients: ingredients,
 		Steps:       steps,
 	}
 }
 
-func toDraftIngredients(items []*v1.CreateRecipeDraftIngredient) []airuntime.DraftIngredient {
+func ToDraftIngredients(items []*v1.CreateRecipeDraftIngredient) []airuntime.DraftIngredient {
 	result := make([]airuntime.DraftIngredient, 0, len(items))
 	for _, item := range items {
 		if item == nil {
@@ -258,7 +258,7 @@ func toDraftIngredients(items []*v1.CreateRecipeDraftIngredient) []airuntime.Dra
 	return result
 }
 
-func toDraftSteps(items []*v1.CreateRecipeDraftStep) []airuntime.DraftStep {
+func ToDraftSteps(items []*v1.CreateRecipeDraftStep) []airuntime.DraftStep {
 	result := make([]airuntime.DraftStep, 0, len(items))
 	for _, item := range items {
 		if item == nil {
@@ -283,7 +283,7 @@ func toDraftSteps(items []*v1.CreateRecipeDraftStep) []airuntime.DraftStep {
 	return result
 }
 
-func toProtoMediaAsset(model *data.MediaAsset) *v1.MediaAsset {
+func ToProtoMediaAsset(model *data.MediaAsset) *v1.MediaAsset {
 	if model == nil {
 		return nil
 	}
@@ -299,13 +299,13 @@ func toProtoMediaAsset(model *data.MediaAsset) *v1.MediaAsset {
 		ObjectKey:   model.ObjectKey,
 		StorageUrl:  model.StorageURL,
 		Source:      model.Source,
-		Metadata:    jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:   toTimestamp(model.CreatedAt),
-		UpdatedAt:   toTimestamp(model.UpdatedAt),
+		Metadata:    JsonMapToStruct(model.MetadataJSON),
+		CreatedAt:   ToTimestamp(model.CreatedAt),
+		UpdatedAt:   ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoImportJob(model *data.ImportJob) *v1.ImportJob {
+func ToProtoImportJob(model *data.ImportJob) *v1.ImportJob {
 	if model == nil {
 		return nil
 	}
@@ -317,15 +317,15 @@ func toProtoImportJob(model *data.ImportJob) *v1.ImportJob {
 		Status:            model.Status,
 		Stage:             model.Stage,
 		RecipeId:          model.RecipeID,
-		InputPayload:      jsonBytesToStruct(model.InputPayload),
-		NormalizedPayload: jsonBytesToStruct(model.NormalizedPayload),
+		InputPayload:      JsonBytesToStruct(model.InputPayload),
+		NormalizedPayload: JsonBytesToStruct(model.NormalizedPayload),
 		ErrorMessage:      model.ErrorMessage,
-		CreatedAt:         toTimestamp(model.CreatedAt),
-		UpdatedAt:         toTimestamp(model.UpdatedAt),
+		CreatedAt:         ToTimestamp(model.CreatedAt),
+		UpdatedAt:         ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoKnowledgeBase(model *data.KnowledgeBase) *v1.KnowledgeBase {
+func ToProtoKnowledgeBase(model *data.KnowledgeBase) *v1.KnowledgeBase {
 	if model == nil {
 		return nil
 	}
@@ -337,13 +337,13 @@ func toProtoKnowledgeBase(model *data.KnowledgeBase) *v1.KnowledgeBase {
 		Status:           model.Status,
 		DefaultTopK:      int32(model.DefaultTopK),
 		DefaultChunkSize: int32(model.DefaultChunkSize),
-		Metadata:         jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:        toTimestamp(model.CreatedAt),
-		UpdatedAt:        toTimestamp(model.UpdatedAt),
+		Metadata:         JsonMapToStruct(model.MetadataJSON),
+		CreatedAt:        ToTimestamp(model.CreatedAt),
+		UpdatedAt:        ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoKnowledgeDocument(model *data.KnowledgeDocument) *v1.KnowledgeDocument {
+func ToProtoKnowledgeDocument(model *data.KnowledgeDocument) *v1.KnowledgeDocument {
 	if model == nil {
 		return nil
 	}
@@ -359,15 +359,15 @@ func toProtoKnowledgeDocument(model *data.KnowledgeDocument) *v1.KnowledgeDocume
 		Status:          model.Status,
 		TextContent:     model.TextContent,
 		Summary:         model.Summary,
-		Metadata:        jsonMapToStruct(model.MetadataJSON),
-		CreatedAt:       toTimestamp(model.CreatedAt),
-		UpdatedAt:       toTimestamp(model.UpdatedAt),
+		Metadata:        JsonMapToStruct(model.MetadataJSON),
+		CreatedAt:       ToTimestamp(model.CreatedAt),
+		UpdatedAt:       ToTimestamp(model.UpdatedAt),
 		ProcessingStage: model.ProcessingStage,
 		ChunkCount:      int32(model.ChunkCount),
 	}
 }
 
-func toProtoAISession(model *data.AISession) *v1.AISession {
+func ToProtoAISession(model *data.AISession) *v1.AISession {
 	if model == nil {
 		return nil
 	}
@@ -378,13 +378,13 @@ func toProtoAISession(model *data.AISession) *v1.AISession {
 		RecipeId:    model.RecipeID,
 		Scene:       model.Scene,
 		Title:       model.Title,
-		Context:     jsonMapToStruct(model.ContextJSON),
-		CreatedAt:   toTimestamp(model.CreatedAt),
-		UpdatedAt:   toTimestamp(model.UpdatedAt),
+		Context:     JsonMapToStruct(model.ContextJSON),
+		CreatedAt:   ToTimestamp(model.CreatedAt),
+		UpdatedAt:   ToTimestamp(model.UpdatedAt),
 	}
 }
 
-func toProtoAIMessage(model *data.AIMessage) *v1.AIMessage {
+func ToProtoAIMessage(model *data.AIMessage) *v1.AIMessage {
 	if model == nil {
 		return nil
 	}
@@ -409,16 +409,16 @@ func toProtoAIMessage(model *data.AIMessage) *v1.AIMessage {
 		Role:            model.Role,
 		Content:         model.Content,
 		Mode:            model.Mode,
-		QuoteContext:    toProtoQuoteContext(quote),
-		Attachments:     toProtoAttachments(attachments),
-		ResponseSources: toProtoSources(sources),
-		CreatedAt:       toTimestamp(model.CreatedAt),
-		UpdatedAt:       toTimestamp(model.UpdatedAt),
-		ResponseMeta:    jsonMapToStruct(envelope.Metadata),
+		QuoteContext:    ToProtoQuoteContext(quote),
+		Attachments:     ToProtoAttachments(attachments),
+		ResponseSources: ToProtoSources(sources),
+		CreatedAt:       ToTimestamp(model.CreatedAt),
+		UpdatedAt:       ToTimestamp(model.UpdatedAt),
+		ResponseMeta:    JsonMapToStruct(envelope.Metadata),
 	}
 }
 
-func toProtoQuoteContext(model airuntime.QuoteContext) *v1.QuoteContext {
+func ToProtoQuoteContext(model airuntime.QuoteContext) *v1.QuoteContext {
 	if model == (airuntime.QuoteContext{}) {
 		return nil
 	}
@@ -430,7 +430,7 @@ func toProtoQuoteContext(model airuntime.QuoteContext) *v1.QuoteContext {
 	}
 }
 
-func fromProtoQuoteContext(model *v1.QuoteContext) airuntime.QuoteContext {
+func FromProtoQuoteContext(model *v1.QuoteContext) airuntime.QuoteContext {
 	if model == nil {
 		return airuntime.QuoteContext{}
 	}
@@ -442,7 +442,7 @@ func fromProtoQuoteContext(model *v1.QuoteContext) airuntime.QuoteContext {
 	}
 }
 
-func toProtoAttachments(items []airuntime.Attachment) []*v1.Attachment {
+func ToProtoAttachments(items []airuntime.Attachment) []*v1.Attachment {
 	result := make([]*v1.Attachment, 0, len(items))
 	for _, item := range items {
 		result = append(result, &v1.Attachment{
@@ -456,7 +456,7 @@ func toProtoAttachments(items []airuntime.Attachment) []*v1.Attachment {
 	return result
 }
 
-func fromProtoAttachments(items []*v1.Attachment) []airuntime.Attachment {
+func FromProtoAttachments(items []*v1.Attachment) []airuntime.Attachment {
 	result := make([]airuntime.Attachment, 0, len(items))
 	for _, item := range items {
 		result = append(result, airuntime.Attachment{
@@ -470,7 +470,7 @@ func fromProtoAttachments(items []*v1.Attachment) []airuntime.Attachment {
 	return result
 }
 
-func toProtoSources(items []airuntime.Source) []*v1.Source {
+func ToProtoSources(items []airuntime.Source) []*v1.Source {
 	result := make([]*v1.Source, 0, len(items))
 	for _, item := range items {
 		result = append(result, &v1.Source{
@@ -482,7 +482,7 @@ func toProtoSources(items []airuntime.Source) []*v1.Source {
 	return result
 }
 
-func jsonArrayToStrings(raw []byte) []string {
+func JsonArrayToStrings(raw []byte) []string {
 	if len(raw) == 0 {
 		return nil
 	}
@@ -493,7 +493,7 @@ func jsonArrayToStrings(raw []byte) []string {
 	return nil
 }
 
-func jsonMapToStruct(raw map[string]any) *structpb.Struct {
+func JsonMapToStruct(raw map[string]any) *structpb.Struct {
 	if len(raw) == 0 {
 		return nil
 	}
@@ -504,7 +504,7 @@ func jsonMapToStruct(raw map[string]any) *structpb.Struct {
 	return value
 }
 
-func jsonBytesToStruct(raw []byte) *structpb.Struct {
+func JsonBytesToStruct(raw []byte) *structpb.Struct {
 	if len(raw) == 0 {
 		return nil
 	}
@@ -512,10 +512,10 @@ func jsonBytesToStruct(raw []byte) *structpb.Struct {
 	if err := json.Unmarshal(raw, &payload); err != nil {
 		return nil
 	}
-	return jsonMapToStruct(payload)
+	return JsonMapToStruct(payload)
 }
 
-func structToJSONRaw(value *structpb.Struct) json.RawMessage {
+func StructToJSONRaw(value *structpb.Struct) json.RawMessage {
 	if value == nil {
 		return nil
 	}
@@ -526,13 +526,13 @@ func structToJSONRaw(value *structpb.Struct) json.RawMessage {
 	return payload
 }
 
-func toTimestamp(value time.Time) *timestamppb.Timestamp {
+func ToTimestamp(value time.Time) *timestamppb.Timestamp {
 	if value.IsZero() {
 		return nil
 	}
 	return timestamppb.New(value)
 }
 
-func stringifyInt64(value int64) string {
+func StringifyInt64(value int64) string {
 	return strconv.FormatInt(value, 10)
 }

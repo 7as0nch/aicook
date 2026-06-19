@@ -21,7 +21,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/platform/airuntime/rag"
 	"github.com/chengjiang/aicook/backend/internal/platform/embeddings"
 	"github.com/chengjiang/aicook/backend/internal/platform/storage"
-	"github.com/chengjiang/aicook/backend/internal/utils"
+	"github.com/7as0nch/gocommon/utils"
 	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
 )

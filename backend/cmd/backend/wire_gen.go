@@ -16,7 +16,10 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/data"
 	"github.com/chengjiang/aicook/backend/internal/platform/wechat"
 	"github.com/chengjiang/aicook/backend/internal/server"
-	"github.com/chengjiang/aicook/backend/internal/service"
+	ai2 "github.com/chengjiang/aicook/backend/internal/service/ai"
+	kitchen2 "github.com/chengjiang/aicook/backend/internal/service/kitchen"
+	recipe2 "github.com/chengjiang/aicook/backend/internal/service/recipe"
+	user2 "github.com/chengjiang/aicook/backend/internal/service/user"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -39,10 +42,10 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	}
 	mediaUsecase := user.NewMediaUsecase(mediaRepo, objectStorage, cfg)
 	client := wechat.NewClientFromConfig(cfg)
-	authService := service.NewAuthService(authUsecase, mediaUsecase, client)
+	authService := user2.NewAuthService(authUsecase, mediaUsecase, client)
 	householdRepo := data.NewHouseholdRepo(db)
 	householdUsecase := user.NewHouseholdUsecase(householdRepo)
-	householdService := service.NewHouseholdService(householdUsecase, mediaUsecase)
+	householdService := user2.NewHouseholdService(householdUsecase, mediaUsecase)
 	recipeRepo := data.NewRecipeRepo(db)
 	redisClient, cleanup3, err := data.NewRedis(cfg)
 	if err != nil {
@@ -57,14 +60,14 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	recommendUsecase := recipe.NewRecommendUsecase(recipeRepo, householdRepo, kitchenOpsRepo, cookingHistoryRepo, householdUsecase, runtime)
 	recipeFavoriteRepo := data.NewRecipeFavoriteRepo(db)
 	recipeFavoriteUsecase := recipe.NewRecipeFavoriteUsecase(recipeFavoriteRepo, recipeRepo)
-	recipeService := service.NewRecipeService(recipeUsecase, mediaUsecase, recommendUsecase, recipeFavoriteUsecase)
-	mediaService := service.NewMediaService(mediaUsecase)
+	recipeService := recipe2.NewRecipeService(recipeUsecase, mediaUsecase, recommendUsecase, recipeFavoriteUsecase)
+	mediaService := user2.NewMediaService(mediaUsecase)
 	asrClient := data.NewASRClient(cfg)
 	voiceUsecase := ai.NewVoiceUsecase(mediaRepo, objectStorage, asrClient)
-	voiceService := service.NewVoiceService(voiceUsecase)
+	voiceService := ai2.NewVoiceService(voiceUsecase)
 	importRepo := data.NewImportRepo(db)
 	importUsecase := recipe.NewImportUsecase(importRepo, mediaRepo, mediaUsecase, recipeRepo, objectStorage, runtime)
-	importService := service.NewImportService(importUsecase)
+	importService := recipe2.NewImportService(importUsecase)
 	knowledgeRepo := data.NewKnowledgeRepo(db)
 	embeddingsClient := data.NewEmbeddingClient(cfg)
 	knowledgeUsecase := ai.NewKnowledgeUsecase(knowledgeRepo, mediaRepo, recipeRepo, objectStorage, cfg, runtime, embeddingsClient)
@@ -72,12 +75,12 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	cookingProgressStore := data.NewCookingProgressStore(redisClient)
 	cookingProgressUsecase := kitchen.NewCookingProgressUsecase(recipeRepo, cookingProgressStore)
 	aiUsecase := ai.NewAIUsecase(aiRepo, runtime, cookingProgressUsecase, knowledgeUsecase)
-	knowledgeService := service.NewKnowledgeService(knowledgeUsecase, aiUsecase)
-	aiService := service.NewAIService(aiUsecase, mediaUsecase)
-	cookingService := service.NewCookingService(cookingProgressUsecase, mediaUsecase)
+	knowledgeService := ai2.NewKnowledgeService(knowledgeUsecase, aiUsecase)
+	aiService := ai2.NewAIService(aiUsecase, mediaUsecase)
+	cookingService := kitchen2.NewCookingService(cookingProgressUsecase, mediaUsecase)
 	kitchenOpsUsecase := kitchen.NewKitchenOpsUsecase(kitchenOpsRepo, recipeRepo, householdRepo, recommendUsecase)
 	cookingHistoryUsecase := kitchen.NewCookingHistoryUsecase(cookingHistoryRepo, recipeRepo, cookingProgressUsecase)
-	kitchenService := service.NewKitchenService(kitchenOpsUsecase, mediaUsecase, cookingHistoryUsecase)
+	kitchenService := kitchen2.NewKitchenService(kitchenOpsUsecase, mediaUsecase, cookingHistoryUsecase)
 	aiChatHandler := server.NewAIChatHandler(aiUsecase, knowledgeUsecase, authRepo)
 	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService, aiChatHandler)
 	grpcServer := server.NewGRPCServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService)

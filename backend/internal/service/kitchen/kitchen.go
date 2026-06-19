@@ -1,4 +1,4 @@
-package service
+package kitchen
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/kitchen"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -248,7 +249,7 @@ func (s *KitchenService) ListInventoryRecommendations(ctx context.Context, req *
 				raw.CoverImageURL = signed
 			}
 		}
-		pr := toProtoRecipe(raw)
+		pr := convert.ToProtoRecipe(raw)
 		var matched []string
 		if arr, ok := m["matched_items"].([]string); ok {
 			matched = arr
@@ -272,8 +273,8 @@ func (s *KitchenService) CreateRecipeShare(ctx context.Context, req *v1.CreateRe
 	if err != nil {
 		return nil, err
 	}
-	detailProto := toProtoRecipeDetail(detail)
-	signRecipeDetailMediaURLs(ctx, s.media, detailProto)
+	detailProto := convert.ToProtoRecipeDetail(detail)
+	convert.SignRecipeDetailMediaURLs(ctx, s.media, detailProto)
 	return &v1.CreateRecipeShareReply{
 		Share: &v1.RecipeShareSummary{
 			Id:        share.ID,
@@ -294,8 +295,8 @@ func (s *KitchenService) PreviewRecipeShare(ctx context.Context, req *v1.Preview
 	if err != nil {
 		return nil, err
 	}
-	detailProto := toProtoRecipeDetail(detail)
-	signRecipeDetailMediaURLs(ctx, s.media, detailProto)
+	detailProto := convert.ToProtoRecipeDetail(detail)
+	convert.SignRecipeDetailMediaURLs(ctx, s.media, detailProto)
 	return &v1.PreviewRecipeShareReply{
 		Share: &v1.RecipeShareSummary{
 			Id:        share.ID,
@@ -316,8 +317,8 @@ func (s *KitchenService) ImportRecipeShare(ctx context.Context, req *v1.ImportRe
 	if err != nil {
 		return nil, err
 	}
-	r := toProtoRecipe(recipe)
-	signRecipeMediaURLs(ctx, s.media, r)
+	r := convert.ToProtoRecipe(recipe)
+	convert.SignRecipeMediaURLs(ctx, s.media, r)
 	return &v1.ImportRecipeShareReply{Recipe: r}, nil
 }
 

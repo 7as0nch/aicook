@@ -13,7 +13,7 @@ import (
 
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/data"
-	"github.com/chengjiang/aicook/backend/internal/utils"
+	"github.com/7as0nch/gocommon/utils"
 )
 
 type HouseholdUsecase struct {

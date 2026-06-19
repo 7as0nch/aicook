@@ -1,4 +1,4 @@
-package service
+package ai
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/ai"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 )
 
 type AIService struct {
@@ -28,34 +29,34 @@ func (s *AIService) CreateSession(ctx context.Context, req *v1.CreateSessionRequ
 		Scene:       req.GetScene(),
 		Title:       req.GetTitle(),
 		RecipeID:    req.RecipeId,
-		ContextJSON: structToJSONRaw(req.GetContext()),
+		ContextJSON: convert.StructToJSONRaw(req.GetContext()),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateSessionReply{Session: toProtoAISession(session)}, nil
+	return &v1.CreateSessionReply{Session: convert.ToProtoAISession(session)}, nil
 }
 
 func (s *AIService) SendMessage(ctx context.Context, req *v1.SendMessageRequest) (*v1.SendMessageReply, error) {
 	reply, err := s.usecase.SendMessage(ctx, req.GetSessionId(), ai.SendMessageRequest{
 		Text:         req.GetText(),
 		Scene:        req.GetScene(),
-		Attachments:  fromProtoAttachments(req.GetAttachments()),
-		QuoteContext: fromProtoQuoteContext(req.GetQuoteContext()),
+		Attachments:  convert.FromProtoAttachments(req.GetAttachments()),
+		QuoteContext: convert.FromProtoQuoteContext(req.GetQuoteContext()),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	userMsg := toProtoAIMessage(reply.User)
-	signAIMessageMedia(ctx, s.media, userMsg)
+	userMsg := convert.ToProtoAIMessage(reply.User)
+	convert.SignAIMessageMedia(ctx, s.media, userMsg)
 	return &v1.SendMessageReply{
-		Session:          toProtoAISession(reply.Session),
+		Session:          convert.ToProtoAISession(reply.Session),
 		UserMessage:      userMsg,
-		AssistantMessage: toProtoAIMessage(reply.Assistant),
+		AssistantMessage: convert.ToProtoAIMessage(reply.Assistant),
 		ReplyContent:     reply.Reply.Content,
 		ReplyMode:        string(reply.Reply.Mode),
-		ReplySources:     toProtoSources(reply.Reply.Sources),
+		ReplySources:     convert.ToProtoSources(reply.Reply.Sources),
 	}, nil
 }
 
@@ -72,7 +73,7 @@ func (s *AIService) ListSessions(ctx context.Context, req *v1.ListSessionsReques
 		Sessions: make([]*v1.AISession, 0, len(sessions)),
 	}
 	for _, session := range sessions {
-		reply.Sessions = append(reply.Sessions, toProtoAISession(session))
+		reply.Sessions = append(reply.Sessions, convert.ToProtoAISession(session))
 	}
 	return reply, nil
 }
@@ -88,13 +89,13 @@ func (s *AIService) ListMessages(ctx context.Context, req *v1.ListMessagesReques
 	}
 
 	reply := &v1.ListMessagesReply{
-		Session:  toProtoAISession(session),
+		Session:  convert.ToProtoAISession(session),
 		Messages: make([]*v1.AIMessage, 0, len(messages)),
 		HasMore:  hasMore,
 	}
 	for _, message := range messages {
-		pm := toProtoAIMessage(message)
-		signAIMessageMedia(ctx, s.media, pm) // 历史图片附件按 host/path 重签，前端可直接预览
+		pm := convert.ToProtoAIMessage(message)
+		convert.SignAIMessageMedia(ctx, s.media, pm) // 历史图片附件按 host/path 重签，前端可直接预览
 		reply.Messages = append(reply.Messages, pm)
 	}
 	return reply, nil

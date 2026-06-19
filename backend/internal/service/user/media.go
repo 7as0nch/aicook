@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 )
 
 type MediaService struct {
@@ -49,7 +50,7 @@ func (s *MediaService) CompleteMediaUpload(ctx context.Context, req *v1.Complete
 	if err != nil {
 		return nil, err
 	}
-	protoAsset := toProtoMediaAsset(asset)
+	protoAsset := convert.ToProtoMediaAsset(asset)
 	if protoAsset.GetStorageUrl() != "" {
 		if signed, err := s.usecase.SignMediaURL(ctx, protoAsset.GetStorageUrl()); err == nil && signed != "" {
 			protoAsset.StorageUrl = signed

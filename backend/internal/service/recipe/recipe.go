@@ -1,4 +1,4 @@
-package service
+package recipe
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/biz/recipe"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 )
 
 type RecipeService struct {
@@ -57,8 +58,8 @@ func (s *RecipeService) ListRecipes(ctx context.Context, req *v1.ListRecipesRequ
 
 	recipes := make([]*v1.Recipe, 0, len(items))
 	for _, item := range items {
-		r := toProtoRecipe(item)
-		signRecipeMediaURLs(ctx, s.media, r)
+		r := convert.ToProtoRecipe(item)
+		convert.SignRecipeMediaURLs(ctx, s.media, r)
 		recipes = append(recipes, r)
 	}
 	s.injectFavoredBatch(ctx, recipes)
@@ -71,8 +72,8 @@ func (s *RecipeService) GetRecipeDetail(ctx context.Context, req *v1.GetRecipeDe
 	if err != nil {
 		return nil, err
 	}
-	out := toProtoRecipeDetail(detail)
-	signRecipeDetailMediaURLs(ctx, s.media, out)
+	out := convert.ToProtoRecipeDetail(detail)
+	convert.SignRecipeDetailMediaURLs(ctx, s.media, out)
 	// 注入收藏标记
 	if out != nil && out.GetRecipe() != nil && s.favorite != nil && actor.UserID > 0 {
 		if favored, _ := s.favorite.IsFavored(ctx, actor.HouseholdID, actor.UserID, req.GetId()); favored {
@@ -98,14 +99,14 @@ func (s *RecipeService) CreateRecipeDraft(ctx context.Context, req *v1.CreateRec
 		FlavorTags:       req.GetFlavorTags(),
 		GalleryImageURLs: req.GetGalleryImageUrls(),
 		VideoURL:         req.GetVideoUrl(),
-		Ingredients:      toDraftIngredients(req.GetIngredients()),
-		Steps:            toDraftSteps(req.GetSteps()),
+		Ingredients:      convert.ToDraftIngredients(req.GetIngredients()),
+		Steps:            convert.ToDraftSteps(req.GetSteps()),
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := toProtoRecipeDetail(detail)
-	signRecipeDetailMediaURLs(ctx, s.media, out)
+	out := convert.ToProtoRecipeDetail(detail)
+	convert.SignRecipeDetailMediaURLs(ctx, s.media, out)
 	return &v1.CreateRecipeDraftReply{Detail: out}, nil
 }
 
@@ -131,14 +132,14 @@ func (s *RecipeService) UpdateRecipe(ctx context.Context, req *v1.UpdateRecipeRe
 		ScenarioTags:     req.GetScenarioTags(),
 		FlavorTags:       req.GetFlavorTags(),
 		MetadataJSON:     meta,
-		Ingredients:      toDraftIngredients(req.GetIngredients()),
-		Steps:            toDraftSteps(req.GetSteps()),
+		Ingredients:      convert.ToDraftIngredients(req.GetIngredients()),
+		Steps:            convert.ToDraftSteps(req.GetSteps()),
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := toProtoRecipeDetail(detail)
-	signRecipeDetailMediaURLs(ctx, s.media, out)
+	out := convert.ToProtoRecipeDetail(detail)
+	convert.SignRecipeDetailMediaURLs(ctx, s.media, out)
 	return &v1.UpdateRecipeReply{Detail: out}, nil
 }
 
@@ -182,8 +183,8 @@ func (s *RecipeService) PublishRecipe(ctx context.Context, req *v1.PublishRecipe
 	if err != nil {
 		return nil, err
 	}
-	r := toProtoRecipe(rec)
-	signRecipeMediaURLs(ctx, s.media, r)
+	r := convert.ToProtoRecipe(rec)
+	convert.SignRecipeMediaURLs(ctx, s.media, r)
 	return &v1.PublishRecipeReply{Recipe: r}, nil
 }
 
@@ -207,8 +208,8 @@ func (s *RecipeService) ListTodayRecipes(ctx context.Context, req *v1.ListTodayR
 		if it == nil || it.Recipe == nil {
 			continue
 		}
-		r := toProtoRecipe(it.Recipe)
-		signRecipeMediaURLs(ctx, s.media, r)
+		r := convert.ToProtoRecipe(it.Recipe)
+		convert.SignRecipeMediaURLs(ctx, s.media, r)
 		reasons := make([]*v1.TodayRecipeReason, 0, len(it.Reasons))
 		for _, reason := range it.Reasons {
 			reasons = append(reasons, &v1.TodayRecipeReason{Kind: reason.Kind, Label: reason.Label})
@@ -232,8 +233,8 @@ func (s *RecipeService) AddRecipeFavorite(ctx context.Context, req *v1.AddRecipe
 	if err != nil {
 		return nil, err
 	}
-	r := toProtoRecipe(recipe)
-	signRecipeMediaURLs(ctx, s.media, r)
+	r := convert.ToProtoRecipe(recipe)
+	convert.SignRecipeMediaURLs(ctx, s.media, r)
 	if r != nil {
 		r.Favored = true
 	}
@@ -256,8 +257,8 @@ func (s *RecipeService) ListMyFavorites(ctx context.Context, req *v1.ListMyFavor
 	}
 	out := make([]*v1.Recipe, 0, len(recipes))
 	for _, item := range recipes {
-		r := toProtoRecipe(item)
-		signRecipeMediaURLs(ctx, s.media, r)
+		r := convert.ToProtoRecipe(item)
+		convert.SignRecipeMediaURLs(ctx, s.media, r)
 		if r != nil {
 			r.Favored = true
 		}

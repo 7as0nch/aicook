@@ -1,4 +1,4 @@
-package service
+package kitchen
 
 import (
 	"context"

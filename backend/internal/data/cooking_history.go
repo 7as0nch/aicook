@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/chengjiang/aicook/backend/internal/utils"
+	"github.com/7as0nch/gocommon/utils"
 )
 
 // CookingHistoryRepo 负责烹饪历史记录的持久化与读取，独立于 CookingProgress（后者是临时性正在做菜的状态）。

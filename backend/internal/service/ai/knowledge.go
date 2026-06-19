@@ -1,4 +1,4 @@
-package service
+package ai
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/ai"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/data"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 )
 
@@ -33,7 +34,7 @@ func (s *KnowledgeService) CreateKnowledgeBase(ctx context.Context, req *v1.Crea
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateKnowledgeBaseReply{Base: toProtoKnowledgeBase(base)}, nil
+	return &v1.CreateKnowledgeBaseReply{Base: convert.ToProtoKnowledgeBase(base)}, nil
 }
 
 func (s *KnowledgeService) ListKnowledgeBases(ctx context.Context, _ *v1.ListKnowledgeBasesRequest) (*v1.ListKnowledgeBasesReply, error) {
@@ -45,7 +46,7 @@ func (s *KnowledgeService) ListKnowledgeBases(ctx context.Context, _ *v1.ListKno
 
 	bases := make([]*v1.KnowledgeBase, 0, len(items))
 	for _, item := range items {
-		bases = append(bases, toProtoKnowledgeBase(item))
+		bases = append(bases, convert.ToProtoKnowledgeBase(item))
 	}
 	return &v1.ListKnowledgeBasesReply{Bases: bases}, nil
 }
@@ -59,7 +60,7 @@ func (s *KnowledgeService) CreateKnowledgeDocument(ctx context.Context, req *v1.
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateKnowledgeDocumentReply{Document: toProtoKnowledgeDocument(document)}, nil
+	return &v1.CreateKnowledgeDocumentReply{Document: convert.ToProtoKnowledgeDocument(document)}, nil
 }
 
 func (s *KnowledgeService) ListKnowledgeDocuments(ctx context.Context, req *v1.ListKnowledgeDocumentsRequest) (*v1.ListKnowledgeDocumentsReply, error) {
@@ -70,7 +71,7 @@ func (s *KnowledgeService) ListKnowledgeDocuments(ctx context.Context, req *v1.L
 
 	documents := make([]*v1.KnowledgeDocument, 0, len(items))
 	for _, item := range items {
-		documents = append(documents, toProtoKnowledgeDocument(item))
+		documents = append(documents, convert.ToProtoKnowledgeDocument(item))
 	}
 	return &v1.ListKnowledgeDocumentsReply{Documents: documents}, nil
 }
@@ -89,7 +90,7 @@ func (s *KnowledgeService) QueryKnowledgeBase(ctx context.Context, req *v1.Query
 	}
 	return &v1.QueryKnowledgeBaseReply{
 		Answer:  result.Answer,
-		Sources: toProtoSources(result.Sources),
+		Sources: convert.ToProtoSources(result.Sources),
 		Mode:    result.Mode,
 	}, nil
 }
@@ -217,7 +218,7 @@ func toProtoHouseholdAIMemory(m *data.HouseholdAIMemory) *v1.HouseholdAIMemory {
 		Content:   m.Content,
 		Source:    m.Source,
 		UserId:    uid,
-		CreatedAt: toTimestamp(m.CreatedAt),
-		UpdatedAt: toTimestamp(m.UpdatedAt),
+		CreatedAt: convert.ToTimestamp(m.CreatedAt),
+		UpdatedAt: convert.ToTimestamp(m.UpdatedAt),
 	}
 }

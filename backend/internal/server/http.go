@@ -17,7 +17,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/chengjiang/aicook/backend/internal/conf"
-	svc "github.com/chengjiang/aicook/backend/internal/service"
+	svcai "github.com/chengjiang/aicook/backend/internal/service/ai"
+	svckitchen "github.com/chengjiang/aicook/backend/internal/service/kitchen"
+	svcrecipe "github.com/chengjiang/aicook/backend/internal/service/recipe"
+	svcuser "github.com/chengjiang/aicook/backend/internal/service/user"
 )
 
 type Registrar interface {
@@ -49,7 +52,7 @@ func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratosht
 	return server
 }
 
-func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svc.AuthService, householdSvc *svc.HouseholdService, recipeSvc *svc.RecipeService, mediaSvc *svc.MediaService, voiceSvc *svc.VoiceService, importSvc *svc.ImportService, knowledgeSvc *svc.KnowledgeService, aiSvc *svc.AIService, cookingSvc *svc.CookingService, kitchenSvc *svc.KitchenService, chatHandler *AIChatHandler) *kratoshttp.Server {
+func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svcuser.AuthService, householdSvc *svcuser.HouseholdService, recipeSvc *svcrecipe.RecipeService, mediaSvc *svcuser.MediaService, voiceSvc *svcai.VoiceService, importSvc *svcrecipe.ImportService, knowledgeSvc *svcai.KnowledgeService, aiSvc *svcai.AIService, cookingSvc *svckitchen.CookingService, kitchenSvc *svckitchen.KitchenService, chatHandler *AIChatHandler) *kratoshttp.Server {
 	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second

@@ -1,4 +1,4 @@
-package service
+package recipe
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	v1 "github.com/chengjiang/aicook/backend/api/aicook/v1"
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/biz/recipe"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 )
 
 type ImportService struct {
@@ -31,7 +32,7 @@ func (s *ImportService) CreateImageRecipe(ctx context.Context, req *v1.CreateIma
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CreateImageRecipeReply{Job: toProtoImportJob(job)}, nil
+	return &v1.CreateImageRecipeReply{Job: convert.ToProtoImportJob(job)}, nil
 }
 
 func (s *ImportService) GetImportJob(ctx context.Context, req *v1.GetImportJobRequest) (*v1.GetImportJobReply, error) {
@@ -39,5 +40,5 @@ func (s *ImportService) GetImportJob(ctx context.Context, req *v1.GetImportJobRe
 	if err != nil {
 		return nil, err
 	}
-	return &v1.GetImportJobReply{Job: toProtoImportJob(job)}, nil
+	return &v1.GetImportJobReply{Job: convert.ToProtoImportJob(job)}, nil
 }

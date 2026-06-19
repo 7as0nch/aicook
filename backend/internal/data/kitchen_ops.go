@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/chengjiang/aicook/backend/internal/utils"
+	"github.com/7as0nch/gocommon/utils"
 )
 
 type KitchenOpsRepo struct {

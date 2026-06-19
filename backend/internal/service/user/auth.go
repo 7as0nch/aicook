@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/chengjiang/aicook/backend/internal/biz/common"
 	"github.com/chengjiang/aicook/backend/internal/biz/user"
 	"github.com/chengjiang/aicook/backend/internal/platform/wechat"
+	"github.com/chengjiang/aicook/backend/internal/service/convert"
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 )
 
@@ -36,9 +37,9 @@ func (s *AuthService) Register(ctx context.Context, req *v1.RegisterRequest) (*v
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(ctx, result.User, s.media),
-		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
-		Households:       toProtoHouseholds(result.Households),
+		User:             convert.ToProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: convert.ToProtoHousehold(result.CurrentHousehold),
+		Households:       convert.ToProtoHouseholds(result.Households),
 	}, nil
 }
 
@@ -49,9 +50,9 @@ func (s *AuthService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Auth
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(ctx, result.User, s.media),
-		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
-		Households:       toProtoHouseholds(result.Households),
+		User:             convert.ToProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: convert.ToProtoHousehold(result.CurrentHousehold),
+		Households:       convert.ToProtoHouseholds(result.Households),
 	}, nil
 }
 
@@ -73,9 +74,9 @@ func (s *AuthService) WxLogin(ctx context.Context, req *v1.WxLoginRequest) (*v1.
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(ctx, result.User, s.media),
-		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
-		Households:       toProtoHouseholds(result.Households),
+		User:             convert.ToProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: convert.ToProtoHousehold(result.CurrentHousehold),
+		Households:       convert.ToProtoHouseholds(result.Households),
 	}, nil
 }
 
@@ -86,9 +87,9 @@ func (s *AuthService) GetMe(ctx context.Context, req *v1.GetMeRequest) (*v1.GetM
 		return nil, err
 	}
 	return &v1.GetMeReply{
-		User:             toProtoUser(ctx, result.User, s.media),
-		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
-		Households:       toProtoHouseholds(result.Households),
+		User:             convert.ToProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: convert.ToProtoHousehold(result.CurrentHousehold),
+		Households:       convert.ToProtoHouseholds(result.Households),
 	}, nil
 }
 
@@ -108,9 +109,9 @@ func (s *AuthService) UpdateProfile(ctx context.Context, req *v1.UpdateProfileRe
 		return nil, err
 	}
 	return &v1.GetMeReply{
-		User:             toProtoUser(ctx, result.User, s.media),
-		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
-		Households:       toProtoHouseholds(result.Households),
+		User:             convert.ToProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: convert.ToProtoHousehold(result.CurrentHousehold),
+		Households:       convert.ToProtoHouseholds(result.Households),
 	}, nil
 }
 
@@ -120,7 +121,7 @@ func (s *AuthService) ListMyHouseholds(ctx context.Context, req *v1.ListMyHouseh
 	if err != nil {
 		return nil, err
 	}
-	return &v1.ListMyHouseholdsReply{Households: toProtoHouseholds(items)}, nil
+	return &v1.ListMyHouseholdsReply{Households: convert.ToProtoHouseholds(items)}, nil
 }
 
 func (s *AuthService) SwitchHousehold(ctx context.Context, req *v1.SwitchHouseholdRequest) (*v1.AuthReply, error) {
@@ -130,8 +131,8 @@ func (s *AuthService) SwitchHousehold(ctx context.Context, req *v1.SwitchHouseho
 	}
 	return &v1.AuthReply{
 		Token:            result.Token,
-		User:             toProtoUser(ctx, result.User, s.media),
-		CurrentHousehold: toProtoHousehold(result.CurrentHousehold),
-		Households:       toProtoHouseholds(result.Households),
+		User:             convert.ToProtoUser(ctx, result.User, s.media),
+		CurrentHousehold: convert.ToProtoHousehold(result.CurrentHousehold),
+		Households:       convert.ToProtoHouseholds(result.Households),
 	}, nil
 }
