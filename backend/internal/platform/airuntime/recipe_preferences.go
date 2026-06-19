@@ -26,8 +26,9 @@ func (r *Runtime) generateRecipePreferencePlan(
 		return nil, err
 	}
 
-	// 推理模型在回答前会消耗较多思考 token，20s 容易误杀，放宽到 60s
-	promptCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	// 推理模型在回答前会消耗较多思考 token，60s 仍偶发误杀（context deadline exceeded），
+	// 放宽到 300s；仍远小于整条请求的 1000s 预算，不会无限等待。
+	promptCtx, cancel := context.WithTimeout(ctx, 300*time.Second)
 	defer cancel()
 
 	message, err := r.generateMessage(promptCtx, model, buildRecipePreferencePlanMessages(query, preferences), append(
