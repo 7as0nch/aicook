@@ -34,7 +34,7 @@ param(
   [string]$ImageTag          = 'latest',
   [string]$Platform          = 'linux/amd64',
   [string]$RemoteHost        = 'root@sshjd.aihelper.chat',
-  [int]   $RemotePort        = 837,
+  [int]   $RemotePort        = 22,
   [string]$Namespace         = 'aicook',
   [string]$ApiHost           = 'aicookapi.aihelper.chat',
   [int]   $RolloutTimeoutSec = 180,
