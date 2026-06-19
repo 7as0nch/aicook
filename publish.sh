@@ -13,7 +13,7 @@ PLATFORM="${PLATFORM:-linux/amd64}"
 VERSION_BACKEND="${VERSION_BACKEND:-v0.1.0}"
 VERSION_FRONTEND="${VERSION_FRONTEND:-v0.1.0}"
 REMOTE_HOST="${REMOTE_HOST:-root@sshjd.aihelper.chat}"
-REMOTE_PORT="${REMOTE_PORT:-837}"
+REMOTE_PORT="${REMOTE_PORT:-22}"
 REMOTE_K8S_PATH="${REMOTE_K8S_PATH:-/root/k3s/aicook/aicook.yaml}"
 SKIP_K8S_DEPLOY="${SKIP_K8S_DEPLOY:-false}"
 # 要 apply 的 k8s 清单（默认仓库内 k8s-deployment.yaml；密钥已分离到 Secret，清单可安全 apply）。
