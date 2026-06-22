@@ -6,6 +6,12 @@
 # aicook
 每天回家做饭不知道吃啥吗，上传自己喜欢的菜谱，每日不同推荐，并ai辅助指导。
 
+## 效果展示
+
+| 拍照识别食材 · 智能推荐 | AI 厨艺助理 · 对话生成菜谱 |
+| :---: | :---: |
+| <img src="screenshots/snap-ingredients.jpg" width="280" alt="拍照识别食材，AI 按现有食材智能推荐菜谱" /> | <img src="screenshots/ai-assistant.jpg" width="280" alt="AI 厨艺助理对话式追问偏好并生成菜谱卡片" /> |
+
 # 技术架构
 1. backend:
    1. golang 1.25.3
