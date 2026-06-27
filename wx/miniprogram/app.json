@@ -20,6 +20,8 @@
     "pages/me/preferences/index",
     "pages/me/inventory/index/index",
     "pages/me/history/index/index",
+    "pages/me/feedback/index/index",
+    "pages/me/feedback/submit/index",
     "pages/me/about/index",
     "pages/legal/index",
     "pages/auth/login/index",

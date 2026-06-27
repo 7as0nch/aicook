@@ -1,0 +1,54 @@
+<view class="fb">
+  <custom-navbar title="意见反馈"></custom-navbar>
+
+  <!-- 顶部 CTA -->
+  <view class="fb__cta" bindtap="onSubmitTap">
+    <view class="fb__cta-icon">
+      <image class="fb__cta-icon-img" src="/assets/icons/help.png" mode="aspectFit" />
+    </view>
+    <view class="fb__cta-body">
+      <view class="fb__cta-title">我要反馈</view>
+      <view class="fb__cta-sub">功能建议、问题反馈都可以告诉我们</view>
+    </view>
+    <view class="fb__cta-btn">去反馈</view>
+  </view>
+
+  <!-- 列表 -->
+  <block wx:if="{{items.length}}">
+    <view class="fb__sec-title">我的反馈</view>
+    <view class="fb__card" wx:for="{{items}}" wx:key="id">
+      <view class="fb__card-head">
+        <view class="fb__tag fb__tag--{{item.category}}">{{item.categoryLabel}}</view>
+        <view class="fb__status fb__status--{{item.statusClass}}">{{item.statusLabel}}</view>
+      </view>
+      <view class="fb__content">{{item.content}}</view>
+      <view wx:if="{{item.hasImages}}" class="fb__imgs">
+        <image
+          wx:for="{{item.image_urls}}"
+          wx:for-item="img"
+          wx:key="*this"
+          class="fb__img"
+          src="{{img}}"
+          mode="aspectFill"
+          data-urls="{{item.image_urls}}"
+          data-current="{{img}}"
+          catchtap="onPreviewImage"
+        />
+      </view>
+      <view class="fb__time">{{item.timeLabel}}</view>
+      <view wx:if="{{item.hasReply}}" class="fb__reply">
+        <view class="fb__reply-label">官方回复</view>
+        <view class="fb__reply-text">{{item.admin_reply}}</view>
+      </view>
+    </view>
+    <view wx:if="{{!hasMore}}" class="fb__end">没有更多了</view>
+  </block>
+
+  <!-- 空态 -->
+  <view wx:elif="{{loaded}}" class="fb__empty">
+    <image class="fb__empty-img" src="/assets/mascot/bao-smile.png" mode="aspectFit" />
+    <view class="fb__empty-text">还没有反馈，点上方按钮告诉我们你的想法吧</view>
+  </view>
+
+  <view class="fb__spacer"></view>
+</view>

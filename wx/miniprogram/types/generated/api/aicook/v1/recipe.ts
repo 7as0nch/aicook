@@ -17,7 +17,11 @@ export interface ListRecipesRequest {
     | boolean
     | undefined;
   /** Optional: "draft" | "published". When set, filters by status; takes precedence over exclude_draft. */
-  recipe_status?: string | undefined;
+  recipe_status?:
+    | string
+    | undefined;
+  /** 游标分页：传上一页最后一项 id，只返回 id < before_id 的记录（按 id 倒序）。 */
+  before_id?: string | undefined;
 }
 
 export interface ListRecipesReply {
@@ -106,6 +110,32 @@ export interface DeleteRecipeReply {
   ok?: boolean | undefined;
 }
 
+export interface PublishRecipeRequest {
+  recipe_id?: string | undefined;
+}
+
+export interface PublishRecipeReply {
+  recipe?: Recipe | undefined;
+}
+
+export interface RecommendDishesRequest {
+  ingredients?: string[] | undefined;
+  limit?: number | undefined;
+}
+
+/** DishSuggestion 一道推荐菜：source 为 "library"(库内已有，带 recipe_id) 或 "ai"(即兴新菜)。 */
+export interface DishSuggestion {
+  title?: string | undefined;
+  reason?: string | undefined;
+  source?: string | undefined;
+  recipe_id?: string | undefined;
+  cover_image_url?: string | undefined;
+}
+
+export interface RecommendDishesReply {
+  dishes?: DishSuggestion[] | undefined;
+}
+
 export interface TodayRecipeReason {
   /** kind 例如 "meal_plan" / "preference" / "popular" / "recently_cooked"，前端可用于展示徽章。 */
   kind?: string | undefined;
@@ -172,6 +202,16 @@ export interface RecipeService {
   CreateRecipeDraft(request: CreateRecipeDraftRequest): Promise<CreateRecipeDraftReply>;
   AddRecipeFavorite(request: AddRecipeFavoriteRequest): Promise<AddRecipeFavoriteReply>;
   RemoveRecipeFavorite(request: RemoveRecipeFavoriteRequest): Promise<RemoveRecipeFavoriteReply>;
+  /**
+   * PublishRecipe 把草稿菜谱一键发布为正式菜谱（仅翻 status，不动食材/步骤）。
+   * 用独立 segment /{recipe_id}/publish（仿 favorite），避开 :publish 被当作 {id} 段贪婪匹配。
+   */
+  PublishRecipe(request: PublishRecipeRequest): Promise<PublishRecipeReply>;
+  /**
+   * RecommendDishes 按识别到的食材 + 家庭/成员口味推荐几道菜（先匹配库内已有，不足再 AI 补）。
+   * 固定路径，必须排在 /{id} 通配之前。
+   */
+  RecommendDishes(request: RecommendDishesRequest): Promise<RecommendDishesReply>;
   GetRecipeDetail(request: GetRecipeDetailRequest): Promise<GetRecipeDetailReply>;
   UpdateRecipe(request: UpdateRecipeRequest): Promise<UpdateRecipeReply>;
   DeleteRecipe(request: DeleteRecipeRequest): Promise<DeleteRecipeReply>;

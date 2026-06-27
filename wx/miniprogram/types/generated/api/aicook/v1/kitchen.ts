@@ -112,6 +112,24 @@ export interface GenerateShoppingListReply {
   items?: ShoppingListItem[] | undefined;
 }
 
+export interface ShoppingItemAdd {
+  name?: string | undefined;
+  quantity_text?: string | undefined;
+}
+
+export interface AddShoppingItemsRequest {
+  week_start?: string | undefined;
+  items?: ShoppingItemAdd[] | undefined;
+}
+
+export interface AddShoppingItemsReply {
+  list?:
+    | ShoppingList
+    | undefined;
+  /** 实际新增（去重后）的条目 */
+  items?: ShoppingListItem[] | undefined;
+}
+
 export interface ShoppingList {
   id?: string | undefined;
   meal_plan_id?: string | undefined;
@@ -347,6 +365,8 @@ export interface KitchenService {
   GenerateCurrentMealPlan(request: GenerateCurrentMealPlanRequest): Promise<GenerateCurrentMealPlanReply>;
   GetCurrentShoppingList(request: GetCurrentShoppingListRequest): Promise<GetCurrentShoppingListReply>;
   GenerateShoppingList(request: GenerateShoppingListRequest): Promise<GenerateShoppingListReply>;
+  /** AddShoppingItems 按食材名往当周采购清单追加条目（清单不存在则新建，不依赖 meal plan、不删旧项）。 */
+  AddShoppingItems(request: AddShoppingItemsRequest): Promise<AddShoppingItemsReply>;
   PatchShoppingListItem(request: PatchShoppingListItemRequest): Promise<PatchShoppingListItemReply>;
   CompleteShoppingList(request: CompleteShoppingListRequest): Promise<CompleteShoppingListReply>;
   ListInventoryItems(request: ListInventoryItemsRequest): Promise<ListInventoryItemsReply>;

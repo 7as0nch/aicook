@@ -23,7 +23,16 @@
     "ignoreDevUnusedFiles": false,
     "checkInvalidKey": true,
     "ignoreUploadUnusedFiles": false,
-    "ignoreCompileWarning": true
+    "ignoreCompileWarning": true,
+    "compileWorklet": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
@@ -31,7 +40,7 @@
     "ignore": [],
     "include": []
   },
-  "appid": "wx25c43818e829e7be",
+  "appid": "wxf9cdbc153c9b1bb5",
   "editorSetting": {},
   "libVersion": "3.5.5"
 }

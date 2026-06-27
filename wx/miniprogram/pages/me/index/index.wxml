@@ -92,7 +92,7 @@
       <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
     </view>
     <view class="me__set-divider"></view>
-    <view class="me__set-row" data-url="" bindtap="onMenuTap">
+    <view class="me__set-row" data-url="/pages/me/feedback/index/index" bindtap="onMenuTap">
       <image class="me__set-icon" src="/assets/icons/help.png" mode="aspectFit" />
       <view class="me__set-text">帮助与反馈</view>
       <image class="me__set-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
