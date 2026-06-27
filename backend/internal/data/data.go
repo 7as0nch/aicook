@@ -37,6 +37,7 @@ var ProviderSet = wire.NewSet(
 	NewCookingProgressStore,
 	NewCookingHistoryRepo,
 	NewRecipeFavoriteRepo,
+	NewFeedbackRepo,
 )
 
 func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
@@ -59,7 +60,8 @@ func NewDB(cfg *conf.Bootstrap) (*gorm.DB, func(), error) {
 		//    所以可以安全每次启动跑一遍，自动补齐手写 SQL 漏跑的迁移。
 		//    新增字段时把对应 model 加进这个列表即可。
 		incremental := []any{
-			&model.User{}, // wx_openid / wx_unionid（2026-06 微信登录）
+			&model.User{},     // wx_openid / wx_unionid（2026-06 微信登录）
+			&model.Feedback{}, // 用户意见反馈（2026-06 新增）：已存在业务库时自动建表
 		}
 		if err := db.AutoMigrate(incremental...); err != nil {
 			return nil, nil, err

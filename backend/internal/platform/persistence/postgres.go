@@ -59,5 +59,6 @@ func AutoMigrate(ctx context.Context, db *gorm.DB) error {
 		&model.InventoryItem{},
 		&model.RecipeShare{},
 		&model.CookingHistory{},
+		&model.Feedback{},
 	)
 }

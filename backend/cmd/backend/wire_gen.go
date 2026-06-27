@@ -81,8 +81,11 @@ func initApp(cfg *conf.Bootstrap, logger log.Logger) (*kratos.App, func(), error
 	kitchenOpsUsecase := kitchen.NewKitchenOpsUsecase(kitchenOpsRepo, recipeRepo, householdRepo, recommendUsecase)
 	cookingHistoryUsecase := kitchen.NewCookingHistoryUsecase(cookingHistoryRepo, recipeRepo, cookingProgressUsecase)
 	kitchenService := kitchen2.NewKitchenService(kitchenOpsUsecase, mediaUsecase, cookingHistoryUsecase)
+	feedbackRepo := data.NewFeedbackRepo(db)
+	feedbackUsecase := user.NewFeedbackUsecase(feedbackRepo, mediaUsecase)
+	feedbackService := user2.NewFeedbackService(feedbackUsecase)
 	aiChatHandler := server.NewAIChatHandler(aiUsecase, knowledgeUsecase, authRepo)
-	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService, aiChatHandler)
+	httpServer := server.NewHTTPServer(cfg, logger, authRepo, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService, feedbackService, aiChatHandler)
 	grpcServer := server.NewGRPCServer(cfg, authService, householdService, recipeService, mediaService, voiceService, importService, knowledgeService, aiService, cookingService, kitchenService)
 	app := server.NewApp(cfg, logger, httpServer, grpcServer)
 	return app, func() {

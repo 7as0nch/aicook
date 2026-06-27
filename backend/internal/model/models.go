@@ -398,3 +398,27 @@ type RecipeFavorite struct {
 	UserID      int64 `gorm:"type:bigint;not null;index" json:"user_id,string"`
 	RecipeID    int64 `gorm:"type:bigint;not null;index" json:"recipe_id,string"`
 }
+
+// Feedback 用户意见反馈：用户在小程序提交（类型/正文/截图/联系方式），
+// 落库后可在「我的反馈」回看。Status/AdminReply/RepliedAt 为运营回复预留字段，
+// 暂无后台 UI，开发者直读数据库处理。
+type Feedback struct {
+	BaseModel
+	HouseholdID int64 `gorm:"type:bigint;not null;index" json:"household_id,string"`
+	UserID      int64 `gorm:"type:bigint;not null;index" json:"user_id,string"`
+	// Category 反馈类型："suggestion" | "bug" | "other"，默认 other。
+	Category string `gorm:"size:20;not null;default:'other'" json:"category"`
+	Content  string `gorm:"type:text;not null" json:"content"`
+	// ImageAssetIDs 截图对应的 media_assets.id 列表（JSONB），读时再签名成可访问 URL。
+	ImageAssetIDs datatypes.JSONSlice[int64] `gorm:"type:jsonb" json:"image_asset_ids"`
+	Contact       string                     `gorm:"size:120;not null;default:''" json:"contact"`
+	// Status 处理状态："pending" | "replied" | "closed"，默认 pending（预留）。
+	Status     string     `gorm:"size:20;not null;default:'pending'" json:"status"`
+	AdminReply string     `gorm:"type:text;not null;default:''" json:"admin_reply"`
+	RepliedAt  *time.Time `json:"replied_at,omitempty"`
+}
+
+// TableName 显式指定，避免 GORM 把 Feedback 复数化成 feedbacks。
+func (Feedback) TableName() string {
+	return "feedback"
+}

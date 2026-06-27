@@ -6,4 +6,5 @@ var ProviderSet = wire.NewSet(
 	NewAuthUsecase,
 	NewHouseholdUsecase,
 	NewMediaUsecase,
+	NewFeedbackUsecase,
 )

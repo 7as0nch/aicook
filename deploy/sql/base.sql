@@ -471,6 +471,28 @@ CREATE TABLE IF NOT EXISTS cooking_history (
 );
 
 -- ============================================================================
+-- 7b. 用户意见反馈
+-- ============================================================================
+-- category: suggestion | bug | other（默认 other）
+-- status:   pending | replied | closed（默认 pending；admin_reply/replied_at 为运营回复预留，暂无后台 UI）
+-- image_asset_ids: media_assets.id 数组（截图），读时再签名成可访问 URL
+CREATE TABLE IF NOT EXISTS feedback (
+  id BIGINT PRIMARY KEY,
+  household_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  category VARCHAR(20) NOT NULL DEFAULT 'other',
+  content TEXT NOT NULL,
+  image_asset_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  contact VARCHAR(120) NOT NULL DEFAULT '',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  admin_reply TEXT NOT NULL DEFAULT '',
+  replied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- ============================================================================
 -- 8. 索引
 -- ============================================================================
 
@@ -552,6 +574,11 @@ CREATE INDEX IF NOT EXISTS idx_inventory_items_normalized_name ON inventory_item
 CREATE INDEX IF NOT EXISTS idx_cooking_history_user_completed ON cooking_history(user_id, completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cooking_history_household_completed ON cooking_history(household_id, completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cooking_history_recipe ON cooking_history(recipe_id);
+
+-- 用户意见反馈
+CREATE INDEX IF NOT EXISTS idx_feedback_user_created ON feedback(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_household_created ON feedback(household_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
 
 -- ============================================================================
 -- 9. 种子数据 —— 系统内置（必需）

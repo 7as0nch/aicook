@@ -52,7 +52,7 @@ func NewLegacyHTTPServer(cfg *conf.Bootstrap, registrars ...Registrar) *kratosht
 	return server
 }
 
-func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svcuser.AuthService, householdSvc *svcuser.HouseholdService, recipeSvc *svcrecipe.RecipeService, mediaSvc *svcuser.MediaService, voiceSvc *svcai.VoiceService, importSvc *svcrecipe.ImportService, knowledgeSvc *svcai.KnowledgeService, aiSvc *svcai.AIService, cookingSvc *svckitchen.CookingService, kitchenSvc *svckitchen.KitchenService, chatHandler *AIChatHandler) *kratoshttp.Server {
+func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo, authSvc *svcuser.AuthService, householdSvc *svcuser.HouseholdService, recipeSvc *svcrecipe.RecipeService, mediaSvc *svcuser.MediaService, voiceSvc *svcai.VoiceService, importSvc *svcrecipe.ImportService, knowledgeSvc *svcai.KnowledgeService, aiSvc *svcai.AIService, cookingSvc *svckitchen.CookingService, kitchenSvc *svckitchen.KitchenService, feedbackSvc *svcuser.FeedbackService, chatHandler *AIChatHandler) *kratoshttp.Server {
 	timeout := cfg.GetServer().GetHttp().GetTimeout().AsDuration()
 	if timeout <= 0 {
 		timeout = 15 * time.Second
@@ -92,6 +92,7 @@ func NewHTTPServer(cfg *conf.Bootstrap, logger log.Logger, authRepo gca.AuthRepo
 	v1.RegisterKnowledgeServiceHTTPServer(server, knowledgeSvc)
 	v1.RegisterAIServiceHTTPServer(server, aiSvc)
 	v1.RegisterCookingServiceHTTPServer(server, cookingSvc)
+	v1.RegisterFeedbackServiceHTTPServer(server, feedbackSvc)
 	if kitchenSvc != nil {
 		v1.RegisterKitchenServiceHTTPServer(server, kitchenSvc)
 	}
