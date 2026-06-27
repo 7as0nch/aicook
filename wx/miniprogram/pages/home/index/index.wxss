@@ -84,15 +84,45 @@
   border-radius: 40rpx;
   overflow: hidden;
   /* 用 min-height：内容（含理由行）超出时卡片自适应增高，避免「去查看」被裁/挤出 */
-  min-height: 288rpx;
-  display: flex;
-  align-items: stretch;
+  min-height: 320rpx;
   margin-bottom: 40rpx;
 }
 
+/* 封面铺满整卡作背景层 */
+.home__hero-cover {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(180deg, #FFEAD2 0%, #FFD6AA 100%);
+  overflow: hidden;
+  z-index: 0;
+}
+
+.home__hero-cover-img { width: 100%; height: 100%; }
+
+/* 暗化遮罩：左侧深、向右渐隐，左侧承载文字、右侧露出菜照 */
+.home__hero-scrim {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(95deg,
+    rgba(20, 12, 4, 0.68) 0%,
+    rgba(20, 12, 4, 0.52) 42%,
+    rgba(20, 12, 4, 0.22) 70%,
+    rgba(20, 12, 4, 0) 100%);
+}
+
 .home__hero-body {
-  flex: 1;
-  padding: 36rpx 0 36rpx 40rpx;
+  position: relative;
+  z-index: 2;
+  /* 限制文案宽度，让长标题在左侧深色区内换行，不压到右侧亮图 */
+  width: 72%;
+  padding: 34rpx 0 34rpx 40rpx;
   display: flex;
   flex-direction: column;
 }
@@ -110,32 +140,35 @@
 }
 
 .home__hero-title {
-  font-size: 38rpx;
-  font-weight: 600;
-  color: #1F1B16;
-  line-height: 1.2;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.25;
   margin-bottom: 14rpx;
+  text-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.45);
 }
 
 .home__hero-meta {
   font-size: 24rpx;
-  color: #9B978F;
+  color: rgba(255, 255, 255, 0.86);
   margin-bottom: 16rpx;
+  text-shadow: 0 1rpx 8rpx rgba(0, 0, 0, 0.4);
 }
 
 .home__hero-match {
   display: flex;
   align-items: center;
   font-size: 24rpx;
-  color: #2DBE7A;
+  color: #5FE3A0;
   margin-bottom: 20rpx;
+  text-shadow: 0 1rpx 8rpx rgba(0, 0, 0, 0.4);
 }
 
 .home__hero-dot {
   width: 12rpx;
   height: 12rpx;
   border-radius: 50%;
-  background: #2DBE7A;
+  background: #5FE3A0;
   margin-right: 10rpx;
 }
 
@@ -157,18 +190,6 @@
   height: 22rpx;
   margin-left: 8rpx;
 }
-
-.home__hero-cover {
-  width: 198rpx;
-  height: 228rpx;
-  margin: 30rpx 30rpx 30rpx 0;
-  border-radius: 32rpx;
-  background: linear-gradient(180deg, #FFEAD2 0%, #FFD6AA 100%);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.home__hero-cover-img { width: 100%; height: 100%; }
 
 /* ========== Section head ========== */
 .home__sec-head {

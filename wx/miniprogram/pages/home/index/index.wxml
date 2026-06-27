@@ -23,8 +23,16 @@
     </view>
   </view>
 
-  <!-- 今日推荐 hero 卡：内容 + 右侧菜照 -->
+  <!-- 今日推荐 hero 卡：封面铺满整卡作背景 + 暗化遮罩 + 文案层 -->
   <view wx:if="{{todayRecipe}}" class="home__hero" bindtap="onTodayRecipeTap">
+    <!-- 封面背景（图片 / 视频铺满整卡） -->
+    <view class="home__hero-cover">
+      <video wx:if="{{todayRecipe.cover_image_url && media.isVideo(todayRecipe.cover_image_url)}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" object-fit="cover" autoplay muted loop controls="{{false}}" show-center-play-btn="{{false}}" enable-progress-gesture="{{false}}"></video>
+      <image wx:elif="{{todayRecipe.cover_image_url}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" mode="aspectFill" />
+    </view>
+    <!-- 暗化遮罩：左侧加深、向右渐隐，保证左侧文字可读、右侧露出菜照 -->
+    <view class="home__hero-scrim"></view>
+    <!-- 文案层 -->
     <view class="home__hero-body">
       <view class="home__hero-tag">今日推荐</view>
       <view class="home__hero-title">{{todayRecipe.title}}</view>
@@ -41,10 +49,6 @@
         <text>去查看</text>
         <image class="home__hero-cta-arrow" src="/assets/icons/right.svg" mode="aspectFit" />
       </view>
-    </view>
-    <view class="home__hero-cover">
-      <video wx:if="{{todayRecipe.cover_image_url && media.isVideo(todayRecipe.cover_image_url)}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" object-fit="cover" autoplay muted loop controls="{{false}}" show-center-play-btn="{{false}}" enable-progress-gesture="{{false}}"></video>
-      <image wx:elif="{{todayRecipe.cover_image_url}}" class="home__hero-cover-img" src="{{todayRecipe.cover_image_url}}" mode="aspectFill" />
     </view>
   </view>
 
